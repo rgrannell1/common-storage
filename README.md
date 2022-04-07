@@ -18,3 +18,30 @@ A server with configurable storage-backends (defaults to SQLite) with the follow
 - Fault-tolerant: if a subscriber is offline, that's fine! Common-Storage will notify it according to its `Retry-After` header, and when the node is back online it can fetch any data it does not currently have synced.
 
 - Authenticated: read-write access is restricted by basic authentication.
+
+## Usage
+
+Common-Storage has the following routes
+
+| Method   | Route                       | Description                                           |
+|----------|-----------------------------|-------------------------------------------------------|
+| GET      | `/feed`                     | get topics stats, endpoints published by the server   |
+| GET      | `/subscription`             | get all subscriptions to the server                   |
+| POST     | `/subscription`             | add a subscription                                    |
+| GET      | `/subscription/:id`         | get subscription data                                 |
+| POST     | `/subscription/:id`         | update subscription                                   |
+| DELETE   | `/subscription/:id`         | delete subscription                                   |
+| POST     | `/topic/`                   | create a topic                                        |
+| GET      | `/topic/:name/`             | get a topic description                               |
+| GET      | `/content/:name/`           | get content from a topic                              |
+| POST     | `/content/:name`            | add content to a topic, as part of a batch            |
+
+The workflow is:
+
+- Create a topic (e.g bookmarks) using `POST /topic/bookmarks`
+- Set up subscriptions to this topic using `POST /subscription?topic=bookmarks&hookUrl=https://myserver.com/notify?` 
+- Post some content using `POST /content/bookmarks` under a batch-id (e.g '2022-01-01-photos'). Finalise the batch by posting an empty list
+- When this content is posted, `https://myserver.com/notify` will receive a message that there is new content
+- Call `POST /content/bookmarks?lastId=<your-last-id>` and enumerate through new results.
+
+
