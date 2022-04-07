@@ -1,24 +1,24 @@
-
 import hash from "https://deno.land/x/object_hash/index.ts";
 import { nanoid } from "https://deno.land/x/nanoid/mod.ts";
 
+import * as constants from "./constants.ts";
 import {
   Batches,
-  Contents,
   Content,
+  Contents,
   Event,
+  Retries,
   Subscription,
   Subscriptions,
   Topics,
 } from "./types.ts";
-
-
 
 export class InMemoryStorage {
   topics: Topics = {};
   subscriptions: Subscriptions = {};
   batches: Batches = {};
   content: Contents = {};
+  retries: Retries = {};
   id = 0;
 
   /**
@@ -47,27 +47,27 @@ export class InMemoryStorage {
     const events: Event[] = [];
 
     for (const content of this.content[topicId]) {
-      let id = content.id as number
+      let id = content.id as number;
       if (lastId && id <= lastId) {
-        continue
+        continue;
       }
 
       if (events.length >= size) {
-        break
+        break;
       }
 
-      currentId = content.id as number
+      currentId = content.id as number;
       events.push(content.event);
     }
 
-    const response: {events: Event[], lastId?: number} = {events}
+    const response: { events: Event[]; lastId?: number } = { events };
     if (currentId > 0) {
       response.lastId = currentId;
     } else if (lastId) {
       response.lastId = lastId;
     }
 
-    return response
+    return response;
   }
 
   async addContent(
@@ -75,10 +75,10 @@ export class InMemoryStorage {
     batchId: string,
     events: Event[],
   ): Promise<boolean> {
-    const topic = await this.getTopic(topicId)
+    const topic = await this.getTopic(topicId);
 
     if (!topic) {
-      throw new Error(`topic "${topicId}" does not exist.`)
+      throw new Error(`topic "${topicId}" does not exist.`);
     }
 
     if (!this.batches[batchId]) {
@@ -90,7 +90,9 @@ export class InMemoryStorage {
     const batch = this.batches[batchId];
 
     if (topicId !== batch.topic) {
-      throw new Error(`submitted content with batchId "${batchId}" using ${topicId}, expected ${batch.topic}`);
+      throw new Error(
+        `submitted content with batchId "${batchId}" using ${topicId}, expected ${batch.topic}`,
+      );
     }
 
     if (events.length === 0) {
@@ -99,8 +101,8 @@ export class InMemoryStorage {
         return {
           event,
           hash: hash(event.data),
-          id: this.id++
-        }
+          id: this.id++,
+        };
       }));
       delete this.batches[batchId];
 
@@ -132,7 +134,7 @@ export class InMemoryStorage {
     return {
       topic: await this.getTopic(name),
       stats: {
-        count: this.content[name].length
+        count: this.content[name].length,
       },
     };
   }
@@ -170,5 +172,20 @@ export class InMemoryStorage {
       topic,
       hookUrl,
     };
+  }
+
+  async addRetry(id: string) {
+    this.retries[id] = {
+      subscription: await this.getSubscription(id),
+      after: Date.now() + (constants.RETRY_SECONDS * 1e3),
+    };
+  }
+
+  async getRetries() {
+    return this.retries;
+  }
+
+  async deleteRetry(id: string) {
+    delete this.retries[id];
   }
 }

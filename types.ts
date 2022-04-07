@@ -24,13 +24,14 @@ export type Routes = {
   subscription: Record<string, Route>;
   topic: Record<string, Route>;
   content: Record<string, Route>;
+  notify: Record<string, Route>;
 };
 
 export type Content = {
-  event: Event,
-  id: number,
-  hash: string
-}
+  event: Event;
+  id: number;
+  hash: string;
+};
 
 export type Contents = Record<string, Content[]>;
 
@@ -52,3 +53,10 @@ export type Event = {
   data: Record<string, any>;
   id?: number;
 };
+
+export type Retry = {
+  subscription: Subscription;
+  after: number;
+};
+
+export type Retries = Record<string, Retry>;

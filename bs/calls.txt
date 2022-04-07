@@ -10,3 +10,4 @@ echo '{ "batchId": "wip", "events": [  ] }' | http POST "http://localhost:8080/c
 
 http GET "http://localhost:8080/content/photos?size=2"
 http GET "http://localhost:8080/content/photos?lastId=1&size=20"
+http POST "http://localhost:8080/notify"

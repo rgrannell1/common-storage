@@ -15,6 +15,7 @@ const routes: Routes = {
   subscription: {},
   topic: {},
   content: {},
+  notify: {},
 };
 
 routes.common.auth = (cfg: Config) =>
@@ -69,6 +70,28 @@ routes.subscriptions.post = (cfg: Config) =>
       return;
     }
 
+    try {
+      new URL(hookUrl);
+    } catch {
+      res.status = 422;
+      res.send(JSON.stringify({
+        error: {
+          message: "hookUrl must be a valid URL.",
+        },
+      }));
+      return;
+    }
+
+    if (!await cfg.storage.getTopic(topic)) {
+      res.status = 404;
+      res.send(JSON.stringify({
+        error: {
+          message: `topic '${topic}' does not exist; cannot subscribe to it`,
+        },
+      }));
+      return;
+    }
+
     const id = await cfg.storage.addSubscription(topic, hookUrl);
 
     res.send(JSON.stringify({
@@ -80,6 +103,18 @@ routes.subscription.post = (cfg: Config) =>
   async (req: any, res: any) => {
     const { id } = req.params;
     const { name, hookUrl } = req.query;
+
+    try {
+      new URL(hookUrl);
+    } catch {
+      res.status = 422;
+      res.send(JSON.stringify({
+        error: {
+          message: "hookUrl must be a valid URL.",
+        },
+      }));
+      return;
+    }
 
     await cfg.storage.updateSubscription(id, name, hookUrl);
 
@@ -143,12 +178,16 @@ routes.content.get = (cfg: Config) =>
     const {
       lastId,
       compact = false,
-      size = constants.DEFAULT_SIZE
+      size = constants.DEFAULT_SIZE,
     } = req.query;
 
-    const data = await cfg.storage.getContent(id, parseInt(lastId), parseInt(size), compact);
+    const data = await cfg.storage.getContent(
+      id,
+      parseInt(lastId),
+      parseInt(size),
+    );
 
-    res.send(JSON.stringify(data))
+    res.send(JSON.stringify(data));
   };
 
 routes.content.post = (cfg: Config) =>
@@ -158,13 +197,21 @@ routes.content.post = (cfg: Config) =>
     const { batchId, events } = req.body;
     const finished = await cfg.storage.addContent(id, batchId, events);
 
-    await services.sendNotification(cfg.storage, id);
+    if (finished) {
+      await services.sendNotification(cfg.storage, id);
+    }
 
     res.send(JSON.stringify({
       batchId,
       topic: id,
       finished,
     }));
+  };
+
+routes.notify.post = (cfg: Config) =>
+  async (req: any, res: any) => {
+    res.status = 200;
+    res.send("OK");
   };
 
 const cfg = {
@@ -176,6 +223,10 @@ const cfg = {
 
 const CommonStorage = (cfg: Config) => {
   const app = opine();
+
+  setInterval(async () => {
+    await services.retryNotification(cfg.storage);
+  }, constants.RETRY_INTERVAL_MS);
 
   app.use(routes.common.auth(cfg));
   app.use(json());
@@ -191,9 +242,10 @@ const CommonStorage = (cfg: Config) => {
 
   app.get("/content/:id", routes.content.get(cfg));
   app.post("/content/:id", routes.content.post(cfg));
+  app.post("/notify", routes.notify.post(cfg));
 
   app.listen(cfg.port, () => {
-    console.error('http://localhost:8080/feed');
+    console.error("Common-Storage: listening on http://localhost:8080/");
   });
 };
 
