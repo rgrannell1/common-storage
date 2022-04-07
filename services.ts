@@ -11,8 +11,6 @@ enum DownstreamState {
 
 class Downstream {
   subscription: Subscription;
-  static MINIMUM_TIMEOUT = 1_000;
-  static DEFAULT_TIMEOUT = 30_000;
 
   constructor(subscription: Subscription) {
     this.subscription = subscription;
@@ -23,16 +21,16 @@ class Downstream {
     const timeout = params.get("timeout");
 
     if (!timeout) {
-      return Downstream.DEFAULT_TIMEOUT;
+      return constants.DEFAULT_TIMEOUT_MS;
     }
 
     try {
       return Math.min(
-        Math.max(parseInt(timeout), Downstream.MINIMUM_TIMEOUT),
-        Downstream.DEFAULT_TIMEOUT,
+        Math.max(parseInt(timeout), constants.MINIMUM_TIMEOUT_MS),
+        constants.DEFAULT_TIMEOUT_MS,
       );
     } catch {
-      return Downstream.DEFAULT_TIMEOUT;
+      return constants.DEFAULT_TIMEOUT_MS;
     }
   }
 
@@ -42,12 +40,18 @@ class Downstream {
 
     const { hookUrl } = this.subscription;
     try {
+      const params = {
+        topic: this.subscription.topic,
+        subscriptionId: this.subscription.id,
+      };
+      const url = `${hookUrl}?${new URLSearchParams(params)}`;
+
       log.info({
         message: "notifying URL",
-        url: hookUrl,
+        url,
       });
 
-      var response = await fetch(hookUrl, {
+      var response = await fetch(url, {
         method: "POST",
         signal: controller.signal,
       } as any);

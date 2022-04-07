@@ -1,12 +1,15 @@
-import { json, opine } from "https://deno.land/x/opine/mod.ts";
-
-import chalk from "https://deno.land/x/chalk_deno@v4.1.1-deno/source/index.js";
-const colour: any = chalk;
+import {
+  json,
+  opine,
+  OpineRequest,
+  OpineResponse,
+} from "https://deno.land/x/opine/mod.ts";
 
 import { InMemoryStorage } from "./storage.ts";
 import { Config, Routes } from "./types.ts";
 import * as services from "./services.ts";
 import * as constants from "./constants.ts";
+import * as log from "https://deno.land/std@0.134.0/log/mod.ts";
 
 const routes: Routes = {
   common: {},
@@ -18,13 +21,13 @@ const routes: Routes = {
   notify: {},
 };
 
-routes.common.auth = (cfg: Config) =>
-  async (req: any, res: any, next: any) => {
+routes.common.auth = (_: Config) =>
+  async (req: OpineRequest, res: OpineResponse, next: any) => {
     next();
   };
 
 routes.feed.get = (cfg: Config) =>
-  async (_: any, res: any) => {
+  async (_: any, res: OpineResponse) => {
     const topicNames = await cfg.storage.getTopicNames();
 
     const topicStats = await Promise.all(
@@ -41,14 +44,14 @@ routes.feed.get = (cfg: Config) =>
   };
 
 routes.subscriptions.get = (cfg: Config) =>
-  async (req: any, res: any) => {
+  async (req: OpineRequest, res: OpineResponse) => {
     res.send(JSON.stringify({
       subscriptions: await cfg.storage.getSubscriptions(),
     }));
   };
 
 routes.subscriptions.post = (cfg: Config) =>
-  async (req: any, res: any) => {
+  async (req: OpineRequest, res: OpineResponse) => {
     const { topic, hookUrl } = req.query;
 
     if (!topic) {
@@ -100,7 +103,7 @@ routes.subscriptions.post = (cfg: Config) =>
   };
 
 routes.subscription.post = (cfg: Config) =>
-  async (req: any, res: any) => {
+  async (req: OpineRequest, res: OpineResponse) => {
     const { id } = req.params;
     const { name, hookUrl } = req.query;
 
@@ -122,7 +125,7 @@ routes.subscription.post = (cfg: Config) =>
   };
 
 routes.subscription.get = (cfg: Config) =>
-  async (req: any, res: any) => {
+  async (req: OpineRequest, res: OpineResponse) => {
     const { id } = req.params;
     const subscription = await cfg.storage.getSubscription(id);
 
@@ -133,7 +136,7 @@ routes.subscription.get = (cfg: Config) =>
   };
 
 routes.subscription.delete = (cfg: Config) =>
-  async (req: any, res: any) => {
+  async (req: OpineRequest, res: OpineResponse) => {
     const { id } = req.params;
     await cfg.storage.deleteSubscription(id);
 
@@ -141,7 +144,7 @@ routes.subscription.delete = (cfg: Config) =>
   };
 
 routes.topic.post = (cfg: Config) =>
-  async (req: any, res: any) => {
+  async (req: OpineRequest, res: OpineResponse) => {
     const { id } = req.params;
     const existed = await cfg.storage.addTopic(id);
 
@@ -151,7 +154,7 @@ routes.topic.post = (cfg: Config) =>
   };
 
 routes.topic.get = (cfg: Config) =>
-  async (req: any, res: any) => {
+  async (req: OpineRequest, res: OpineResponse) => {
     const { id } = req.params;
 
     if (!id) {
@@ -173,7 +176,7 @@ routes.topic.get = (cfg: Config) =>
   };
 
 routes.content.get = (cfg: Config) =>
-  async (req: any, res: any) => {
+  async (req: OpineRequest, res: OpineResponse) => {
     const { id } = req.params;
     const {
       lastId,
@@ -191,7 +194,7 @@ routes.content.get = (cfg: Config) =>
   };
 
 routes.content.post = (cfg: Config) =>
-  async (req: any, res: any) => {
+  async (req: OpineRequest, res: OpineResponse) => {
     const { id } = req.params;
 
     const { batchId, events } = req.body;
@@ -209,7 +212,15 @@ routes.content.post = (cfg: Config) =>
   };
 
 routes.notify.post = (cfg: Config) =>
-  async (req: any, res: any) => {
+  async (req: OpineRequest, res: OpineResponse) => {
+    const { subscriptionId, topic } = req.query;
+
+    log.info({
+      message: "POST notify/ received",
+      subscriptionId,
+      topic,
+    });
+
     res.status = 200;
     res.send("OK");
   };
