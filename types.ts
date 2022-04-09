@@ -1,4 +1,4 @@
-import { InMemoryStorage } from "./storage/in-memory.ts";
+import { IStorage } from "./interfaces.ts";
 
 export type Topic = {
   name: string;
@@ -41,7 +41,7 @@ export type Contents = Record<string, Content[]>;
 export type Config = {
   title: string;
   description: string;
-  storage: InMemoryStorage;
+  storage: IStorage;
   port: number;
 };
 

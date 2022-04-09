@@ -1,7 +1,7 @@
-import { InMemoryStorage } from "./storage/in-memory.ts";
 import { Retry, Subscription } from "./types.ts";
 import * as constants from "./constants.ts";
 import * as log from "https://deno.land/std@0.134.0/log/mod.ts";
+import { IStorage } from "./interfaces.ts";
 
 export enum DownstreamState {
   Gone = "Gone",
@@ -9,6 +9,12 @@ export enum DownstreamState {
   Ok = "Ok",
 }
 
+/**
+ * A class for interacting with the REST hook URL provided by a
+ * subscription
+ *
+ * @class Downstream
+ */
 class Downstream {
   subscription: Subscription;
 
@@ -105,8 +111,15 @@ class Downstream {
   }
 }
 
+/**
+ * Notify a downstream service & register results
+ *
+ * @param {IStorage} storage
+ * @param {Subscription} subscription
+ * @return {*}
+ */
 const notifyDownstream = async (
-  storage: InMemoryStorage,
+  storage: IStorage,
   subscription: Subscription,
 ) => {
   try {
@@ -130,8 +143,15 @@ const notifyDownstream = async (
   }
 };
 
+/**
+ * Retry any downstream URLs
+ *
+ * @param {IStorage} storage
+ * @param {Subscription} subscription
+ * @return {*}
+ */
 export const retryNotification = async (
-  storage: InMemoryStorage,
+  storage: IStorage,
 ) => {
   const retries = await storage.getRetries();
 
@@ -146,8 +166,15 @@ export const retryNotification = async (
   );
 };
 
-export const sendNotification = async (
-  storage: InMemoryStorage,
+/**
+ * Send notififications for each subscription
+ *
+ * @param {IStorage} storage
+ * @param {Subscription} subscription
+ * @return {*}
+ */
+export const notifySubscriptions = async (
+  storage: IStorage,
   name: string,
 ) => {
   const subscriptions = await storage.getSubscriptions();

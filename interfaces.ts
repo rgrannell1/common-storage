@@ -27,9 +27,9 @@ export interface IStorage {
     existed: boolean;
   }>;
   updateSubscription(id: string, topic: string, hookUrl: string): Promise<void>;
+  updateSubscriptionState(id: string, state: DownstreamState): Promise<void>;
 
   addRetry(id: string): Promise<void>;
   getRetries(): Promise<Retries>;
   deleteRetry(id: string): Promise<void>;
-  updateSubscriptionState(id: string, state: DownstreamState): Promise<void>;
 }
