@@ -1,6 +1,7 @@
 http GET "http://localhost:8080/feed"
 http GET "http://localhost:8080/subscription"
 http POST "http://localhost:8080/subscription?topic=photos&hookUrl=http%3A%2F%2Flocalhost%3A8080%2Fnotify"
+http POST "http://localhost:8080/subscription?topic=photos&hookUrl=http%3A%2F%2Flocalhost%3A8080%2Fbroken"
 http GET "http://localhost:8080/topic/photos"
 http POST "http://localhost:8080/topic/photos"
 

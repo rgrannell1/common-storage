@@ -1,7 +1,7 @@
 import hash from "https://deno.land/x/object_hash/index.ts";
 import { nanoid } from "https://deno.land/x/nanoid/mod.ts";
 
-import * as constants from "./constants.ts";
+import * as constants from "../constants.ts";
 import {
   Batches,
   Content,
@@ -11,10 +11,11 @@ import {
   Subscription,
   Subscriptions,
   Topics,
-} from "./types.ts";
-import {
-  IStorage
-} from "./interfaces.ts";
+} from "../types.ts";
+
+import { IStorage } from "../interfaces.ts";
+
+import { DownstreamState } from "../services.ts";
 
 export class InMemoryStorage implements IStorage {
   topics: Topics = {};
@@ -46,8 +47,8 @@ export class InMemoryStorage implements IStorage {
   }
 
   async getContent(topicId: string, lastId: number, size: number): Promise<{
-    events: Event[],
-    lastId?: number
+    events: Event[];
+    lastId?: number;
   }> {
     let currentId = -1;
     const events: Event[] = [];
@@ -81,7 +82,7 @@ export class InMemoryStorage implements IStorage {
     batchId: string,
     events: Event[],
   ): Promise<{
-    finished: boolean
+    finished: boolean;
   }> {
     const topic = await this.getTopic(topicId);
 
@@ -118,10 +119,10 @@ export class InMemoryStorage implements IStorage {
         return (content0.id as number) - (content1.id as number);
       });
 
-      return {finished: true};
+      return { finished: true };
     } else {
       batch.events.push(...events);
-      return {finished: false};
+      return { finished: false };
     }
   }
 
@@ -168,8 +169,8 @@ export class InMemoryStorage implements IStorage {
 
   async deleteSubscription(id: string) {
     return {
-      existed: delete this.subscriptions[id]
-    }
+      existed: delete this.subscriptions[id],
+    };
   }
 
   async updateSubscription(id: string, topic: string, hookUrl: string) {
@@ -197,5 +198,12 @@ export class InMemoryStorage implements IStorage {
 
   async deleteRetry(id: string) {
     delete this.retries[id];
+  }
+
+  async updateSubscriptionState(id: string, state: DownstreamState) {
+    const subscription = this.subscriptions[id];
+
+    subscription.state = state;
+    subscription.lastNotifyAttempt = (new Date()).toISOString();
   }
 }

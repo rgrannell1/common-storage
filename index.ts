@@ -5,7 +5,7 @@ import {
   OpineResponse,
 } from "https://deno.land/x/opine/mod.ts";
 
-import { InMemoryStorage } from "./storage.ts";
+import { InMemoryStorage } from "./storage/in-memory.ts";
 import { Config, Routes } from "./types.ts";
 import * as services from "./services.ts";
 import * as constants from "./constants.ts";

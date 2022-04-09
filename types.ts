@@ -1,4 +1,4 @@
-import { InMemoryStorage } from "./storage.ts";
+import { InMemoryStorage } from "./storage/in-memory.ts";
 
 export type Topic = {
   name: string;
@@ -10,7 +10,10 @@ export type Subscription = {
   id: string;
   topic: string;
   hookUrl: string;
+  state?: string;
+  lastNotifyAttempt?: string;
 };
+
 export type Subscriptions = Record<string, Subscription>;
 
 export type Route = (

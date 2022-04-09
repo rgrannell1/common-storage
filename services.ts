@@ -1,9 +1,9 @@
-import { InMemoryStorage } from "./storage.ts";
+import { InMemoryStorage } from "./storage/in-memory.ts";
 import { Retry, Subscription } from "./types.ts";
 import * as constants from "./constants.ts";
 import * as log from "https://deno.land/std@0.134.0/log/mod.ts";
 
-enum DownstreamState {
+export enum DownstreamState {
   Gone = "Gone",
   Retry = "Retry",
   Ok = "Ok",
@@ -117,6 +117,7 @@ const notifyDownstream = async (
     return;
   }
   const id = subscription.id;
+  await storage.updateSubscriptionState(id, state);
 
   if (state === DownstreamState.Gone) {
     await storage.deleteSubscription(id);
