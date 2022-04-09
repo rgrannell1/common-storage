@@ -198,7 +198,7 @@ routes.content.post = (cfg: Config) =>
     const { id } = req.params;
 
     const { batchId, events } = req.body;
-    const finished = await cfg.storage.addContent(id, batchId, events);
+    const { finished } = await cfg.storage.addContent(id, batchId, events);
 
     if (finished) {
       await services.sendNotification(cfg.storage, id);

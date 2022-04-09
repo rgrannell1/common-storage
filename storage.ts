@@ -12,8 +12,11 @@ import {
   Subscriptions,
   Topics,
 } from "./types.ts";
+import {
+  IStorage
+} from "./interfaces.ts";
 
-export class InMemoryStorage {
+export class InMemoryStorage implements IStorage {
   topics: Topics = {};
   subscriptions: Subscriptions = {};
   batches: Batches = {};
@@ -42,7 +45,10 @@ export class InMemoryStorage {
     return false;
   }
 
-  async getContent(topicId: string, lastId: number, size: number) {
+  async getContent(topicId: string, lastId: number, size: number): Promise<{
+    events: Event[],
+    lastId?: number
+  }> {
     let currentId = -1;
     const events: Event[] = [];
 
@@ -74,7 +80,9 @@ export class InMemoryStorage {
     topicId: string,
     batchId: string,
     events: Event[],
-  ): Promise<boolean> {
+  ): Promise<{
+    finished: boolean
+  }> {
     const topic = await this.getTopic(topicId);
 
     if (!topic) {
@@ -110,10 +118,10 @@ export class InMemoryStorage {
         return (content0.id as number) - (content1.id as number);
       });
 
-      return true;
+      return {finished: true};
     } else {
       batch.events.push(...events);
-      return false;
+      return {finished: false};
     }
   }
 
@@ -159,7 +167,9 @@ export class InMemoryStorage {
   }
 
   async deleteSubscription(id: string) {
-    delete this.subscriptions[id];
+    return {
+      existed: delete this.subscriptions[id]
+    }
   }
 
   async updateSubscription(id: string, topic: string, hookUrl: string) {
