@@ -1,4 +1,0 @@
-# example netlify.toml
-[build]
-  command = "bs build"
-  functions = "dist"
