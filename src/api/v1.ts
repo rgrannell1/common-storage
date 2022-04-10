@@ -1,15 +1,8 @@
 import { json, opine } from "https://deno.land/x/opine/mod.ts";
 
-import { InMemoryStorage } from "../storage/in-memory.ts";
 import { Config } from "../types.ts";
 import routes from "./routes.ts";
-
-const cfg = {
-  title: "Common Storage",
-  description: "Yo!",
-  storage: new InMemoryStorage(),
-  port: 4040,
-};
+import config from '../config.ts';
 
 const CommonStorage = (cfg: Config) => {
   const app = opine();
@@ -35,4 +28,4 @@ const CommonStorage = (cfg: Config) => {
   });
 };
 
-CommonStorage(cfg);
+CommonStorage(config);

@@ -1,13 +1,9 @@
-import {
-  OpineRequest,
-  OpineResponse,
-} from "https://deno.land/x/opine/mod.ts";
+import { OpineRequest, OpineResponse } from "https://deno.land/x/opine/mod.ts";
 
 import { Config, Routes } from "../types.ts";
 import * as services from "../services.ts";
 import * as constants from "../constants.ts";
 import * as log from "https://deno.land/std@0.134.0/log/mod.ts";
-
 
 const routes: Routes = {
   common: {},
@@ -19,9 +15,30 @@ const routes: Routes = {
   notify: {},
 };
 
-routes.common.auth = (_: Config) =>
+routes.common.auth = (cfg: Config) =>
   async (req: OpineRequest, res: OpineResponse, next: any) => {
-    next();
+    const auth = req.headers.get("Authorization");
+
+    if (auth) {
+      const hasCredentials = auth.match(/^Basic\s+(.*)$/i);
+
+      if (hasCredentials) {
+        const [user, password] = atob(hasCredentials[1]).split(":");
+        const valid = user === cfg.user.name && password === cfg.user.password;
+
+        // just to ensure credentials are actually present...
+        if (valid && user && password) {
+          return next();
+        }
+      }
+    }
+
+    res.status = 401;
+    res.send(JSON.stringify({
+      error: {
+        message: "Not authorized",
+      },
+    }));
   };
 
 routes.feed.get = (cfg: Config) =>
@@ -35,10 +52,8 @@ routes.feed.get = (cfg: Config) =>
     );
 
     res.send(JSON.stringify({
-      feed: {
-        title: cfg.title,
-        description: cfg.description
-      },
+      description: cfg.description,
+      title: cfg.title,
       type: "common-storage",
       version: "v0.1",
       topics: topicStats,
@@ -227,4 +242,4 @@ routes.notify.post = (cfg: Config) =>
     res.send("OK");
   };
 
-export default routes
+export default routes;

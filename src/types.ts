@@ -42,6 +42,10 @@ export type Config = {
   description: string;
   storage: IStorage;
   port: number;
+  user: {
+    name: string;
+    password: string;
+  };
 };
 
 export type Batch = {

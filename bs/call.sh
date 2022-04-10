@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-zsh -c "$(fzf < bs/calls.sh)"
+source "bs/env.sh"
+
+zsh -c "$(fzf < bs/calls.text.sh)"
