@@ -1,6 +1,13 @@
 import { Event, Retries, Subscription, Topic } from "./types.ts";
 import { DownstreamState } from "./services.ts";
 
+/**
+ * Storage interface; the server uses REST requests to
+ *   storage data.
+ *
+ * @export
+ * @interface IStorage
+ */
 export interface IStorage {
   getContent(topicId: string, lastId: number, size: number): Promise<{
     events: Event[];

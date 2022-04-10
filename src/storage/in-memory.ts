@@ -1,4 +1,3 @@
-import hash from "https://deno.land/x/object_hash/index.ts";
 import { nanoid } from "https://deno.land/x/nanoid/mod.ts";
 
 import * as constants from "../constants.ts";
@@ -17,6 +16,14 @@ import { IStorage } from "../interfaces.ts";
 
 import { DownstreamState } from "../services.ts";
 
+/**
+ * An in-memory storage-implementation
+ *
+ * @export
+ *
+ * @class InMemoryStorage
+ * @implements {IStorage}
+ */
 export class InMemoryStorage implements IStorage {
   topics: Topics = {};
   subscriptions: Subscriptions = {};
@@ -109,7 +116,6 @@ export class InMemoryStorage implements IStorage {
       tgt.push(...batch.events.map((event: Event) => {
         return {
           event,
-          hash: hash(event.data),
           id: this.id++,
         };
       }));
@@ -188,7 +194,7 @@ export class InMemoryStorage implements IStorage {
   async addRetry(id: string) {
     this.retries[id] = {
       subscription: await this.getSubscription(id),
-      after: Date.now() + (constants.RETRY_SECONDS * 1e3),
+      after: Date.now() + (constants.RETRY_MS),
     };
   }
 

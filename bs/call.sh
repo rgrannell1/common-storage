@@ -1,2 +1,3 @@
+#!/usr/bin/env bash
 
-zsh -c "$(fzf < bs/calls.txt)"
+zsh -c "$(fzf < bs/calls.sh)"

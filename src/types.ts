@@ -33,7 +33,6 @@ export type Routes = {
 export type Content = {
   event: Event;
   id: number;
-  hash: string;
 };
 
 export type Contents = Record<string, Content[]>;

@@ -1,8 +1,15 @@
 import { Retry, Subscription } from "./types.ts";
 import * as constants from "./constants.ts";
-import * as log from "https://deno.land/std@0.134.0/log/mod.ts";
 import { IStorage } from "./interfaces.ts";
 
+/*
+ * Each state we group notify responses into;
+ *
+ * - Gone:  delete the subscription
+ * - Retry: we should attempt notification again
+ * - Ok:    server successfully notified
+ *
+ */
 export enum DownstreamState {
   Gone = "Gone",
   Retry = "Retry",
@@ -22,7 +29,13 @@ class Downstream {
     this.subscription = subscription;
   }
 
-  getTimeout() {
+  /**
+   * Get the timeout from a subscription's URL, if specified.
+   *
+   * @return {number | undefined}
+   * @memberof Downstream
+   */
+  getTimeout(): number | undefined {
     const params = new URLSearchParams(this.subscription.hookUrl);
     const timeout = params.get("timeout");
 
@@ -40,6 +53,13 @@ class Downstream {
     }
   }
 
+  /**
+   * Notify the downstream subscription URL that new content
+   * was published to a topic.
+   *
+   * @return {*}
+   * @memberof Downstream
+   */
   async notify() {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), this.getTimeout());
@@ -52,10 +72,10 @@ class Downstream {
       };
       const url = `${hookUrl}?${new URLSearchParams(params)}`;
 
-      log.info({
+      console.log(JSON.stringify({
         message: "notifying URL",
         url,
-      });
+      }));
 
       var response = await fetch(url, {
         method: "POST",
@@ -67,45 +87,47 @@ class Downstream {
       if (!(err instanceof Error)) {
         throw err;
       }
+
+      // handle each type of error
       if (err.message === "Invalid URL") {
-        log.warning({
+        console.log(JSON.stringify({
           message: "url invalid, removing subscription",
           ...this.subscription,
-        });
+        }));
         return DownstreamState.Gone;
       } else if (err.name === "AbortError") {
-        log.warning({
+        console.log(JSON.stringify({
           message: "notify timed out",
           ...this.subscription,
-        });
+        }));
       } else {
-        log.warning({
-          message:
-            `notify failed, retrying in ${constants.RETRY_SECONDS} seconds`,
+        console.log(JSON.stringify({
+          message: `notify failed, retrying in ${constants.RETRY_MS} seconds`,
           ...this.subscription,
-        });
+        }));
       }
 
       return DownstreamState.Retry;
     }
 
+    // handle each relevant status-code
     if (response.status === 410) {
-      log.warning({
+      console.log(JSON.stringify({
         message: "notify responded with 410 status",
         ...this.subscription,
-      });
+      }));
       return DownstreamState.Gone;
     } else if (response.status >= 400) {
-      log.warning({
+      console.log(JSON.stringify({
         message: "notify responded with 400 status",
         ...this.subscription,
-      });
+      }));
       return DownstreamState.Retry;
     } else {
-      log.info({
+      console.log(JSON.stringify({
         message: "notify succeeded",
         ...this.subscription,
-      });
+      }));
       return DownstreamState.Ok;
     }
   }

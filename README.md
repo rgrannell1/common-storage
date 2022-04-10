@@ -42,7 +42,7 @@ Common-Storage has the following routes
 | GET    | `/subscription/:id` | get subscription data                               |
 | POST   | `/subscription/:id` | update subscription                                 |
 | DELETE | `/subscription/:id` | delete subscription                                 |
-| POST   | `/topic/`           | create a topic                                      |
+| POST   | `/topic/:name`      | add a topic                                         |
 | GET    | `/topic/:name/`     | get a topic description                             |
 | GET    | `/content/:name/`   | get content from a topic                            |
 | POST   | `/content/:name`    | add content to a topic, as part of a batch          |
