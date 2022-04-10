@@ -41,6 +41,16 @@ routes.common.auth = (cfg: Config) =>
     }));
   };
 
+routes.common.headers = (cfg: Config) =>
+  async (req: OpineRequest, res: OpineResponse, next: any) => {
+    const headers = new Headers();
+    headers.set("Content-Type", "application/json; charset=utf-8");
+
+    res.headers = headers;
+
+    next();
+  };
+
 routes.feed.get = (cfg: Config) =>
   async (_: any, res: OpineResponse) => {
     const topicNames = await cfg.storage.getTopicNames();
@@ -61,7 +71,7 @@ routes.feed.get = (cfg: Config) =>
   };
 
 routes.subscriptions.get = (cfg: Config) =>
-  async (req: OpineRequest, res: OpineResponse) => {
+  async (_: OpineRequest, res: OpineResponse) => {
     res.send(JSON.stringify({
       subscriptions: await cfg.storage.getSubscriptions(),
     }));

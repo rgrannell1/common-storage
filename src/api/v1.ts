@@ -2,12 +2,13 @@ import { json, opine } from "https://deno.land/x/opine/mod.ts";
 
 import { Config } from "../types.ts";
 import routes from "./routes.ts";
-import config from '../config.ts';
+import config from "../config.ts";
 
 const CommonStorage = (cfg: Config) => {
   const app = opine();
 
   app.use(routes.common.auth(cfg));
+  app.use(routes.common.headers(cfg));
   app.use(json());
 
   app.get("/feed", routes.feed.get(cfg));
