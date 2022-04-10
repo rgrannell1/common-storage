@@ -25,7 +25,7 @@ following properties:
   also subscribe to a topic to sync over a network.
 
 - Fault-tolerant: if a subscriber is offline, that's fine! Common-Storage will
-  notify it according to its `Retry-After` header, and when the node is back
+  notify it intermittently until it succeeds when the node is back online
   online it can fetch any data it does not currently have synced.
 
 - Authenticated: read-write access is restricted by basic authentication.
