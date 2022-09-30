@@ -28,7 +28,7 @@ following properties:
   notify it intermittently until it succeeds when the node is back online online
   it can fetch any data it does not currently have synced.
 
-- Authenticated: read-write access is restricted by basic authentication.
+- Authenticated: read-write access is restricted by basic-authentication.
 
 ## API
 

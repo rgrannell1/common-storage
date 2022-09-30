@@ -1,8 +1,21 @@
 # syntax=docker/dockerfile:1
-FROM denoland/deno:1.10.3
+FROM denoland/deno:1.25.0
 WORKDIR /app
 
-COPY src/ /app
+COPY src/ /app/src/
 
+ARG CS_TITLE
+ARG CS_USER
+ARG CS_DESCRIPTION
+ARG CS_PASSWORD
+ARG CS_PORT
+ARG CS_SQL_DB_PATH
 
-CMD [ "deno", "run", "-A", "/app/launch.ts" ]
+ENV CS_TITLE $CS_TITLE
+ENV CS_USER $CS_USER
+ENV CS_DESCRIPTION $CS_DESCRIPTION
+ENV CS_PASSWORD $CS_PASSWORD
+ENV CS_PORT $CS_PORT
+ENV CS_SQL_DB_PATH $CS_SQL_DB_PATH
+
+CMD [ "deno", "run", "-A", "/app/src/launch.ts" ]

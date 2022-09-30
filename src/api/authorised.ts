@@ -4,7 +4,7 @@ import { Status } from "https://deno.land/std/http/http_status.ts";
 import type { IConfig } from "../interfaces/config.ts";
 
 export function authorised(cfg: IConfig) {
-  return async function (req: OpineRequest, res: OpineResponse, next: any) {
+  return function (req: OpineRequest, res: OpineResponse, next: any) {
     const auth = req.headers.get("Authorization");
 
     if (auth) {
