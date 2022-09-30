@@ -14,7 +14,7 @@ export function topicGet(cfg: IConfig) {
       res.send({
         name: topic.name,
         description: topic.description,
-        createdOn: parseInt(topic.createdOn),
+        created: topic.created,
       });
     } catch (err) {
       res.status = Status.NotFound;

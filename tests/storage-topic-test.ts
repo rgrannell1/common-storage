@@ -56,7 +56,7 @@ await Deno.test({
     const res = await storage.getTopic("foo");
     assert(res.name === "foo");
     assert(res.description === "hello!");
-    assert(res.hasOwnProperty("createdOn"));
+    assert(res.hasOwnProperty("created"));
 
     await storage.close();
   },

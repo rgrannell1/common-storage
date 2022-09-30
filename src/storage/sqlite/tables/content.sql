@@ -3,5 +3,5 @@ create table if not exists content (
   batchId        text not null,
   topic          text not null,
   value          blob not null,
-  createdOn      text not null
+  created        text not null
 );

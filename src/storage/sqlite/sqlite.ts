@@ -51,7 +51,7 @@ export class Sqlite implements IStorage {
     this.assertLoaded();
 
     const topicRow = this.db.query(
-      "select description, createdOn from topics where topic = ?",
+      "select description, created from topics where topic = ?",
       [topic],
     );
     if (topicRow.length === 0) {
@@ -59,22 +59,33 @@ export class Sqlite implements IStorage {
     }
 
     const description = topicRow[0][0] as string;
-    const createdOn = topicRow[0][1] as string;
+    const created = parseInt(topicRow[0][1] as string);
+    const iso = (new Date(created)).toISOString();
 
     return {
       name: topic,
       description,
-      createdOn,
+      created: iso,
     };
   }
 
   async getTopicStats(topic: string): Promise<GetTopicStatsResponse> {
     this.assertLoaded();
 
+    const [[count]] = this.db.query(
+      `
+    select count(*) from content
+    where batchId not in (
+      select batchId from batches where closed != 'true'
+    ) and topic = ?
+    `,
+      [topic],
+    );
+
     return {
       topic: await this.getTopic(topic),
       stats: {
-        count: 10,
+        count: count as number,
       },
     };
   }
@@ -91,7 +102,7 @@ export class Sqlite implements IStorage {
     );
 
     this.db.query(
-      "insert or replace into topics(topic, description, createdOn) values (?, ?, ?)",
+      "insert or replace into topics(topic, description, created) values (?, ?, ?)",
       [
         topic,
         description,
@@ -108,12 +119,12 @@ export class Sqlite implements IStorage {
     await this.assertLoaded();
 
     const existing = this.db.query(
-      "select createdOn from batches where batchId = ?",
+      "select created from batches where batchId = ?",
       [batchId],
     );
 
     this.db.query(
-      "insert or replace into batches(batchId, closed, createdOn) values (?, ?, ?)",
+      "insert or replace into batches(batchId, closed, created) values (?, ?, ?)",
       [batchId, "true", existing[0][0] as string],
     );
   }
@@ -143,7 +154,7 @@ export class Sqlite implements IStorage {
 
     const now = Date.now();
     this.db.query(
-      "insert or replace into batches(batchId, closed, createdOn) values (?, ?, ?)",
+      "insert or replace into batches(batchId, closed, created) values (?, ?, ?)",
       [batchId, "false", now],
     );
   }
@@ -156,7 +167,7 @@ export class Sqlite implements IStorage {
     if (!startId) {
       rows = this.db.query(
         `
-      select contentId, value, createdOn
+      select contentId, value, created
       from content
       where batchId not in (
         select batchId from batches where closed != 'true'
@@ -169,7 +180,7 @@ export class Sqlite implements IStorage {
     } else {
       rows = this.db.query(
         `
-      select contentId, value, createdOn
+      select contentId, value, created
       from content
       where batchId not in (
         select batchId from batches where closed != 'true'
@@ -190,10 +201,13 @@ export class Sqlite implements IStorage {
       topic,
       startId,
       content: rows.map((row: any) => {
+        const date = parseInt(row[2]);
+        const created = (new Date(date)).toISOString();
+
         return {
           id: row[0],
           value: JSON.parse(row[1]),
-          createdOn: row[2],
+          created,
         };
       }),
     };
@@ -225,7 +239,7 @@ export class Sqlite implements IStorage {
 
     for (const entry of content) {
       this.db.query(
-        `insert into content (batchId, topic, value, createdOn)
+        `insert into content (batchId, topic, value, created)
         values (?, ?, ?, ?)`,
         [
           batchId,

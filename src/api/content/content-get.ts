@@ -35,7 +35,6 @@ export function contentGet(cfg: IConfig) {
     const startId = req.query.startId ?? undefined;
 
     const content = await storage.getContent(topic, startId);
-
     res.send(content);
   };
 }
