@@ -15,12 +15,6 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
-    steps:
-      - uses: actions/checkout@v2
-      - uses: denolib/setup-deno@v2
-        with:
-          deno-version: ${{ matrix.deno-version }}
-      - run: make ci
   test-win:
     strategy:
       matrix:
