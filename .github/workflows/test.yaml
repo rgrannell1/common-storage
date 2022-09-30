@@ -15,4 +15,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-    - run: bash ./bs/test.sh
+    - uses: actions/checkout@v2
+    - name: Run tests
+      run: ./bs/test.sh
+      shell: bash
