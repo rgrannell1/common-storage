@@ -14,18 +14,5 @@ jobs:
         deno-version: [1.25.0]
 
     runs-on: ${{ matrix.os }}
-
-  test-win:
-    strategy:
-      matrix:
-        os: [windows-latest]
-        deno-version: [1.25.0]
-
-    runs-on: ${{ matrix.os }}
-
     steps:
-      - uses: actions/checkout@v2
-      - uses: denolib/setup-deno@v2
-        with:
-          deno-version: ${{ matrix.deno-version }}
-      - run: bash bs/test.sh
+    - bash bs/test.sh
