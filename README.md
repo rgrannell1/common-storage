@@ -1,4 +1,4 @@
-# Common-Storage
+# Common-Storage [![Test](https://github.com/rgrannell1/common-storage/actions/workflows/test.yaml/badge.svg)](https://github.com/rgrannell1/common-storage/actions/workflows/test.yaml)
 
 Simple state-syncronisation over a network. Syncronise a collection of things
 (e.g photos, bookmarks) from one host to another.
