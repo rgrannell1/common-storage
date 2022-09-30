@@ -3,6 +3,17 @@
 Simple state-syncronisation over a network. Syncronise a collection of things
 (e.g photos, bookmarks) from one host to another.
 
+## Usage 
+
+```bash
+docker-compose build
+docker-compose up
+```
+
+```bash
+curl -X POST --user *** 'localhost:8080/topic/bookmarks' -H 'Content-Type: application/json' --data '{ "description": "bookmarks I want to store" }' 
+```
+
 ## Motivation
 
 I'm moving my personal data off of cloud-services into a personal knowledge-hub.
