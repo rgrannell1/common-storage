@@ -17,5 +17,4 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Run tests
-      run: ./bs/test.sh
-      shell: zsh
+      run: bash ./bs/test.sh
