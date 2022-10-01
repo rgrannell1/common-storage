@@ -13,9 +13,13 @@ Deploy the server to a docker-container
 ./bs/docker:up
 ```
 
+Create a topic, to which content can be published.
+
 ```bash
 curl -X POST --user *** 'localhost:8080/topic/bookmarks' -H 'Content-Type: application/json' --data '{ "description": "bookmarks I want to store" }' 
 ```
+
+Terraform & ansible deployment are also included in this repository
 
 ## Motivation
 
