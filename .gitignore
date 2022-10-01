@@ -4,3 +4,4 @@ main.zsh
 .terraform.*
 terraform.*
 .env
+inventory.file

@@ -1,0 +1,53 @@
+---
+- name: Common Storage
+  hosts: devbox
+  gather_facts: yes
+  vars:
+    ansible_ssh_private_key_file: '~/.ssh/digitalocean'
+
+  tasks:
+  - name: Install apt-package
+    ansible.builtin.apt:
+      name: "{{ item }}"
+      state: latest
+      update_cache: yes
+    loop:
+    - docker-compose
+    - unzip
+
+  - name: Install Deno
+    ansible.builtin.shell:
+      'curl -fsSL https://deno.land/x/install/install.sh | sh'
+
+  - name: Create group for non-root user
+    ansible.builtin.group:
+      name: cs
+
+  - name: Create dedicated non-root user for server
+    ansible.builtin.user:
+      name: cs
+      group: cs
+
+  - name: Upload requires files to devbox
+    ansible.builtin.copy:
+      src:   "{{ item.from }}"
+      dest:  "{{ item.to }}"
+      owner: cs
+      group: cs
+    loop:
+      - from: "./src"
+        to:   "/apps/common-storage/src"
+      - from: "./dockerfile"
+        to:   "/apps/common-storage/"
+      - from: "./docker-compose.yml"
+        to:   "/apps/common-storage/"
+
+  - name: Build dockerfile
+    ansible.builtin.shell:
+      cmd: docker-compose build
+      chdir: /apps/common-storage
+
+  - name: Run common-storage
+    ansible.builtin.shell:
+      cmd: docker-compose up
+      chdir: /apps/common-storage
