@@ -5,9 +5,12 @@ Simple state-synchronisation over a network. Synchronise a collection of things
 
 ## Usage 
 
+> note: common-storage supports (not requires) [rs](https://github.com/rgrannell1/rs) as a build-system.
+
+Deploy the server to a docker-container
+
 ```bash
-docker-compose build
-docker-compose up
+./bs/docker:up
 ```
 
 ```bash
