@@ -1,9 +1,6 @@
 .vscode/settings.json
-
-# Local Netlify folder
-.netlify
-node_modules/
-dist/
-package.json
-env.sh
 main.zsh
+.terraform/
+.terraform.*
+terraform.*
+.env

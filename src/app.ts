@@ -10,6 +10,14 @@ import { authorised } from "./api/authorised.ts";
 import { setHeaders } from "./api/set-headers.ts";
 import { logRoutes } from "./api/log-routes.ts";
 
+function motd(cfg: IConfig) {
+  console.log([
+    'Common-Storage',
+    '',
+    `http://localhost:${cfg.port()}`
+  ].join('\n'))
+}
+
 export class CommonStorage {
   config: IConfig;
 
@@ -42,7 +50,7 @@ export class CommonStorage {
 
     if (listen) {
       app.listen(port, () => {
-        log.info(`Listening on http://localhost:${port}`);
+        motd(cfg)
       });
     }
 

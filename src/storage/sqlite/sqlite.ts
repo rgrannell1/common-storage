@@ -65,7 +65,7 @@ export class Sqlite implements IStorage {
     return {
       name: topic,
       description,
-      created: iso,
+      created: iso
     };
   }
 
