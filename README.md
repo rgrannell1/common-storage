@@ -7,7 +7,7 @@ Simple state-synchronisation over a network. Synchronise a collection of things
 
 > note: common-storage supports (not requires) [rs](https://github.com/rgrannell1/rs) as a build-system.
 
-Deploy the server to a docker-container
+Start common-server in a docker-container
 
 ```bash
 ./bs/docker:up
