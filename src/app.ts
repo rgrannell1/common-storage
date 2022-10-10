@@ -12,10 +12,10 @@ import { logRoutes } from "./api/log-routes.ts";
 
 function motd(cfg: IConfig) {
   console.log([
-    'Common-Storage',
-    '',
-    `http://localhost:${cfg.port()}`
-  ].join('\n'))
+    "Common-Storage",
+    "",
+    `http://localhost:${cfg.port()}`,
+  ].join("\n"));
 }
 
 export class CommonStorage {
@@ -50,7 +50,7 @@ export class CommonStorage {
 
     if (listen) {
       app.listen(port, () => {
-        motd(cfg)
+        motd(cfg);
       });
     }
 

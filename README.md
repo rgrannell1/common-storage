@@ -3,9 +3,10 @@
 Simple state-synchronisation over a network. Synchronise a collection of things
 (e.g photos, bookmarks) from one host to another.
 
-## Usage 
+## Usage
 
-> note: common-storage supports (not requires) [rs](https://github.com/rgrannell1/rs) as a build-system.
+> note: common-storage supports (not requires)
+> [rs](https://github.com/rgrannell1/rs) as a build-system.
 
 Start common-server in a docker-container
 
@@ -16,7 +17,7 @@ Start common-server in a docker-container
 Create a topic, to which content can be published.
 
 ```bash
-curl -X POST --user *** 'localhost:8080/topic/bookmarks' -H 'Content-Type: application/json' --data '{ "description": "bookmarks I want to store" }' 
+curl -X POST --user *** 'localhost:8080/topic/bookmarks' -H 'Content-Type: application/json' --data '{ "description": "bookmarks I want to store" }'
 ```
 
 Terraform & ansible deployment are also included in this repository
@@ -24,9 +25,9 @@ Terraform & ansible deployment are also included in this repository
 ## Motivation
 
 I'm moving my personal data off of cloud-services into a personal knowledge-hub.
-I need simple computer-to-computer data-synchronisation with support for multiple
-stores & the ability to run programs when data changes (e.g when a photo is
-added back it up to s3 and associate it with my location data based on
+I need simple computer-to-computer data-synchronisation with support for
+multiple stores & the ability to run programs when data changes (e.g when a
+photo is added back it up to s3 and associate it with my location data based on
 timestamp)
 
 ## Properties

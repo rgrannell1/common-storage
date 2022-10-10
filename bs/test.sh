@@ -1,4 +1,4 @@
 #! /usr/bin/env zsh
 
-source '.env'
+export $(cat .env | xargs)
 deno test -A tests/*-test.ts

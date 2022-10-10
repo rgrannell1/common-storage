@@ -1,4 +1,4 @@
 #! /usr/bin/env zsh
 
-source '.env'
-deno run -A src/launch.ts
+export $(cat .env | xargs)
+deno run --unsafely-ignore-certificate-errors -A --cert '/home/rg/Code/common-storage/certificates/ca-certificate.crt' 'src/launch.ts'

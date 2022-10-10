@@ -1,3 +1,4 @@
+certificates/
 .vscode/settings.json
 main.zsh
 .terraform/
@@ -5,3 +6,4 @@ main.zsh
 terraform.*
 .env
 inventory.file
+fauna/
