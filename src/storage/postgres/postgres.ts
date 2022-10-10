@@ -8,9 +8,9 @@ import type {
 const __dirname = new URL(".", import.meta.url).pathname;
 
 const tables = [
-  Deno.readTextFileSync(__dirname + "tables/topics.sql"),
-  Deno.readTextFileSync(__dirname + "tables/batches.sql"),
-  Deno.readTextFileSync(__dirname + "tables/content.sql"),
+  await Deno.readTextFile(__dirname + "tables/topics.sql"),
+  await Deno.readTextFile(__dirname + "tables/batches.sql"),
+  await Deno.readTextFile(__dirname + "tables/content.sql"),
 ];
 
 const certificate = Deno.readTextFileSync(
