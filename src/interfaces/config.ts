@@ -8,11 +8,4 @@ export interface IConfig {
   title(): string;
   description(): string;
   user(): { name: string; password: string };
-  postgres(): {
-    user: string;
-    database: string;
-    hostname: string;
-    password: string;
-    port: string;
-  };
 }

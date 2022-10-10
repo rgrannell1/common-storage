@@ -1,11 +1,9 @@
-
 import { Client } from "https://deno.land/x/postgres@v0.16.1/mod.ts";
 import type {
   AddContentResponse,
   AddTopicResponse,
   GetTopicStatsResponse,
 } from "../../interfaces/storage.ts";
-
 
 const __dirname = new URL(".", import.meta.url).pathname;
 
@@ -17,7 +15,7 @@ const tables = [
 
 const certificate = Deno.readTextFileSync(
   new URL("../../../certificates/ca-certificate.crt", import.meta.url),
-)
+);
 
 export class Postgres {
   db: Client;
@@ -27,9 +25,9 @@ export class Postgres {
     this.db = new Client({
       ...cfg,
       tls: {
-        caCertificates: [ certificate ],
-        enforce: true
-      }
+        caCertificates: [certificate],
+        enforce: true,
+      },
     });
 
     this.#loaded = true;
@@ -53,7 +51,9 @@ export class Postgres {
 
   async getTopicNames() {
     this.assertLoaded();
-    const result = await this.db.queryArray<[string]>('select topic from topics');
+    const result = await this.db.queryArray<[string]>(
+      "select topic from topics",
+    );
 
     return result.rows((row: any) => row[0] as string);
   }
@@ -107,7 +107,7 @@ export class Postgres {
   ): Promise<AddTopicResponse> {
     this.assertLoaded();
 
-    const {rows} = await this.db.queryArray<[number]>(
+    const { rows } = await this.db.queryArray<[number]>(
       "select count(*) from topics where topic = $1",
       [topic],
     );
@@ -146,15 +146,17 @@ export class Postgres {
           set closed = $2`,
       [batchId, "true", existing.rows[0][0] as string],
     );
-
   }
 
   async getBatch(batchId: string) {
     this.assertLoaded();
 
-    const result = await this.db.queryArray("select closed from batches where batchId = $1", [
-      batchId,
-    ]);
+    const result = await this.db.queryArray(
+      "select closed from batches where batchId = $1",
+      [
+        batchId,
+      ],
+    );
 
     if (result.rows.length === 0) {
       return {
@@ -176,7 +178,9 @@ export class Postgres {
 
     const now = Date.now();
     await this.db.queryArray(
-      "insert or replace into batches(batchId, closed, created) values (?, ?, ?)",
+      `insert into batches(batchId, closed, created) values ($1, $2, $3)
+      on conflict (batchId) do update
+        set closed = $2`,
       [batchId, "false", now],
     );
   }
@@ -184,10 +188,10 @@ export class Postgres {
   async getContent(topic: string, startId: string | undefined) {
     this.assertLoaded();
 
-    var result: any;
+    let result: any;
 
     if (!startId) {
-      result = await this.db.queryArray(
+      result = await this.db.queryArray<[string, string, string]>(
         `
       select contentId, value, created
       from content
@@ -200,7 +204,7 @@ export class Postgres {
         [topic],
       );
     } else {
-      result = this.db.queryArray(
+      result = await this.db.queryArray<[string, string, string]>(
         `
       select contentId, value, created
       from content
@@ -264,7 +268,7 @@ export class Postgres {
     for (const entry of content) {
       await this.db.queryArray(
         `insert into content (batchId, topic, value, created)
-        values (?, ?, ?, ?)`,
+        values ($1, $2, $3, $4)`,
         [
           batchId,
           topic,

@@ -1,6 +1,6 @@
 import { Logger } from "../src/logger/logger.ts";
 import { Sqlite } from "../src/storage/sqlite/sqlite.ts";
-import { Postgres} from "../src/storage/postgres/postgres.ts";
+import { Postgres } from "../src/storage/postgres/postgres.ts";
 
 const CS_PORT = parseInt(Deno.env.get("CS_PORT") || "8080");
 const CS_TITLE = Deno.env.get("CS_TITLE") ||
@@ -52,5 +52,5 @@ export const config = {
       name: CS_USER,
       password: CS_PASSWORD,
     };
-  }
+  },
 };

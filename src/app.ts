@@ -28,7 +28,6 @@ export class CommonStorage {
   launch(listen: boolean) {
     const app = opine();
     const cfg = this.config;
-    const log = cfg.logger();
 
     app.use(logRoutes(cfg));
     app.use(json(cfg));
