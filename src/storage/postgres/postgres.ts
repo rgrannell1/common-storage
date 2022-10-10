@@ -13,7 +13,7 @@ const tables = [
   await Deno.readTextFile(__dirname + "tables/content.sql"),
 ];
 
-const certificate = Deno.readTextFileSync(
+const certificate = await Deno.readTextFile(
   new URL("../../../certificates/ca-certificate.crt", import.meta.url),
 );
 
