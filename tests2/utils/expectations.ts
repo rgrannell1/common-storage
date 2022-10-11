@@ -17,6 +17,9 @@ export class RequestExpectations {
   static notFound(req: Test) {
     req.expect(Status.NotFound);
   }
+  static ok(req: Test) {
+    req.expect(Status.OK);
+  }
 }
 
 export class BodyExpectations {

@@ -4,6 +4,9 @@
 
 import { ServerTest } from "./utils/setup.ts";
 import * as ContentGet from "./cases/content-get.ts";
+import * as FeedGet from "./cases/feed-get.ts";
+import * as TopicGet from "./cases/topic-get.ts";
+import * as TopicPost from "./cases/topic-post.ts";
 
 const suite = new ServerTest("sqlite");
 
@@ -127,5 +130,53 @@ await suite.test(async (testParams) => {
 
   for (const testData of tcases) {
     await ContentGet.testContentRetrieval(testParams, testData);
+  }
+});
+
+/*
+ * FeedGet
+ */
+suite.test(async (testParams) => {
+  await FeedGet.testUnauthorised(testParams);
+});
+
+suite.test(async (testParams) => {
+  await FeedGet.testFeed(testParams);
+});
+
+/*
+ * TopicGet
+ */
+suite.test(async (testParams) => {
+  for (const topic of ["birds"]) {
+    await TopicGet.testUnauthorised(testParams, { topic });
+  }
+});
+
+await suite.test(async (testParams) => {
+  for (const topic of ["birds"]) {
+    await TopicGet.testTopic(testParams, { topic });
+  }
+});
+
+/*
+ * TopicPost
+ */
+suite.test(async (testParams) => {
+  const tcases = [
+    { topic: 'birds', description: 'they flap' }
+  ]
+
+  for (const tcase of tcases) {
+    await TopicPost.testUnauthorised(testParams, tcase);
+  }
+});
+
+await suite.test(async (testParams) => {
+  const tcases = [
+    { topic: 'birds', description: 'they flap' }
+  ]
+  for (const tcase of tcases) {
+    await TopicPost.testGetSet(testParams, tcase);
   }
 });
