@@ -9,7 +9,6 @@ import * as TopicGet from "./cases/routes/topic-get.ts";
 import * as TopicPost from "./cases/routes/topic-post.ts";
 import * as ContentPost from "./cases/routes/content-post.ts";
 import * as StorageTopic from "./cases/storage/topic.ts";
-import { zlib } from "https://deno.land/std@0.153.0/node/internal_binding/constants.ts";
 
 const content = [
   { name: "Abbott's babbler" },

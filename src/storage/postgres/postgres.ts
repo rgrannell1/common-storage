@@ -5,12 +5,27 @@ import type {
   GetTopicStatsResponse,
 } from "../../interfaces/storage.ts";
 
-const __dirname = new URL(".", import.meta.url).pathname;
-
 const tables = [
-  await Deno.readTextFile(__dirname + "tables/topics.sql"),
-  await Deno.readTextFile(__dirname + "tables/batches.sql"),
-  await Deno.readTextFile(__dirname + "tables/content.sql"),
+  `create table if not exists batches (
+    batchId        text primary key,
+    closed         text not null,
+    created        text not null
+  );
+  `,
+  `create table if not exists content (
+    contentId      serial primary key,
+    batchId        text not null,
+    topic          text not null,
+    value          text not null,
+    created        text not null
+  );
+  `,
+  `create table if not exists topics (
+    topic          text primary key,
+    description    text not null,
+    created        text not null
+  );
+  `
 ];
 
 const certificate = await Deno.readTextFile(

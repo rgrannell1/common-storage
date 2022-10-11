@@ -8,12 +8,27 @@ import type {
 
 import { DB } from "https://deno.land/x/sqlite/mod.ts";
 
-const __dirname = new URL(".", import.meta.url).pathname;
-
 const tables = [
-  Deno.readTextFileSync(__dirname + "tables/topics.sql"),
-  Deno.readTextFileSync(__dirname + "tables/batches.sql"),
-  Deno.readTextFileSync(__dirname + "tables/content.sql"),
+  `create table if not exists batches (
+    batchId        text primary key,
+    closed         text not null,
+    created        text not null
+  );
+  `,
+  `create table if not exists content (
+    contentId      integer primary key autoincrement,
+    batchId        text not null,
+    topic          text not null,
+    value          blob not null,
+    created        text not null
+  );
+  `,
+  `create table if not exists topics (
+    topic          text primary key,
+    description    text not null,
+    created        text not null
+  );
+  `
 ];
 
 export class Sqlite implements IStorage {
