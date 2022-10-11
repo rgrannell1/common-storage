@@ -25,7 +25,7 @@ export class Sqlite implements IStorage {
     this.#loaded = false;
   }
 
-  init() {
+  async init() {
     for (const table of tables) {
       this.db.query(table);
     }
@@ -96,12 +96,12 @@ export class Sqlite implements IStorage {
   ): Promise<AddTopicResponse> {
     this.assertLoaded();
 
-    const previousRow = this.db.query(
+    const previousRow = await this.db.query(
       "select count(*) from topics where topic = ?",
       [topic],
     );
 
-    this.db.query(
+    await this.db.query(
       "insert or replace into topics(topic, description, created) values (?, ?, ?)",
       [
         topic,

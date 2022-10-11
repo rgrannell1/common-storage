@@ -19,6 +19,7 @@ export type GetContentResponse = {
 };
 
 export interface IStorage {
+  init(): Promise<void>;
   getTopicNames(): Promise<string[]>;
   getTopicStats(name: string): Promise<GetTopicStatsResponse>;
   getTopic(topic: string): Promise<Topic>;
@@ -32,4 +33,5 @@ export interface IStorage {
     topic: string,
     startId: string | undefined,
   ): Promise<GetContentResponse>;
+  close(): void;
 }

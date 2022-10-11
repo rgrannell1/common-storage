@@ -3,6 +3,8 @@ import { Status } from "https://deno.land/std/http/http_status.ts";
 
 import type { IConfig } from "../../interfaces/config.ts";
 
+const START_ID_PATTERN = /[0-9]+/;
+
 export function contentGet(cfg: IConfig) {
   return async function (req: OpineRequest, res: OpineResponse) {
     const storage = cfg.storage();
@@ -29,6 +31,19 @@ export function contentGet(cfg: IConfig) {
           message: `topic "${topic}" does not exist`,
         },
       });
+      return;
+    }
+
+    if (req.query.startId) {
+      if (!START_ID_PATTERN.test(req.query.startId)) {
+        res.status = Status.UnprocessableEntity;
+        res.send({
+          errors: {
+            message: `startId was malformed`,
+          },
+        });
+        return;
+      }
     }
 
     // enumerate from chosen id if present
