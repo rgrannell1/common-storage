@@ -2,7 +2,6 @@ import { Test } from "https://deno.land/x/superdeno/mod.ts";
 import {
   assert,
   assertEquals,
-  assertObjectMatch,
 } from "https://deno.land/std@0.159.0/testing/asserts.ts";
 
 import { Status } from "https://deno.land/std/http/http_status.ts";
@@ -19,6 +18,9 @@ export class RequestExpectations {
   }
   static ok(req: Test) {
     req.expect(Status.OK);
+  }
+  static unprocessableEntity(req: Test) {
+    req.expect(Status.UnprocessableEntity);
   }
 }
 

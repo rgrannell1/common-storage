@@ -17,7 +17,6 @@ export function feedGet(cfg: IConfig) {
     res.send({
       description: cfg.description(),
       title: cfg.title(),
-      type: "common-storage",
       version: "v0.1",
       topics: topicStats,
     });

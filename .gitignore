@@ -7,3 +7,5 @@ terraform.*
 .env
 inventory.file
 fauna/
+coverage/
+coverage-html/

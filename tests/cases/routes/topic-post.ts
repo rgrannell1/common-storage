@@ -1,8 +1,8 @@
 import { superdeno } from "https://deno.land/x/superdeno/mod.ts";
 import { assertObjectMatch } from "https://deno.land/std@0.129.0/testing/asserts.ts";
 
-import { RequestExpectations } from "../utils/expectations.ts";
-import { TestParams } from "../utils/setup.ts";
+import { RequestExpectations } from "../../utils/expectations.ts";
+import { TestParams } from "../../utils/setup.ts";
 
 export async function testUnauthorised(
   testParams: TestParams,

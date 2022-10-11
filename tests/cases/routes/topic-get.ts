@@ -1,11 +1,11 @@
 import { superdeno } from "https://deno.land/x/superdeno/mod.ts";
 
-import { RequestExpectations } from "../utils/expectations.ts";
-import { TestParams } from "../utils/setup.ts";
+import { RequestExpectations } from "../../utils/expectations.ts";
+import { TestParams } from "../../utils/setup.ts";
 
 export async function testUnauthorised(
   testParams: TestParams,
-  testData: { topic: string }
+  testData: { topic: string },
 ) {
   await Deno.test({
     name: "GET /feed | failed without authentication",

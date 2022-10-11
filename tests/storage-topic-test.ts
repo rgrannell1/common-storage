@@ -1,49 +1,9 @@
 import {
   assert,
   assertEquals,
-  assertObjectMatch,
 } from "https://deno.land/std@0.158.0/testing/asserts.ts";
 
 import { Sqlite } from "../src/storage/sqlite/sqlite.ts";
-import { IStorage } from "../src/interfaces/storage.ts";
-
-export async function missingTopicFailure(topic: string, storage: IStorage) {
-  try {
-    await storage.getTopic(topic);
-    throw new Error("did not throw exception for missing topic");
-  } catch (_) {
-    // all good
-  }
-}
-
-await Deno.test({
-  name: "Sqlite | missing topics throw exceptions",
-  fn: async () => {
-    const storage = new Sqlite(":memory:");
-    await storage.init();
-
-    await missingTopicFailure("foo", storage);
-
-    await storage.close();
-  },
-});
-
-await Deno.test({
-  name: "Sqlite | topics can be persisted",
-  fn: async () => {
-    const storage = new Sqlite(":memory:");
-    await storage.init();
-
-    await missingTopicFailure("foo", storage);
-    let res = await storage.addTopic("foo", "hello!");
-
-    assert(res.existed === false);
-    res = await storage.addTopic("foo", "hello!");
-    assert(res.existed === true);
-
-    await storage.close();
-  },
-});
 
 await Deno.test({
   name: "Sqlite | topics can be retrieved",

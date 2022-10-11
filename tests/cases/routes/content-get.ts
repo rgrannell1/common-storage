@@ -6,8 +6,8 @@ import {
 import {
   BodyExpectations,
   RequestExpectations,
-} from "../utils/expectations.ts";
-import { TestParams } from "../utils/setup.ts";
+} from "../../utils/expectations.ts";
+import { TestParams } from "../../utils/setup.ts";
 
 export async function testUnauthorised(
   testParams: TestParams,
