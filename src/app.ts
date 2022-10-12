@@ -25,7 +25,7 @@ export class CommonStorage {
     this.config = config;
   }
 
-  launch(listen: boolean) {
+  async launch(listen: boolean) {
     const app = opine();
     const cfg = this.config;
 
@@ -52,6 +52,8 @@ export class CommonStorage {
         motd(cfg);
       });
     }
+
+    await cfg.storage().init();
 
     return app;
   }

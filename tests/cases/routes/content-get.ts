@@ -66,7 +66,8 @@ export async function testEmptyTopic(
       const { topic, description } = testData;
 
       const user = testParams.config.user();
-      await testParams.storage.addTopic(
+      const storage = testParams.config.storage();
+      await storage.addTopic(
         topic,
         description,
       );
@@ -98,7 +99,8 @@ export async function testContentRetrieval(
       const { topic, description, content } = testData;
 
       const user = testParams.config.user();
-      await testParams.storage.addTopic(
+      const storage = testParams.config.storage();
+      await storage.addTopic(
         topic,
         description,
       );

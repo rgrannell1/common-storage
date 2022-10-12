@@ -96,12 +96,12 @@ const content = [
   { name: "African pygmy kingfisher" },
 ];
 
-const suite = new ServerTest("sqlite");
+const suite = new ServerTest("postgres");
 
 /*
  * ContentGet
  */
-suite.test(async (testParams) => {
+await suite.test(async (testParams) => {
   for (const topic of ["birds"]) {
     await ContentGet.testUnauthorised(testParams, { topic });
   }
@@ -123,134 +123,133 @@ await suite.test(async (testParams) => {
   }
 });
 
-await suite.test(async (testParams) => {
-  const tcases = [
-    {
-      topic: "birds",
-      description: "they fly",
-      content,
-    },
-  ];
+async function x() {
+  await suite.test(async (testParams) => {
+    const tcases = [
+      {
+        topic: "birds",
+        description: "they fly",
+        content,
+      },
+    ];
 
-  for (const testData of tcases) {
-    await ContentGet.testContentRetrieval(testParams, testData);
-  }
-});
+    for (const testData of tcases) {
+      await ContentGet.testContentRetrieval(testParams, testData);
+    }
+  });
 
-/*
+  /*
  * FeedGet
  */
-suite.test(async (testParams) => {
-  await FeedGet.testUnauthorised(testParams);
-});
+  await suite.test(async (testParams) => {
+    await FeedGet.testUnauthorised(testParams);
+  });
 
-suite.test(async (testParams) => {
-  await FeedGet.testFeed(testParams);
-});
+  await suite.test(async (testParams) => {
+    await FeedGet.testFeed(testParams);
+  });
 
-suite.test(async (testParams) => {
-  const tcases = [
-    { topic: "birds", description: "they flap" },
-  ];
+  await suite.test(async (testParams) => {
+    const tcases = [
+      { topic: "birds", description: "they flap" },
+    ];
 
-  for (const tcase of tcases) {
-    await FeedGet.testFeedStats(testParams, tcase);
-  }
-});
+    for (const tcase of tcases) {
+      await FeedGet.testFeedStats(testParams, tcase);
+    }
+  });
 
-
-
-
-/*
+  /*
  * TopicGet
  */
-suite.test(async (testParams) => {
-  for (const topic of ["birds"]) {
-    await TopicGet.testUnauthorised(testParams, { topic });
-  }
-});
+  await suite.test(async (testParams) => {
+    for (const topic of ["birds"]) {
+      await TopicGet.testUnauthorised(testParams, { topic });
+    }
+  });
 
-await suite.test(async (testParams) => {
-  for (const topic of ["birds"]) {
-    await TopicGet.testTopic(testParams, { topic });
-  }
-});
+  await suite.test(async (testParams) => {
+    for (const topic of ["birds"]) {
+      await TopicGet.testTopic(testParams, { topic });
+    }
+  });
 
-/*
+  /*
  * TopicPost
  */
-suite.test(async (testParams) => {
-  const tcases = [
-    { topic: "birds", description: "they flap" },
-  ];
+  await suite.test(async (testParams) => {
+    const tcases = [
+      { topic: "birds", description: "they flap" },
+    ];
 
-  for (const tcase of tcases) {
-    await TopicPost.testUnauthorised(testParams, tcase);
-  }
-});
+    for (const tcase of tcases) {
+      await TopicPost.testUnauthorised(testParams, tcase);
+    }
+  });
 
-await suite.test(async (testParams) => {
-  const tcases = [
-    { topic: "birds", description: "they flap" },
-  ];
-  for (const tcase of tcases) {
-    await TopicPost.testGetSet(testParams, tcase);
-  }
-});
+  await suite.test(async (testParams) => {
+    const tcases = [
+      { topic: "birds", description: "they flap" },
+    ];
+    for (const tcase of tcases) {
+      await TopicPost.testGetSet(testParams, tcase);
+    }
+  });
 
-/*
+  /*
  * ContentPost
  */
-await suite.test(async (testParams) => {
-  const tcases = [
-    { topic: "birds" },
-  ];
-  for (const tcase of tcases) {
-    await ContentPost.testUnauthorised(testParams, tcase);
-  }
-});
+  await suite.test(async (testParams) => {
+    const tcases = [
+      { topic: "birds" },
+    ];
+    for (const tcase of tcases) {
+      await ContentPost.testUnauthorised(testParams, tcase);
+    }
+  });
 
-await suite.test(async (testParams) => {
-  const tcases = [
-    { topic: "birds" },
-  ];
-  for (const tcase of tcases) {
-    await ContentPost.testMalformed(testParams, tcase);
-  }
-});
+  await suite.test(async (testParams) => {
+    const tcases = [
+      { topic: "birds" },
+    ];
+    for (const tcase of tcases) {
+      await ContentPost.testMalformed(testParams, tcase);
+    }
+  });
 
-await suite.test(async (testParams) => {
-  const tcases = [
-    { topic: "birds", content },
-  ];
-  for (const tcase of tcases) {
-    await ContentPost.testBatchWrites(testParams, tcase);
-  }
-});
+  await suite.test(async (testParams) => {
+    const tcases = [
+      { topic: "birds", content },
+    ];
+    for (const tcase of tcases) {
+      await ContentPost.testBatchWrites(testParams, tcase);
+    }
+  });
 
-await suite.test(async (testParams) => {
-  const tcases = [
-    { topic: "birds" },
-  ];
-  for (const tcase of tcases) {
-    await StorageTopic.testMissingTopic(testParams, tcase);
-  }
-});
+  await suite.test(async (testParams) => {
+    const tcases = [
+      { topic: "birds" },
+    ];
+    for (const tcase of tcases) {
+      await StorageTopic.testMissingTopic(testParams, tcase);
+    }
+  });
 
-await suite.test(async (testParams) => {
-  const tcases = [
-    { topic: "birds", description: 'they flap' },
-  ];
-  for (const tcase of tcases) {
-    await StorageTopic.testTopicAdd(testParams, tcase);
-  }
-});
+  await suite.test(async (testParams) => {
+    const tcases = [
+      { topic: "birds", description: "they flap" },
+    ];
+    for (const tcase of tcases) {
+      await StorageTopic.testTopicAdd(testParams, tcase);
+    }
+  });
 
-await suite.test(async (testParams) => {
-  const tcases = [
-    { topic: "birds", description: 'they flap' },
-  ];
-  for (const tcase of tcases) {
-    await StorageTopic.testTopicRetrieval(testParams, tcase);
-  }
-});
+  await suite.test(async (testParams) => {
+    const tcases = [
+      { topic: "birds", description: "they flap" },
+    ];
+    for (const tcase of tcases) {
+      await StorageTopic.testTopicRetrieval(testParams, tcase);
+    }
+  });
+}

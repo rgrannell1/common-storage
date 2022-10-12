@@ -34,4 +34,5 @@ export interface IStorage {
     startId: string | undefined,
   ): Promise<GetContentResponse>;
   close(): void;
+  cleanup(): Promise<void>;
 }

@@ -20,15 +20,12 @@ Create a topic, to which content can be published.
 curl -X POST --user *** 'localhost:8080/topic/bookmarks' -H 'Content-Type: application/json' --data '{ "description": "bookmarks I want to store" }'
 ```
 
-Terraform & ansible deployment are also included in this repository
-
 ## Motivation
 
-I'm moving my personal data off of cloud-services into a personal knowledge-hub.
-I need simple computer-to-computer data-synchronisation with support for
-multiple stores & the ability to run programs when data changes (e.g when a
-photo is added back it up to s3 and associate it with my location data based on
-timestamp)
+I'm moving from cloud-services to my own personal knowledge-hub. Common-storage
+is an entry-point for my personal-data (from bookmark clients, CLIs, websites,
+etc.) and can push / pull data to a local common-storage service on my own
+machine periodically.
 
 ## Properties
 
@@ -81,6 +78,7 @@ The workflow is:
 ## Storage Backends
 
 - In-memory
+- Postgres
 
 ## License
 

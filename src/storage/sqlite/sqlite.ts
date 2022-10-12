@@ -28,15 +28,15 @@ const tables = [
     description    text not null,
     created        text not null
   );
-  `
+  `,
 ];
 
 export class Sqlite implements IStorage {
   db: DB;
   #loaded: boolean;
 
-  constructor(fpath: string) {
-    this.db = new DB(fpath);
+  constructor(opts: { fpath: string }) {
+    this.db = new DB(opts.fpath);
     this.#loaded = false;
   }
 
@@ -266,6 +266,9 @@ export class Sqlite implements IStorage {
     }
 
     return {};
+  }
+
+  async cleanup() {
   }
 
   close() {

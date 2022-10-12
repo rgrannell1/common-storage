@@ -43,7 +43,7 @@ export async function testFeed(
 
 export async function testFeedStats(
   testParams: TestParams,
-  testData: { topic: string, description: string }
+  testData: { topic: string; description: string },
 ) {
   await Deno.test({
     name: "GET /feed | returns stats for topics",
@@ -65,23 +65,23 @@ export async function testFeedStats(
 
       const getFeed = superdeno(testParams.app)
         .get("/feed")
-        .expect(req => {
+        .expect((req) => {
           assertObjectMatch(req.body, {
             description: testParams.config.description(),
             title: testParams.config.title(),
-            version: 'v0.1',
+            version: "v0.1",
             topics: [
               {
                 topic: {
                   name: testData.topic,
-                  description: testData.description
+                  description: testData.description,
                 },
                 stats: {
-                  count: 0
-                }
-              }
-            ]
-          })
+                  count: 0,
+                },
+              },
+            ],
+          });
         })
         .auth(user.name, user.password);
 

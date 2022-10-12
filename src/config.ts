@@ -1,45 +1,70 @@
 import { Logger } from "../src/logger/logger.ts";
 import { Sqlite } from "../src/storage/sqlite/sqlite.ts";
 import { Postgres } from "../src/storage/postgres/postgres.ts";
+import { IStorage } from "./interfaces/storage.ts";
 
-const CS_PORT = parseInt(Deno.env.get("CS_PORT") || "8080");
-const CS_TITLE = Deno.env.get("CS_TITLE") ||
-  "Just another common-storage server";
-const CS_DESCRIPTION = Deno.env.get("CS_DESCRIPTION") || "";
-const CS_USER = Deno.env.get("CS_USER");
-const CS_PASSWORD = Deno.env.get("CS_PASSWORD");
-const CS_SQL_DB_PATH = Deno.env.get("CS_SQL_DB_PATH") || ":memory:";
+function getEnv(name: string) {
+  const res = Deno.env.get(name);
+  if (!res) {
+    throw new Error(`${name} missing`);
+  }
+  return res;
+}
+
+const CS_PORT = parseInt(getEnv("CS_PORT"));
+const CS_TITLE = getEnv("CS_TITLE");
+const CS_DESCRIPTION = getEnv("CS_DESCRIPTION");
+const CS_USER = getEnv("CS_USER");
+const CS_PASSWORD = getEnv("CS_PASSWORD");
 
 if (!CS_USER || !CS_PASSWORD) {
   throw new Error("please set CS_USER and CS_PASSWORD!");
 }
 
-const logger = new Logger();
+export function getStorage(): IStorage {
+  const CS_DB_ENGINE = getEnv("CS_DB_ENGINE");
 
-const CS_DB_USER = Deno.env.get("CS_DB_USER");
-const CS_DB_PASSWORD = Deno.env.get("CS_DB_PASSWORD");
-const CS_DB_HOST = Deno.env.get("CS_DB_HOST");
-const CS_DB_NAME = Deno.env.get("CS_DB_NAME");
-const CS_DB_PORT = Deno.env.get("CS_DB_PORT");
+  if (CS_DB_ENGINE === "postgres") {
+    const CS_POSTGRES_DB_USER = getEnv("CS_POSTGRES_DB_USER");
+    const CS_POSTGRES_DB_PASSWORD = getEnv("CS_POSTGRES_DB_PASSWORD");
+    const CS_POSTGRES_DB_HOST = getEnv("CS_POSTGRES_DB_HOST");
+    const CS_POSTGRES_DB_NAME = getEnv("CS_POSTGRES_DB_NAME");
+    const CS_POSTGRES_DB_PORT = getEnv("CS_POSTGRES_DB_PORT");
+    const CS_POSTGRES_DB_CERT = getEnv("CS_POSTGRES_DB_CERT");
 
-const storage = new Postgres({
-  user: CS_DB_USER,
-  database: CS_DB_NAME,
-  hostname: CS_DB_HOST,
-  password: CS_DB_PASSWORD,
-  port: CS_DB_PORT,
-});
-await storage.init();
+    const certificate = atob(CS_POSTGRES_DB_CERT ?? "");
+
+    return new Postgres({
+      user: CS_POSTGRES_DB_USER,
+      database: CS_POSTGRES_DB_NAME,
+      hostname: CS_POSTGRES_DB_HOST,
+      password: CS_POSTGRES_DB_PASSWORD,
+      port: CS_POSTGRES_DB_PORT,
+      tls: {
+        caCertificates: [certificate],
+        enforce: true,
+      },
+    });
+  } else if (CS_DB_ENGINE === "sqlite") {
+    const CS_SQLITE_DB_PATH = getEnv("CS_SQLITE_DB_PATH");
+
+    return new Sqlite({
+      fpath: CS_SQLITE_DB_PATH,
+    });
+  } else {
+    throw new Error(`storage engine ${CS_DB_ENGINE} not supported.`);
+  }
+}
 
 export const config = {
   port() {
     return CS_PORT;
   },
   logger() {
-    return logger;
+    return new Logger();
   },
   storage() {
-    return storage;
+    return getStorage();
   },
   title() {
     return CS_TITLE;

@@ -1,4 +1,5 @@
 import { Client } from "https://deno.land/x/postgres@v0.16.1/mod.ts";
+import type { Topic } from "../../types.ts";
 import type {
   AddContentResponse,
   AddTopicResponse,
@@ -25,11 +26,13 @@ const tables = [
     description    text not null,
     created        text not null
   );
-  `
+  `,
 ];
 
+const CERT_PATH = "../../../certificates/ca-certificate.crt";
+
 const certificate = await Deno.readTextFile(
-  new URL("../../../certificates/ca-certificate.crt", import.meta.url),
+  new URL(CERT_PATH, import.meta.url),
 );
 
 export class Postgres {
@@ -51,9 +54,9 @@ export class Postgres {
   async init() {
     await this.db.connect();
 
-    for (const table of tables) {
-      await this.db.queryArray(table);
-    }
+    await Promise.all(tables.map((table) => {
+      return this.db.queryArray(table);
+    }));
 
     this.#loaded = true;
   }
@@ -70,7 +73,7 @@ export class Postgres {
       "select topic from topics",
     );
 
-    return result.rows((row: any) => row[0] as string);
+    return result.rows.map((row) => row[0] as string);
   }
 
   async getTopic(topic: string): Promise<Topic> {
@@ -86,13 +89,17 @@ export class Postgres {
 
     const description = topicRow[0][0] as string;
     const created = parseInt(topicRow[0][1] as string);
-    const iso = (new Date(created)).toISOString();
 
-    return {
-      name: topic,
-      description,
-      created: iso,
-    };
+    try {
+      const iso = (new Date(created)).toISOString();
+      return {
+        name: topic,
+        description,
+        created: iso,
+      };
+    } catch (_) {
+      throw new Error(`Could not parse "${topicRow[0][1]}" as "created" date.`);
+    }
   }
 
   async getTopicStats(topic: string): Promise<GetTopicStatsResponse> {
@@ -243,13 +250,17 @@ export class Postgres {
       startId,
       content: result.rows.map((row: any) => {
         const date = parseInt(row[2]);
-        const created = (new Date(date)).toISOString();
 
-        return {
-          id: row[0],
-          value: JSON.parse(row[1]),
-          created,
-        };
+        try {
+          const iso = (new Date(date)).toISOString();
+          return {
+            id: row[0],
+            value: JSON.parse(row[1]),
+            created: iso,
+          };
+        } catch (_) {
+          throw new Error(`Could not parse "${row[2]}" as "created" date.`);
+        }
       }),
     };
     if (lastId > 0) {
@@ -294,6 +305,16 @@ export class Postgres {
     }
 
     return {};
+  }
+
+  async cleanup() {
+    for (const table of ["batches", "content", "topics"]) {
+      await this.db.queryArray(`
+      drop table if exists ${table} cascade
+      `);
+    }
+
+    await this.close();
   }
 
   close() {

@@ -8,3 +8,7 @@ export class Logger implements ILogger {
     }
   }
 }
+
+export class NoOpLogger implements ILogger {
+  info(_message: string, _obj?: Record<string, any>) {}
+}
