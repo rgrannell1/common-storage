@@ -136,7 +136,7 @@ export class Postgres {
       ],
     );
 
-    const existingCount = Number(rows[0][0])
+    const existingCount = Number(rows[0][0]);
 
     return {
       existed: existingCount !== 0,

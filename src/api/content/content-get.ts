@@ -53,15 +53,15 @@ export function contentGet(cfg: IConfig) {
       const content = await storage.getContent(topic, startId);
       res.send(content);
     } catch (err) {
-      console.log(err)
-      console.log('+++++++++++++++++++++++++++++')
+      console.log(err);
+      console.log("+++++++++++++++++++++++++++++");
 
       res.status = 500;
       res.send({
         error: {
-          message: 'internal error occurred'
-        }
-      })
+          message: "internal error occurred",
+        },
+      });
     }
   };
 }

@@ -18,7 +18,7 @@ export class ServerTest {
   }
 
   async test(test: TestCase) {
-    const cfg = config(this.bindings)
+    const cfg = config(this.bindings);
 
     const store = cfg.storage;
     await store.init();

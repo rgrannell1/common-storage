@@ -42,11 +42,11 @@ async function storageTest(suite: ServerTest) {
 }
 
 const sqliteSuite = new ServerTest({
-  CS_DB_ENGINE: 'sqlite',
-  CS_SQLITE_DB_PATH: ':memory:'
+  CS_DB_ENGINE: "sqlite",
+  CS_SQLITE_DB_PATH: ":memory:",
 });
 const postgresSuite = new ServerTest({
-  CS_DB_ENGINE: 'postgres',
+  CS_DB_ENGINE: "postgres",
 });
 
 for (const suite of [sqliteSuite, postgresSuite]) {
