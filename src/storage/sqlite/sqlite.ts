@@ -269,6 +269,13 @@ export class Sqlite implements IStorage {
   }
 
   async cleanup() {
+    for (const table of ["batches", "content", "topics"]) {
+      await this.db.query(`
+      drop table if exists ${table}
+      `);
+    }
+
+    this.#loaded = false;
   }
 
   close() {

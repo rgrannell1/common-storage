@@ -13,50 +13,40 @@ export async function testUnauthorised(
   testParams: TestParams,
   testData: { topic: string },
 ) {
-  await Deno.test({
-    name: "POST /content/:topic | failed without authentication",
-    async fn() {
-      const req = superdeno(testParams.app)
-        .post(`/content/${testData.topic}`);
+  const req = superdeno(testParams.app)
+    .post(`/content/${testData.topic}`);
 
-      RequestExpectations.jsonContentType(req);
-      RequestExpectations.unauthenticatedFailure(req);
+  RequestExpectations.jsonContentType(req);
+  RequestExpectations.unauthenticatedFailure(req);
 
-      await req;
-    },
-  });
+  await req;
 }
 
 export async function testMalformed(
   testParams: TestParams,
   testData: { topic: string },
 ) {
-  await Deno.test({
-    name: "POST /content/:topic | fails without content",
-    async fn() {
-      const user = testParams.config.user();
+  const user = testParams.config.user();
 
-      const req = superdeno(testParams.app)
-        .post(`/content/${testData.topic}`)
-        .send({
-          batchId: "just-a-test-id",
-        })
-        .auth(user.name, user.password);
+  const req = superdeno(testParams.app)
+    .post(`/content/${testData.topic}`)
+    .send({
+      batchId: "just-a-test-id",
+    })
+    .auth(user.name, user.password);
 
-      RequestExpectations.jsonContentType(req);
-      RequestExpectations.unprocessableEntity(req);
+  RequestExpectations.jsonContentType(req);
+  RequestExpectations.unprocessableEntity(req);
 
-      req.expect((res) => {
-        assertObjectMatch(res.body, {
-          errors: {
-            message: "content not provided",
-          },
-        });
-      });
-
-      await req;
-    },
+  req.expect((res) => {
+    assertObjectMatch(res.body, {
+      error: {
+        message: "content not provided",
+      },
+    });
   });
+
+  await req;
 }
 
 export async function testBatchWrites(

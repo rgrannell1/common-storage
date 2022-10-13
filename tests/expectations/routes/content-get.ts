@@ -13,18 +13,13 @@ export async function testUnauthorised(
   testParams: TestParams,
   testData: { topic: string },
 ) {
-  await Deno.test({
-    name: "GET /content/:topic | fails without authentication",
-    async fn() {
-      const req = superdeno(testParams.app)
-        .get(`/content/${testData.topic}`);
+  const req = superdeno(testParams.app)
+    .get(`/content/${testData.topic}`);
 
-      RequestExpectations.jsonContentType(req);
-      RequestExpectations.unauthenticatedFailure(req);
+  RequestExpectations.jsonContentType(req);
+  RequestExpectations.unauthenticatedFailure(req);
 
-      await req;
-    },
-  });
+  await req;
 }
 
 export async function testMissingTopic(
@@ -45,7 +40,7 @@ export async function testMissingTopic(
 
       req.expect((res) => {
         assertObjectMatch(res.body, {
-          errors: {
+          error: {
             message: `topic "${testData.topic}" does not exist`,
           },
         });
@@ -60,33 +55,29 @@ export async function testEmptyTopic(
   testParams: TestParams,
   testData: { topic: string; description: string },
 ) {
-  await Deno.test({
-    name: "GET /content/:topic | returns empty content for empty topic",
-    async fn() {
-      const { topic, description } = testData;
+  const { topic, description } = testData;
 
-      const user = testParams.config.user();
-      const storage = testParams.config.storage();
-      await storage.addTopic(
-        topic,
-        description,
-      );
+  const user = testParams.config.user();
+  const storage = testParams.config.storage();
+  await storage.addTopic(
+    topic,
+    description,
+  );
 
-      const req = superdeno(testParams.app)
-        .get(`/content/${topic}`)
-        .auth(user.name, user.password);
+  const req = superdeno(testParams.app)
+    .get(`/content/${topic}`)
+    .auth(user.name, user.password);
 
-      RequestExpectations.jsonContentType(req);
-      req.expect((res: IResponse) => {
-        assertObjectMatch(res.body, {
-          topic,
-          content: [],
-        });
-      });
-
-      await req;
-    },
+  RequestExpectations.ok(req);
+  RequestExpectations.jsonContentType(req);
+  req.expect((res: IResponse) => {
+    assertObjectMatch(res.body, {
+      topic,
+      content: [],
+    });
   });
+
+  await req;
 }
 
 export async function testContentRetrieval(
@@ -94,7 +85,7 @@ export async function testContentRetrieval(
   testData: { topic: string; description: string; content: any[] },
 ) {
   await Deno.test({
-    name: "GET /content/:topic |   expected content through pagination",
+    name: "GET /content/:topic | expected content through pagination",
     async fn() {
       const { topic, description, content } = testData;
 

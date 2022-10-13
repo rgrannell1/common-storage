@@ -10,7 +10,7 @@ export function contentPost(cfg: IConfig) {
     if (!req.body.batchId) {
       res.status = Status.UnprocessableEntity;
       res.send({
-        errors: {
+        error: {
           message: "batchId not provided",
         },
       });
@@ -20,7 +20,7 @@ export function contentPost(cfg: IConfig) {
     if (!req.params.topic) {
       res.status = Status.UnprocessableEntity;
       res.send({
-        errors: {
+        error: {
           message: "topic not provided",
         },
       });
@@ -30,7 +30,7 @@ export function contentPost(cfg: IConfig) {
     if (!req.body.content) {
       res.status = Status.UnprocessableEntity;
       res.send({
-        errors: {
+        error: {
           message: "content not provided",
         },
       });

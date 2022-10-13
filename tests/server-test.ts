@@ -3,229 +3,184 @@
  */
 
 import { ServerTest } from "./utils/setup.ts";
-import * as ContentGet from "./cases/routes/content-get.ts";
-import * as FeedGet from "./cases/routes/feed-get.ts";
-import * as TopicGet from "./cases/routes/topic-get.ts";
-import * as TopicPost from "./cases/routes/topic-post.ts";
-import * as ContentPost from "./cases/routes/content-post.ts";
-import * as StorageTopic from "./cases/storage/topic.ts";
+import * as ContentGet from "./expectations/routes/content-get.ts";
+import * as FeedGet from "./expectations/routes/feed-get.ts";
+import * as TopicGet from "./expectations/routes/topic-get.ts";
+import * as TopicPost from "./expectations/routes/topic-post.ts";
+import * as ContentPost from "./expectations/routes/content-post.ts";
+import * as StorageTopic from "./expectations/storage/topic.ts";
+import { TestCases } from "./utils/cases.ts";
 
-const content = [
-  { name: "Abbott's babbler" },
-  { name: "Abbott's booby" },
-  { name: "Abbott's starling" },
-  { name: "Abd al-Kuri sparrow" },
-  { name: "Abdim's stork" },
-  { name: "Aberdare cisticola" },
-  { name: "Aberrant bush warbler" },
-  { name: "Abert's towhee" },
-  { name: "Abyssinian catbird" },
-  { name: "Abyssinian crimsonwing" },
-  { name: "Abyssinian ground hornbill" },
-  { name: "Abyssinian ground thrush" },
-  { name: "Abyssinian longclaw" },
-  { name: "Abyssinian owl" },
-  { name: "Abyssinian roller" },
-  { name: "Abyssinian scimitarbill" },
-  { name: "Abyssinian slaty flycatcher" },
-  { name: "Abyssinian thrush" },
-  { name: "Abyssinian waxbill" },
-  { name: "Abyssinian wheatear" },
-  { name: "Abyssinian white-eye" },
-  { name: "Abyssinian woodpecker" },
-  { name: "Acacia pied barbet" },
-  { name: "Acacia tit" },
-  { name: "Acadian flycatcher" },
-  { name: "Aceh bulbul" },
-  { name: "Acorn woodpecker" },
-  { name: "Acre antshrike" },
-  { name: "Acre tody-tyrant" },
-  { name: "Adamawa turtle dove" },
-  { name: "Adelaide's warbler" },
-  { name: "Adélie penguin" },
-  { name: "Admiralty cicadabird" },
-  { name: "Afep pigeon" },
-  { name: "Afghan babbler" },
-  { name: "Afghan snowfinch" },
-  { name: "African barred owlet" },
-  { name: "African black duck" },
-  { name: "African black swift" },
-  { name: "African blue flycatcher" },
-  { name: "African blue tit" },
-  { name: "African broadbill" },
-  { name: "African citril" },
-  { name: "African collared dove" },
-  { name: "African crake" },
-  { name: "African crimson-winged finch" },
-  { name: "African cuckoo" },
-  { name: "African cuckoo-hawk" },
-  { name: "African darter" },
-  { name: "African desert warbler" },
-  { name: "African dusky flycatcher" },
-  { name: "African dwarf kingfisher" },
-  { name: "African emerald cuckoo" },
-  { name: "African finfoot" },
-  { name: "African firefinch" },
-  { name: "African fish eagle" },
-  { name: "African golden oriole" },
-  { name: "African goshawk" },
-  { name: "African grass owl" },
-  { name: "African green pigeon" },
-  { name: "African grey flycatcher" },
-  { name: "African grey hornbill" },
-  { name: "African grey woodpecker" },
-  { name: "African harrier-hawk" },
-  { name: "African hawk-eagle" },
-  { name: "African hill babbler" },
-  { name: "African hobby" },
-  { name: "African hoopoe" },
-  { name: "African jacana" },
-  { name: "African marsh harrier" },
-  { name: "African olive pigeon" },
-  { name: "African openbill" },
-  { name: "African oystercatcher" },
-  { name: "African palm swift" },
-  { name: "African paradise flycatcher" },
-  { name: "African penguin" },
-  { name: "African piculet" },
-  { name: "African pied hornbill" },
-  { name: "African pied wagtail" },
-  { name: "African pipit" },
-  { name: "African pitta" },
-  { name: "African pygmy goose" },
-  { name: "African pygmy kingfisher" },
-];
-
-const suite = new ServerTest("postgres");
 
 /*
  * ContentGet
  */
-await suite.test(async (testParams) => {
-  for (const topic of ["birds"]) {
-    await ContentGet.testUnauthorised(testParams, { topic });
+async function contentGetTest(suite: ServerTest) {
+  for (const topic of TestCases.topics()) {
+    await Deno.test({
+      name: "GET /content/:topic | fails when unauthorised",
+      async fn() {
+        await suite.test(async (testParams) => {
+          await ContentGet.testUnauthorised(testParams, topic);
+        });
+      },
+    });
   }
+
+  for (const topic of TestCases.topics()) {
+    await Deno.test({
+      name: "GET /content/:topic | fails when topic is missing",
+      async fn() {
+        await suite.test(async (testParams) => {
+          await ContentGet.testMissingTopic(testParams, topic);
+        });
+      },
+    });
+  }
+
+  for (const topic of TestCases.topics()) {
+    await Deno.test({
+      name: "GET /content/:topic | returns empty content for newly created topic",
+      async fn() {
+        await suite.test(async (testParams) => {
+          await ContentGet.testEmptyTopic(testParams, topic);
+        });
+      },
+    });
+  }
+
+  for (const tcase of TestCases.content()) {
+    await Deno.test({
+      name: "GET /content/:topic | expected content through pagination",
+      async fn() {
+        await suite.test(async (testParams) => {
+          await ContentGet.testContentRetrieval(testParams, tcase);
+        });
+      },
+    });
+  }
+}
+
+/*
+* FeedGet
+*/
+await Deno.test({
+  name: "GET /feed | failed without authentication",
+  async fn() {
+    await suite.test(async (testParams) => {
+      await FeedGet.testUnauthorised(testParams);
+    });
+  },
 });
 
-await suite.test(async (testParams) => {
-  for (const topic of ["birds"]) {
-    await ContentGet.testMissingTopic(testParams, { topic });
-  }
+await Deno.test({
+  name: "GET /feed | succeeds with authentication",
+  async fn() {
+    await suite.test(async (testParams) => {
+      await FeedGet.testFeed(testParams);
+    });
+  },
 });
 
-await suite.test(async (testParams) => {
-  const tcases = [
-    { topic: "birds", description: "they fly" },
-  ];
+for (const tcase of TestCases.topics()) {
+  await Deno.test({
+    name: "GET /feed | returns stats for topics",
+    async fn() {
+      await suite.test(async (testParams) => {
+        await FeedGet.testFeedStats(testParams, tcase);
+      });
+    },
+  });
+}
 
-  for (const testData of tcases) {
-    await ContentGet.testEmptyTopic(testParams, testData);
-  }
-});
+/*
+* TopicGet
+*/
+
+for (const tcase of TestCases.topics()) {
+  await Deno.test({
+    name: "GET /topic/:name | failed without authentication",
+    async fn() {
+      await suite.test(async (testParams) => {
+        await TopicGet.testUnauthorised(testParams, tcase);
+      });
+    },
+  });
+}
+
+for (const tcase of TestCases.topics()) {
+  await Deno.test({
+    name: "GET /topic/:name | fails for missing topic",
+    async fn() {
+      await suite.test(async (testParams) => {
+        await TopicGet.testTopic(testParams, tcase);
+      });
+    },
+  });
+}
+
+/*
+* TopicPost
+*/
+for (const tcase of TestCases.topics()) {
+  await Deno.test({
+    name: "POST /topic/:topic | failed without authentication",
+    async fn() {
+      await suite.test(async (testParams) => {
+        await TopicPost.testUnauthorised(testParams, tcase);
+      });
+    },
+  });
+}
+
+for (const tcase of TestCases.topics()) {
+  await Deno.test({
+    name: "POST /topic/:topic | getset",
+    async fn() {
+      await suite.test(async (testParams) => {
+        await TopicPost.testGetSet(testParams, tcase);
+      });
+    },
+  });
+}
+
+/*
+* ContentPost
+*/
+for (const tcase of TestCases.topics()) {
+  await Deno.test({
+    name: "POST /content/:topic | failed without authentication",
+    async fn() {
+      await suite.test(async (testParams) => {
+        await ContentPost.testUnauthorised(testParams, tcase);
+      });
+    },
+  });
+}
+
+for (const tcase of TestCases.topics()) {
+  await Deno.test({
+    name: "POST /content/:topic | fails without content",
+    async fn() {
+      await suite.test(async (testParams) => {
+        await ContentPost.testMalformed(testParams, tcase);
+      });
+    },
+  });
+}
+
+for (const tcase of TestCases.content()) {
+  await Deno.test({
+    name: "POST /content/:topic | batches can be rewritten to and closed",
+    async fn() {
+      await suite.test(async (testParams) => {
+        await ContentPost.testBatchWrites(testParams, tcase);
+      });
+    },
+  });
+}
 
 async function x() {
-  await suite.test(async (testParams) => {
-    const tcases = [
-      {
-        topic: "birds",
-        description: "they fly",
-        content,
-      },
-    ];
-
-    for (const testData of tcases) {
-      await ContentGet.testContentRetrieval(testParams, testData);
-    }
-  });
-
-  /*
- * FeedGet
- */
-  await suite.test(async (testParams) => {
-    await FeedGet.testUnauthorised(testParams);
-  });
-
-  await suite.test(async (testParams) => {
-    await FeedGet.testFeed(testParams);
-  });
-
-  await suite.test(async (testParams) => {
-    const tcases = [
-      { topic: "birds", description: "they flap" },
-    ];
-
-    for (const tcase of tcases) {
-      await FeedGet.testFeedStats(testParams, tcase);
-    }
-  });
-
-  /*
- * TopicGet
- */
-  await suite.test(async (testParams) => {
-    for (const topic of ["birds"]) {
-      await TopicGet.testUnauthorised(testParams, { topic });
-    }
-  });
-
-  await suite.test(async (testParams) => {
-    for (const topic of ["birds"]) {
-      await TopicGet.testTopic(testParams, { topic });
-    }
-  });
-
-  /*
- * TopicPost
- */
-  await suite.test(async (testParams) => {
-    const tcases = [
-      { topic: "birds", description: "they flap" },
-    ];
-
-    for (const tcase of tcases) {
-      await TopicPost.testUnauthorised(testParams, tcase);
-    }
-  });
-
-  await suite.test(async (testParams) => {
-    const tcases = [
-      { topic: "birds", description: "they flap" },
-    ];
-    for (const tcase of tcases) {
-      await TopicPost.testGetSet(testParams, tcase);
-    }
-  });
-
-  /*
- * ContentPost
- */
-  await suite.test(async (testParams) => {
-    const tcases = [
-      { topic: "birds" },
-    ];
-    for (const tcase of tcases) {
-      await ContentPost.testUnauthorised(testParams, tcase);
-    }
-  });
-
-  await suite.test(async (testParams) => {
-    const tcases = [
-      { topic: "birds" },
-    ];
-    for (const tcase of tcases) {
-      await ContentPost.testMalformed(testParams, tcase);
-    }
-  });
-
-  await suite.test(async (testParams) => {
-    const tcases = [
-      { topic: "birds", content },
-    ];
-    for (const tcase of tcases) {
-      await ContentPost.testBatchWrites(testParams, tcase);
-    }
-  });
-
   await suite.test(async (testParams) => {
     const tcases = [
       { topic: "birds" },
@@ -253,3 +208,8 @@ async function x() {
     }
   });
 }
+
+
+const suite = new ServerTest("sqlite");
+
+await contentGetTest(suite);

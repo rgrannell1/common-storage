@@ -19,7 +19,7 @@ export function topicGet(cfg: IConfig) {
     } catch (err) {
       res.status = Status.NotFound;
       res.send({
-        errors: {
+        error: {
           message: "Topic does not exist",
         },
       });

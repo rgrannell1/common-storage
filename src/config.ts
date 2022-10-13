@@ -56,6 +56,7 @@ export function getStorage(): IStorage {
   }
 }
 
+let x = getStorage();
 export const config = {
   port() {
     return CS_PORT;
@@ -64,7 +65,8 @@ export const config = {
     return new Logger();
   },
   storage() {
-    return getStorage();
+    //return getStorage();
+    return x;
   },
   title() {
     return CS_TITLE;

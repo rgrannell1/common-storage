@@ -8,7 +8,7 @@ export function topicPost(cfg: IConfig) {
     if (!req.params.name) {
       res.status = Status.UnprocessableEntity;
       res.send({
-        errors: {
+        error: {
           message: "name not provided",
         },
       });
@@ -18,7 +18,7 @@ export function topicPost(cfg: IConfig) {
     if (!req.body.description) {
       res.status = Status.UnprocessableEntity;
       res.send({
-        errors: {
+        error: {
           message: "description not provided in body",
         },
       });

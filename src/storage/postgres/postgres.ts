@@ -29,24 +29,12 @@ const tables = [
   `,
 ];
 
-const CERT_PATH = "../../../certificates/ca-certificate.crt";
-
-const certificate = await Deno.readTextFile(
-  new URL(CERT_PATH, import.meta.url),
-);
-
 export class Postgres {
   db: Client;
   #loaded: boolean;
 
   constructor(cfg: Record<string, any>) {
-    this.db = new Client({
-      ...cfg,
-      tls: {
-        caCertificates: [certificate],
-        enforce: true,
-      },
-    });
+    this.db = new Client(cfg);
 
     this.#loaded = true;
   }
@@ -87,8 +75,8 @@ export class Postgres {
       throw new Error(`topic ${topic} not present`);
     }
 
-    const description = topicRow[0][0] as string;
-    const created = parseInt(topicRow[0][1] as string);
+    const description = topicRow[0] as string;
+    const created = parseInt(topicRow[1] as string);
 
     try {
       const iso = (new Date(created)).toISOString();
@@ -109,7 +97,7 @@ export class Postgres {
     select count(*) from content
     where batchId not in (
       select batchId from batches where closed != 'true'
-    ) and topic = ?
+    ) and topic = $1
     `,
       [topic],
     );
@@ -118,7 +106,7 @@ export class Postgres {
     return {
       topic: await this.getTopic(topic),
       stats: {
-        count: count as number,
+        count: Number(count),
       },
     };
   }
@@ -219,7 +207,7 @@ export class Postgres {
       from content
       where batchId not in (
         select batchId from batches where closed != 'true'
-      ) and topic = ?
+      ) and topic = $1
       order by contentId
       limit 10
       `,
@@ -313,6 +301,8 @@ export class Postgres {
       drop table if exists ${table} cascade
       `);
     }
+
+    this.#loaded = false;
 
     await this.close();
   }
