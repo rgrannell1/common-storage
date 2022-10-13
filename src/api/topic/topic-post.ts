@@ -25,7 +25,7 @@ export function topicPost(cfg: IConfig) {
       return;
     }
 
-    const storage = cfg.storage();
+    const storage = cfg.storage;
 
     const addRes = await storage.addTopic(
       req.params.name,

@@ -5,7 +5,7 @@ import type { IConfig } from "../../interfaces/config.ts";
 export function feedGet(cfg: IConfig) {
   return async function (_: OpineRequest, res: OpineResponse) {
     try {
-      const storage = cfg.storage();
+      const storage = cfg.storage;
 
       // -- suboptimal
       const topicNames = await storage.getTopicNames();
@@ -16,13 +16,13 @@ export function feedGet(cfg: IConfig) {
       );
 
       res.send({
-        description: cfg.description(),
-        title: cfg.title(),
+        description: cfg.description,
+        title: cfg.title,
         version: "v0.1",
         topics: topicStats,
       });
     } catch (err) {
-      cfg.logger().info("internal server error", {
+      cfg.logger.info("internal server error", {
         message: err.message,
         stack: err.stack,
       });

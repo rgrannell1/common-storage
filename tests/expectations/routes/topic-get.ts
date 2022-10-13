@@ -20,7 +20,7 @@ export async function testTopic(
   testParams: TestParams,
   testData: { topic: string },
 ) {
-  const user = testParams.config.user();
+  const user = testParams.config.user;
 
   const req = superdeno(testParams.app)
     .get(`/topic/${testData.topic}`)

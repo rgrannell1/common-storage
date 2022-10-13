@@ -5,7 +5,7 @@ import type { IConfig } from "../../interfaces/config.ts";
 
 export function contentPost(cfg: IConfig) {
   return async function (req: OpineRequest, res: OpineResponse) {
-    const storage = cfg.storage();
+    const storage = cfg.storage;
 
     if (!req.body.batchId) {
       res.status = Status.UnprocessableEntity;

@@ -25,7 +25,7 @@ export async function testGetSet(
   testParams: TestParams,
   testData: { topic: string; description: string },
 ) {
-  const user = testParams.config.user();
+  const user = testParams.config.user;
 
   const postReq = superdeno(testParams.app)
     .post(`/topic/${testData.topic}`)

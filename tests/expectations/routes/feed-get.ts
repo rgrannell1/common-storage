@@ -19,7 +19,7 @@ export async function testUnauthorised(
 export async function testFeed(
   testParams: TestParams,
 ) {
-  const user = testParams.config.user();
+  const user = testParams.config.user;
 
   const req = superdeno(testParams.app)
     .get("/feed")
@@ -35,7 +35,7 @@ export async function testFeedStats(
   testParams: TestParams,
   testData: { topic: string; description: string },
 ) {
-  const user = testParams.config.user();
+  const user = testParams.config.user;
 
   const topicPostReq = superdeno(testParams.app)
     .post(`/topic/${testData.topic}`)
@@ -54,8 +54,8 @@ export async function testFeedStats(
     .get("/feed")
     .expect((req) => {
       assertObjectMatch(req.body, {
-        description: testParams.config.description(),
-        title: testParams.config.title(),
+        description: testParams.config.description,
+        title: testParams.config.title,
         version: "v0.1",
         topics: [
           {

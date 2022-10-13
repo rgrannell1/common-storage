@@ -26,7 +26,7 @@ export async function testMalformed(
   testParams: TestParams,
   testData: { topic: string },
 ) {
-  const user = testParams.config.user();
+  const user = testParams.config.user;
 
   const req = superdeno(testParams.app)
     .post(`/content/${testData.topic}`)
@@ -56,7 +56,7 @@ export async function testBatchWrites(
   await Deno.test({
     name: "POST /content/:topic | batches can be rewritten to and closed",
     async fn() {
-      const user = testParams.config.user();
+      const user = testParams.config.user;
 
       const writeReq = superdeno(testParams.app)
         .post(`/content/${testData.topic}`)

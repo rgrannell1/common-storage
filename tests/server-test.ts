@@ -15,7 +15,7 @@ import { TestCases } from "./utils/cases.ts";
 /*
  * ContentGet
  */
-async function contentGetTest(suite: ServerTest) {
+async function contentGetTests(suite: ServerTest) {
   for (const topic of TestCases.topics()) {
     await Deno.test({
       name: "GET /content/:topic | fails when unauthorised",
@@ -64,38 +64,41 @@ async function contentGetTest(suite: ServerTest) {
 /*
 * FeedGet
 */
-await Deno.test({
-  name: "GET /feed | failed without authentication",
-  async fn() {
-    await suite.test(async (testParams) => {
-      await FeedGet.testUnauthorised(testParams);
-    });
-  },
-});
-
-await Deno.test({
-  name: "GET /feed | succeeds with authentication",
-  async fn() {
-    await suite.test(async (testParams) => {
-      await FeedGet.testFeed(testParams);
-    });
-  },
-});
-
-for (const tcase of TestCases.topics()) {
+async function feedGetTests(suite: ServerTest) {
   await Deno.test({
-    name: "GET /feed | returns stats for topics",
+    name: "GET /feed | failed without authentication",
     async fn() {
       await suite.test(async (testParams) => {
-        await FeedGet.testFeedStats(testParams, tcase);
+        await FeedGet.testUnauthorised(testParams);
       });
     },
   });
+
+  await Deno.test({
+    name: "GET /feed | succeeds with authentication",
+    async fn() {
+      await suite.test(async (testParams) => {
+        await FeedGet.testFeed(testParams);
+      });
+    },
+  });
+
+  for (const tcase of TestCases.topics()) {
+    await Deno.test({
+      name: "GET /feed | returns stats for topics",
+      async fn() {
+        await suite.test(async (testParams) => {
+          await FeedGet.testFeedStats(testParams, tcase);
+        });
+      },
+    });
+  }
 }
 
 /*
 * TopicGet
 */
+async function topicGetTests(suite: ServerTest) {
 
 for (const tcase of TestCases.topics()) {
   await Deno.test({
@@ -118,10 +121,13 @@ for (const tcase of TestCases.topics()) {
     },
   });
 }
+}
 
 /*
 * TopicPost
 */
+async function feedPostTests(suite: ServerTest) {
+
 for (const tcase of TestCases.topics()) {
   await Deno.test({
     name: "POST /topic/:topic | failed without authentication",
@@ -143,10 +149,13 @@ for (const tcase of TestCases.topics()) {
     },
   });
 }
+}
 
 /*
 * ContentPost
 */
+async function contentPostTests(suite: ServerTest) {
+
 for (const tcase of TestCases.topics()) {
   await Deno.test({
     name: "POST /content/:topic | failed without authentication",
@@ -179,8 +188,9 @@ for (const tcase of TestCases.content()) {
     },
   });
 }
+}
 
-async function x() {
+async function x(suite: ServerTest) {
   await suite.test(async (testParams) => {
     const tcases = [
       { topic: "birds" },
@@ -209,7 +219,21 @@ async function x() {
   });
 }
 
+const sqliteSuite = new ServerTest({
+  CS_DB_ENGINE: 'sqlite',
+  CS_SQLITE_DB_PATH: ':memory:'
+});
+const postgresSuite = new ServerTest({
+  CS_DB_ENGINE: 'postgres',
+});
 
-const suite = new ServerTest("sqlite");
 
-await contentGetTest(suite);
+for (const suite of [sqliteSuite, postgresSuite]) {
+  await contentGetTests(suite);
+  await feedGetTests(suite)
+  await topicGetTests(suite);
+  await feedPostTests(suite);
+  await contentPostTests(suite);
+  await contentGetTests(suite);
+  await feedGetTests(suite);
+}

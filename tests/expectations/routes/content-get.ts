@@ -29,7 +29,7 @@ export async function testMissingTopic(
   await Deno.test({
     name: "GET /content/:topic | fails for non-existing topic",
     async fn() {
-      const user = testParams.config.user();
+      const user = testParams.config.user;
 
       const req = superdeno(testParams.app)
         .get(`/content/${testData.topic}`)
@@ -57,8 +57,8 @@ export async function testEmptyTopic(
 ) {
   const { topic, description } = testData;
 
-  const user = testParams.config.user();
-  const storage = testParams.config.storage();
+  const user = testParams.config.user;
+  const storage = testParams.config.storage;
   await storage.addTopic(
     topic,
     description,
@@ -89,8 +89,8 @@ export async function testContentRetrieval(
     async fn() {
       const { topic, description, content } = testData;
 
-      const user = testParams.config.user();
-      const storage = testParams.config.storage();
+      const user = testParams.config.user;
+      const storage = testParams.config.storage;
       await storage.addTopic(
         topic,
         description,

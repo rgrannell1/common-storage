@@ -8,7 +8,7 @@ export async function testMissingTopic(
   testParams: TestParams,
   testData: { topic: string },
 ) {
-  const storage = testParams.config.storage();
+  const storage = testParams.config.storage;
 
   try {
     await storage.getTopic(testData.topic);
@@ -23,12 +23,13 @@ export async function testTopicAdd(
   testParams: TestParams,
   testData: { topic: string; description: string },
 ) {
-  const storage = testParams.config.storage();
+  const storage = testParams.config.storage;
 
   const firstRes = await storage.addTopic(
     testData.topic,
     testData.description,
   );
+
   assert(firstRes.existed === false, "Topic existed prior to test");
 
   const secondRes = await storage.addTopic(
@@ -42,7 +43,7 @@ export async function testTopicRetrieval(
   testParams: TestParams,
   testData: { topic: string; description: string },
 ) {
-  const storage = testParams.config.storage();
+  const storage = testParams.config.storage;
   await storage.addTopic(testData.topic, testData.description);
 
   const firstRes = await storage.getTopic(testData.topic);

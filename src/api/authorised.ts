@@ -12,8 +12,8 @@ export function authorised(cfg: IConfig) {
 
       if (hasCredentials) {
         const [user, password] = atob(hasCredentials[1]).split(":");
-        const valid = user === cfg.user().name &&
-          password === cfg.user().password;
+        const valid = user === cfg.user.name &&
+          password === cfg.user.password;
 
         // just to ensure credentials are actually present...
         if (valid && user && password) {

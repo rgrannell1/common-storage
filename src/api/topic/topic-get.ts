@@ -5,7 +5,7 @@ import type { IConfig } from "../../interfaces/config.ts";
 
 export function topicGet(cfg: IConfig) {
   return async function (req: OpineRequest, res: OpineResponse) {
-    const storage = cfg.storage();
+    const storage = cfg.storage;
 
     try {
       const topic = await storage.getTopic(req.params.name);

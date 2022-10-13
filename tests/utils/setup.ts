@@ -1,7 +1,7 @@
 import { CommonStorage } from "../../src/app.ts";
 import { IConfig } from "../../src/interfaces/config.ts";
 import { Opine } from "https://deno.land/x/opine@2.3.3/mod.ts";
-import { config } from "../../src/config.ts";
+import { bindings, config } from "../../src/config.ts";
 
 export type TestParams = {
   app: Opine;
@@ -11,21 +11,22 @@ export type TestParams = {
 export type TestCase = (params: TestParams) => Promise<void>;
 
 export class ServerTest {
-  name: string;
+  bindings: Record<string, any>;
 
-  constructor(name: string) {
-    Deno.env.set("CS_DB_ENGINE", name);
-    this.name = name;
+  constructor(overrides: Record<string, any>) {
+    this.bindings = bindings(overrides);
   }
 
   async test(test: TestCase) {
-    const store = config.storage();
+    const cfg = config(this.bindings)
+
+    const store = cfg.storage;
     await store.init();
-    const app = await (new CommonStorage(config))
+    const app = await (new CommonStorage(cfg))
       .launch(false);
 
     try {
-      await test({ app, config });
+      await test({ app, config: cfg });
     } finally {
       await store.cleanup();
     }

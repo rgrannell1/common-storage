@@ -14,7 +14,7 @@ function motd(cfg: IConfig) {
   console.log([
     "Common-Storage",
     "",
-    `http://localhost:${cfg.port()}`,
+    `http://localhost:${cfg.port}`,
   ].join("\n"));
 }
 
@@ -45,7 +45,7 @@ export class CommonStorage {
     app.post("/content/:topic", contentPost(cfg));
     app.get("/content/:topic", contentGet(cfg));
 
-    const port = cfg.port();
+    const port = cfg.port;
 
     if (listen) {
       app.listen(port, () => {
@@ -53,7 +53,7 @@ export class CommonStorage {
       });
     }
 
-    await cfg.storage().init();
+    await cfg.storage.init();
 
     return app;
   }

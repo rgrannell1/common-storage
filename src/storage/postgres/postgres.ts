@@ -66,12 +66,12 @@ export class Postgres {
 
   async getTopic(topic: string): Promise<Topic> {
     this.assertLoaded();
-    const result = await this.db.queryArray(
+    const result = await this.db.queryArray<[string, string]>(
       "select description, created from topics where topic = $1",
       [topic],
     );
-    const topicRow = result.rows[0] as any;
-    if (topicRow.length === 0) {
+    const topicRow = result.rows[0];
+    if (result.rows.length === 0) {
       throw new Error(`topic ${topic} not present`);
     }
 
@@ -136,8 +136,10 @@ export class Postgres {
       ],
     );
 
+    const existingCount = Number(rows[0][0])
+
     return {
-      existed: rows[0][0] !== 0,
+      existed: existingCount !== 0,
     };
   }
 

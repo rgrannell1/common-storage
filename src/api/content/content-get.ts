@@ -8,7 +8,7 @@ const START_ID_PATTERN = /[0-9]+/;
 export function contentGet(cfg: IConfig) {
   return async function (req: OpineRequest, res: OpineResponse) {
     try {
-      const storage = cfg.storage();
+      const storage = cfg.storage;
 
       if (!req.params.topic) {
         res.status = Status.UnprocessableEntity;
