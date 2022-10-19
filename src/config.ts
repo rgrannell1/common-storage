@@ -1,12 +1,17 @@
-import { Logger } from "../src/logger/logger.ts";
+import { NoOpLogger } from "../src/logger/noop.ts";
+import { JsonLogger } from "../src/logger/json.ts";
 import { Sqlite } from "../src/storage/sqlite/sqlite.ts";
 import { Postgres } from "../src/storage/postgres/postgres.ts";
-import { IStorage } from "./interfaces/storage.ts";
+import { IStorage } from "./types/interfaces/storage.ts";
+import { ILogger } from "./types/interfaces/logger.ts";
 
+/*
+ * Get an environmental variable, throwing an exception when absent
+ */
 function getEnv(name: string) {
   const res = Deno.env.get(name);
   if (!res) {
-    throw new Error(`${name} missing`);
+    throw new TypeError(`${name} missing`);
   }
   return res;
 }
@@ -19,6 +24,7 @@ export function bindings(overrides: Record<string, any>) {
     CS_USER: getEnv("CS_USER"),
     CS_PASSWORD: getEnv("CS_PASSWORD"),
     CS_DB_ENGINE: getEnv("CS_DB_ENGINE"),
+    CS_LOGGER: getEnv("CS_LOGGER"),
   };
 
   if (values.CS_DB_ENGINE === "postgres") {
@@ -38,6 +44,16 @@ export function bindings(overrides: Record<string, any>) {
     ...values,
     ...overrides,
   };
+}
+
+export function getLogger(bindings: Record<string, any>): ILogger {
+  if (bindings.CS_LOGGER === "noop") {
+    return new NoOpLogger();
+  } else if (bindings.CS_LOGGER === "json") {
+    return new JsonLogger();
+  } else {
+    throw new Error("Unknown logger");
+  }
 }
 
 export function getStorage(bindings: Record<string, any>): IStorage {
@@ -64,10 +80,15 @@ export function getStorage(bindings: Record<string, any>): IStorage {
   }
 }
 
+/*
+ * Return environmental variable bindings, and instantiated singleton classes
+ * like storage and loggers
+ *
+ */
 export function config(bindings: Record<string, any>) {
   return {
     port: bindings.CS_PORT,
-    logger: new Logger(),
+    logger: getLogger(bindings),
     storage: getStorage(bindings),
     title: bindings.CS_TITLE,
     description: bindings.CS_DESCRIPTION,

@@ -1,12 +1,12 @@
 /*
- * Test the server works as expected (integration test)
+ * Test that storage backends behave as expected (integration test)
  */
 
 import { ServerTest } from "./utils/setup.ts";
 import { TestCases } from "./utils/cases.ts";
 import * as StorageTopic from "./expectations/storage/topic.ts";
 
-async function storageTest(suite: ServerTest) {
+export async function storageTests(suite: ServerTest) {
   for (const tcase of TestCases.topics()) {
     await Deno.test({
       name: "Storage | throws exception for missing expections",
@@ -39,16 +39,4 @@ async function storageTest(suite: ServerTest) {
       },
     });
   }
-}
-
-const sqliteSuite = new ServerTest({
-  CS_DB_ENGINE: "sqlite",
-  CS_SQLITE_DB_PATH: ":memory:",
-});
-const postgresSuite = new ServerTest({
-  CS_DB_ENGINE: "postgres",
-});
-
-for (const suite of [sqliteSuite, postgresSuite]) {
-  await storageTest(suite);
 }

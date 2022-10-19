@@ -1,7 +1,7 @@
 import { OpineRequest, OpineResponse } from "https://deno.land/x/opine/mod.ts";
 import { Status } from "https://deno.land/std/http/http_status.ts";
 
-import type { IConfig } from "../interfaces/config.ts";
+import type { IConfig } from "../types/interfaces/config.ts";
 
 export function authorised(cfg: IConfig) {
   return function (req: OpineRequest, res: OpineResponse, next: any) {

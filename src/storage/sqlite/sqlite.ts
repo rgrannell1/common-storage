@@ -1,10 +1,10 @@
-import type { IStorage } from "../../interfaces/storage.ts";
-import type { Topic } from "../../types.ts";
+import type { IStorage } from "../.././types/interfaces/storage.ts";
+import type { Topic } from "../../types/types.ts";
 import type {
   AddContentResponse,
   AddTopicResponse,
   GetTopicStatsResponse,
-} from "../../interfaces/storage.ts";
+} from "../.././types/interfaces/storage.ts";
 
 import { DB } from "https://deno.land/x/sqlite/mod.ts";
 

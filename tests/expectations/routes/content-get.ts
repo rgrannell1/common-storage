@@ -127,7 +127,7 @@ export async function testContentRetrieval(
       let lastId = 0;
       const retrieved = [];
 
-      let idx = 0
+      let idx = 0;
       for (idx = 0; idx < 100; idx++) {
         const res = await superdeno(testParams.app)
           .get(`/content/${topic}?startId=${lastId}`)
@@ -148,7 +148,7 @@ export async function testContentRetrieval(
       }
 
       if (idx > 95) {
-        throw new Error('invalid test, looped too long')
+        throw new Error("invalid test, looped too long");
       }
 
       BodyExpectations.storedContent(content, retrieved);

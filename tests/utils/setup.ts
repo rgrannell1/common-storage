@@ -1,5 +1,5 @@
 import { CommonStorage } from "../../src/app.ts";
-import { IConfig } from "../../src/interfaces/config.ts";
+import { IConfig } from "../../src/types/interfaces/config.ts";
 import { Opine } from "https://deno.land/x/opine@2.3.3/mod.ts";
 import { bindings, config } from "../../src/config.ts";
 

@@ -1,6 +1,6 @@
 import { json, opine } from "https://deno.land/x/opine/mod.ts";
 
-import { IConfig } from "./interfaces/config.ts";
+import { IConfig } from "./types/interfaces/config.ts";
 import { feedGet } from "./api/feed/feed-get.ts";
 import { topicGet } from "./api/topic/topic-get.ts";
 import { topicPost } from "./api/topic/topic-post.ts";

@@ -1,7 +1,6 @@
 # Common-Storage [![Test](https://github.com/rgrannell1/common-storage/actions/workflows/test.yaml/badge.svg)](https://github.com/rgrannell1/common-storage/actions/workflows/test.yaml)
 
-Simple state-synchronisation over a network. Synchronise a collection of things
-(e.g photos, bookmarks) from one host to another.
+Synchronise a collection of things (e.g photos, bookmarks) from one host to another.
 
 ## Usage
 
@@ -25,26 +24,7 @@ curl -X POST --user *** 'localhost:8080/topic/bookmarks' -H 'Content-Type: appli
 I'm moving from cloud-services to my own personal knowledge-hub. Common-storage
 is an entry-point for my personal-data (from bookmark clients, CLIs, websites,
 etc.) and can push / pull data to a local common-storage service on my own
-machine periodically.
-
-## Properties
-
-A server with configurable storage-backends (defaults to SQLite) with the
-following properties:
-
-- Append-only: Data is not updated in-place; instead `add` and `remove` events
-  are sent to the server. This protects against accidental data-loss while
-  allowing for a changing set of 'visible' data over time.
-
-- PubSub: subscribe to data, and a notification will be sent to your server when
-  relevant data is updated. This allows you to avoid writing polling code. Can
-  also subscribe to a topic to sync over a network.
-
-- Fault-tolerant: if a subscriber is offline, that's fine! Common-Storage will
-  notify it intermittently until it succeeds when the node is back online online
-  it can fetch any data it does not currently have synced.
-
-- Authenticated: read-write access is restricted by basic-authentication.
+laptop & NAS periodically.
 
 ## API
 
@@ -53,15 +33,19 @@ Common-Storage has the following routes
 | Method | Route               | Description                                         |
 | ------ | ------------------- | --------------------------------------------------- |
 | GET    | `/feed`             | get topics stats, endpoints published by the server |
+| POST   | `/topic/:name`      | add a topic                                         |
+| GET    | `/topic/:name/`     | get a topic description                             |
+| GET    | `/content/:name/`   | get content from a topic                            |
+| POST   | `/content/:name`    | add content to a topic, as part of a batch          |
+
+
+| Method | Route               | Description                                         |
+| ------ | ------------------- | --------------------------------------------------- |
 | GET    | `/subscription`     | get all subscriptions to the server                 |
 | POST   | `/subscription`     | add a subscription                                  |
 | GET    | `/subscription/:id` | get subscription data                               |
 | POST   | `/subscription/:id` | update subscription                                 |
 | DELETE | `/subscription/:id` | delete subscription                                 |
-| POST   | `/topic/:name`      | add a topic                                         |
-| GET    | `/topic/:name/`     | get a topic description                             |
-| GET    | `/content/:name/`   | get content from a topic                            |
-| POST   | `/content/:name`    | add content to a topic, as part of a batch          |
 
 The workflow is:
 
@@ -77,8 +61,61 @@ The workflow is:
 
 ## Storage Backends
 
-- In-memory
+Common-storage can write to the following storage backends:
+
+- Sqlite
 - Postgres
+
+## File Layouts
+
+<details>
+  <summary>See File Layouts</summary>
+
+```
+.env                  # local environment-variable bindings
+digitalocean.tf       # deploy a database to digitalocean
+dockerfile            # deploy common-storage to a docker-container
+docker-compose.yml    # start a docker-container with environmental variable's bound
+```
+
+```
+bs/                     # build scripts. Call directly with shell, or use
+  coverage.sh           # get code-coverage
+  deploy.sh             # deno-deploy the API
+  docker:build.sh       # build a docker-container
+  docker:up.sh          # start a docker container
+  launch.sh             # launch the common-storage directly
+  terraform:apply.sh    # apply digitalocean terraform template
+  terraform:apply.sh    # delete digitalocean terraform assets
+  test.sh               # launch tests
+```
+
+```
+src/
+  api/                # route information
+  logger/             # logging implementations
+  storage/            # underlying storage implementations
+  types/
+    interfaces/       # interfaces for storage, logging, etc.
+
+  app.ts              # defines an Opine app
+  config.ts           # pulls environmental binding and instantiates singletons
+  launch.ts           # start the common-storage server
+```
+
+```
+tests/
+  run-test.ts         # accepts configuration options, runs the tests!
+  server-suite.ts     # hooks server expectations up with testcase inputs
+  storage-suite.ts    # hooks storage expectations up with testcase inputs
+
+  expectations/       # property-based expectations for program-behaviour, parameterised by input
+    routes/           # expectations for each API route
+    storage/          # expecations for IStorage implementations
+  utils/              # utility code for tests
+```
+
+</details>
 
 ## License
 

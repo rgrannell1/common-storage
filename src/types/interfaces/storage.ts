@@ -1,4 +1,4 @@
-import type { Topic } from "../types.ts";
+import type { Topic } from "../../types/types.ts";
 
 export type GetTopicStatsResponse = {
   topic: Topic;

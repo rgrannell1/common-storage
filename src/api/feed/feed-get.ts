@@ -1,6 +1,6 @@
 import { OpineRequest, OpineResponse } from "https://deno.land/x/opine/mod.ts";
 
-import type { IConfig } from "../../interfaces/config.ts";
+import type { IConfig } from "../.././types/interfaces/config.ts";
 
 export function feedGet(cfg: IConfig) {
   return async function (_: OpineRequest, res: OpineResponse) {

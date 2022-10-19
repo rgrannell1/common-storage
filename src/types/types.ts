@@ -3,3 +3,5 @@ export type Topic = {
   description: string;
   created: string;
 };
+
+export type SupportedDB = "sqlite" | "postgres" | "mongodb";

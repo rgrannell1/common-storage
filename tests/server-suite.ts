@@ -13,7 +13,7 @@ import { TestCases } from "./utils/cases.ts";
 /*
  * ContentGet
  */
-async function contentGetTests(suite: ServerTest) {
+export async function contentGetTests(suite: ServerTest) {
   for (const topic of TestCases.topics()) {
     await Deno.test({
       name: "GET /content/:topic | fails when unauthorised",
@@ -63,7 +63,7 @@ async function contentGetTests(suite: ServerTest) {
 /*
 * FeedGet
 */
-async function feedGetTests(suite: ServerTest) {
+export async function feedGetTests(suite: ServerTest) {
   await Deno.test({
     name: "GET /feed | failed without authentication",
     async fn() {
@@ -97,7 +97,7 @@ async function feedGetTests(suite: ServerTest) {
 /*
 * TopicGet
 */
-async function topicGetTests(suite: ServerTest) {
+export async function topicGetTests(suite: ServerTest) {
   for (const tcase of TestCases.topics()) {
     await Deno.test({
       name: "GET /topic/:name | failed without authentication",
@@ -124,7 +124,7 @@ async function topicGetTests(suite: ServerTest) {
 /*
 * TopicPost
 */
-async function feedPostTests(suite: ServerTest) {
+export async function feedPostTests(suite: ServerTest) {
   for (const tcase of TestCases.topics()) {
     await Deno.test({
       name: "POST /topic/:topic | failed without authentication",
@@ -151,7 +151,7 @@ async function feedPostTests(suite: ServerTest) {
 /*
 * ContentPost
 */
-async function contentPostTests(suite: ServerTest) {
+export async function contentPostTests(suite: ServerTest) {
   for (const tcase of TestCases.topics()) {
     await Deno.test({
       name: "POST /content/:topic | failed without authentication",
@@ -184,22 +184,4 @@ async function contentPostTests(suite: ServerTest) {
       },
     });
   }
-}
-
-const sqliteSuite = new ServerTest({
-  CS_DB_ENGINE: "sqlite",
-  CS_SQLITE_DB_PATH: ":memory:",
-});
-const postgresSuite = new ServerTest({
-  CS_DB_ENGINE: "postgres",
-});
-
-for (const suite of [sqliteSuite, postgresSuite]) {
-  await contentGetTests(suite);
-  await feedGetTests(suite);
-  await topicGetTests(suite);
-  await feedPostTests(suite);
-  await contentPostTests(suite);
-  await contentGetTests(suite);
-  await feedGetTests(suite);
 }

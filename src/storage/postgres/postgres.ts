@@ -1,10 +1,11 @@
 import { Client } from "https://deno.land/x/postgres@v0.16.1/mod.ts";
-import type { Topic } from "../../types.ts";
+import type { Topic } from "../../types/types.ts";
 import type {
   AddContentResponse,
   AddTopicResponse,
   GetTopicStatsResponse,
-} from "../../interfaces/storage.ts";
+} from "../.././types/interfaces/storage.ts";
+import type { IStorage } from "../.././types/interfaces/storage.ts";
 
 const tables = [
   `create table if not exists batches (
@@ -29,7 +30,7 @@ const tables = [
   `,
 ];
 
-export class Postgres {
+export class Postgres implements IStorage {
   db: Client;
   #loaded: boolean;
 
