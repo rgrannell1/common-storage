@@ -84,15 +84,34 @@ const content = [
   { name: "African pygmy kingfisher" },
 ];
 
+import * as Peach from "https://raw.githubusercontent.com/rgrannell1/peach.ts/main/src/mod.ts";
+
+const text = Peach.String.from(
+  Peach.String.letters(Peach.Number.uniform),
+  Peach.Number.uniform(0, 64),
+);
+
+const contents = Peach.Array.from(
+  Peach.Object.from(text, text, Peach.Number.uniform(1, 10)),
+  Peach.Number.uniform(0, 512),
+);
+
 export class TestCases {
-  static *topics() {
-    yield { topic: "birds", description: "they fly" };
+  static *topics(take: number) {
+    for (let idx = 0; idx < take; idx++) {
+      yield {
+        topic: text(),
+        description: text(),
+      };
+    }
   }
-  static *content() {
-    yield {
-      topic: "birds",
-      description: "they fly",
-      content,
-    };
+  static *content(take: number) {
+    for (let idx = 0; idx < take; idx++) {
+      yield {
+        topic: text(),
+        description: text(),
+        content: contents(),
+      };
+    }
   }
 }

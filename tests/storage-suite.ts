@@ -7,7 +7,7 @@ import { TestCases } from "./utils/cases.ts";
 import * as StorageTopic from "./expectations/storage/topic.ts";
 
 export async function storageTests(suite: ServerTest) {
-  for (const tcase of TestCases.topics()) {
+  for (const tcase of TestCases.topics(10)) {
     await Deno.test({
       name: "Storage | throws exception for missing expections",
       async fn() {
@@ -18,7 +18,7 @@ export async function storageTests(suite: ServerTest) {
     });
   }
 
-  for (const tcase of TestCases.topics()) {
+  for (const tcase of TestCases.topics(10)) {
     await Deno.test({
       name: "Storage | topics can be persisted",
       async fn() {
@@ -29,7 +29,7 @@ export async function storageTests(suite: ServerTest) {
     });
   }
 
-  for (const tcase of TestCases.topics()) {
+  for (const tcase of TestCases.topics(10)) {
     await Deno.test({
       name: "Storage | topics can be retrieved",
       async fn() {

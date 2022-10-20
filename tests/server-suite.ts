@@ -14,7 +14,7 @@ import { TestCases } from "./utils/cases.ts";
  * ContentGet
  */
 export async function contentGetTests(suite: ServerTest) {
-  for (const topic of TestCases.topics()) {
+  for (const topic of TestCases.topics(10)) {
     await Deno.test({
       name: "GET /content/:topic | fails when unauthorised",
       async fn() {
@@ -25,7 +25,7 @@ export async function contentGetTests(suite: ServerTest) {
     });
   }
 
-  for (const topic of TestCases.topics()) {
+  for (const topic of TestCases.topics(10)) {
     await Deno.test({
       name: "GET /content/:topic | fails when topic is missing",
       async fn() {
@@ -36,7 +36,7 @@ export async function contentGetTests(suite: ServerTest) {
     });
   }
 
-  for (const topic of TestCases.topics()) {
+  for (const topic of TestCases.topics(10)) {
     await Deno.test({
       name:
         "GET /content/:topic | returns empty content for newly created topic",
@@ -48,7 +48,7 @@ export async function contentGetTests(suite: ServerTest) {
     });
   }
 
-  for (const tcase of TestCases.content()) {
+  for (const tcase of TestCases.content(10)) {
     await Deno.test({
       name: "GET /content/:topic | expected content through pagination",
       async fn() {
@@ -82,7 +82,7 @@ export async function feedGetTests(suite: ServerTest) {
     },
   });
 
-  for (const tcase of TestCases.topics()) {
+  for (const tcase of TestCases.topics(10)) {
     await Deno.test({
       name: "GET /feed | returns stats for topics",
       async fn() {
@@ -98,7 +98,7 @@ export async function feedGetTests(suite: ServerTest) {
 * TopicGet
 */
 export async function topicGetTests(suite: ServerTest) {
-  for (const tcase of TestCases.topics()) {
+  for (const tcase of TestCases.topics(10)) {
     await Deno.test({
       name: "GET /topic/:name | failed without authentication",
       async fn() {
@@ -109,7 +109,7 @@ export async function topicGetTests(suite: ServerTest) {
     });
   }
 
-  for (const tcase of TestCases.topics()) {
+  for (const tcase of TestCases.topics(10)) {
     await Deno.test({
       name: "GET /topic/:name | fails for missing topic",
       async fn() {
@@ -125,7 +125,7 @@ export async function topicGetTests(suite: ServerTest) {
 * TopicPost
 */
 export async function feedPostTests(suite: ServerTest) {
-  for (const tcase of TestCases.topics()) {
+  for (const tcase of TestCases.topics(10)) {
     await Deno.test({
       name: "POST /topic/:topic | failed without authentication",
       async fn() {
@@ -136,7 +136,7 @@ export async function feedPostTests(suite: ServerTest) {
     });
   }
 
-  for (const tcase of TestCases.topics()) {
+  for (const tcase of TestCases.topics(10)) {
     await Deno.test({
       name: "POST /topic/:topic | getset",
       async fn() {
@@ -152,7 +152,7 @@ export async function feedPostTests(suite: ServerTest) {
 * ContentPost
 */
 export async function contentPostTests(suite: ServerTest) {
-  for (const tcase of TestCases.topics()) {
+  for (const tcase of TestCases.topics(10)) {
     await Deno.test({
       name: "POST /content/:topic | failed without authentication",
       async fn() {
@@ -163,7 +163,7 @@ export async function contentPostTests(suite: ServerTest) {
     });
   }
 
-  for (const tcase of TestCases.topics()) {
+  for (const tcase of TestCases.topics(10)) {
     await Deno.test({
       name: "POST /content/:topic | fails without content",
       async fn() {
@@ -174,7 +174,7 @@ export async function contentPostTests(suite: ServerTest) {
     });
   }
 
-  for (const tcase of TestCases.content()) {
+  for (const tcase of TestCases.content(10)) {
     await Deno.test({
       name: "POST /content/:topic | batches can be rewritten to and closed",
       async fn() {
