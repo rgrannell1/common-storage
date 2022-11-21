@@ -4,6 +4,7 @@ import type {
   AddContentResponse,
   AddTopicResponse,
   GetTopicStatsResponse,
+  DeleteTopicResponse
 } from "../.././types/interfaces/storage.ts";
 import type { IStorage } from "../.././types/interfaces/storage.ts";
 
@@ -136,6 +137,21 @@ export class Postgres implements IStorage {
         Date.now(),
       ],
     );
+
+    const existingCount = Number(rows[0][0]);
+
+    return {
+      existed: existingCount !== 0,
+    };
+  }
+
+  async deleteTopic(topic: string): Promise<DeleteTopicResponse> {
+    const { rows } = await this.db.queryArray<[number]>(
+      "select count(*) from topics where topic = $1",
+      [topic],
+    );
+
+    await this.db.queryArray("delete from topics where topic = ?", [topic]);
 
     const existingCount = Number(rows[0][0]);
 

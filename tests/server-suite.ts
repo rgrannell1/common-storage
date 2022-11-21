@@ -7,6 +7,7 @@ import * as ContentGet from "./expectations/routes/content-get.ts";
 import * as FeedGet from "./expectations/routes/feed-get.ts";
 import * as TopicGet from "./expectations/routes/topic-get.ts";
 import * as TopicPost from "./expectations/routes/topic-post.ts";
+import * as TopicDelete from "./expectations/routes/topic-delete.ts";
 import * as ContentPost from "./expectations/routes/content-post.ts";
 import { TestCases } from "./utils/cases.ts";
 
@@ -147,6 +148,33 @@ export async function feedPostTests(suite: ServerTest) {
     });
   }
 }
+/*
+* TopicDelete
+*/
+export async function topicDeleteTests(suite: ServerTest) {
+  for (const tcase of TestCases.topics(10)) {
+    await Deno.test({
+      name: "DELETE /topic/:topic | failed without authentication",
+      async fn() {
+        await suite.test(async (testParams) => {
+          await TopicDelete.testUnauthorised(testParams, tcase);
+        });
+      },
+    });
+
+    await Deno.test({
+      name: "DELETE /topic/:topic | deletes when exists",
+      async fn() {
+        await suite.test(async (testParams) => {
+          await TopicDelete.testCreateDelete(testParams, tcase);
+        });
+      },
+    });
+  }
+
+}
+
+
 
 /*
 * ContentPost

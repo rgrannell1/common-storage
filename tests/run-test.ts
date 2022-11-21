@@ -30,6 +30,7 @@ class CommonStorageTests {
       await ServerSuite.contentGetTests(suite);
       await ServerSuite.feedGetTests(suite);
       await ServerSuite.topicGetTests(suite);
+      await ServerSuite.topicDeleteTests(suite);
       await ServerSuite.feedPostTests(suite);
       await ServerSuite.contentPostTests(suite);
       await ServerSuite.contentGetTests(suite);

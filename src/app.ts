@@ -4,6 +4,7 @@ import { IConfig } from "./types/interfaces/config.ts";
 import { feedGet } from "./api/feed/feed-get.ts";
 import { topicGet } from "./api/topic/topic-get.ts";
 import { topicPost } from "./api/topic/topic-post.ts";
+import { topicDelete } from "./api/topic/topic-delete.ts";
 import { contentPost } from "./api/content/content-post.ts";
 import { contentGet } from "./api/content/content-get.ts";
 import { authorised } from "./api/authorised.ts";
@@ -40,6 +41,7 @@ export class CommonStorage {
     // -- topic
     app.get("/topic/:name", topicGet(cfg));
     app.post("/topic/:name", topicPost(cfg));
+    app.delete("/topic/:name", topicDelete(cfg));
 
     // -- content
     app.post("/content/:topic", contentPost(cfg));

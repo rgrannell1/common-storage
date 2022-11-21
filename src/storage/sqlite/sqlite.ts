@@ -1,4 +1,4 @@
-import type { IStorage } from "../.././types/interfaces/storage.ts";
+import type { DeleteTopicResponse, IStorage } from "../.././types/interfaces/storage.ts";
 import type { Topic } from "../../types/types.ts";
 import type {
   AddContentResponse,
@@ -128,6 +128,19 @@ export class Sqlite implements IStorage {
     return {
       existed: previousRow[0][0] !== 0,
     };
+  }
+
+  async deleteTopic(topic: string): Promise<DeleteTopicResponse> {
+    const previousRow = await this.db.query(
+      "select count(*) from topics where topic = ?",
+      [topic],
+    );
+
+    await this.db.query("delete from topics where topic = ?", [topic]);
+
+    return {
+      existed: previousRow[0][0] !== 0
+    }
   }
 
   async #closeBatch(batchId: string) {

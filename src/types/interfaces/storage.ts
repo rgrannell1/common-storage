@@ -11,6 +11,10 @@ export type AddTopicResponse = {
   existed: boolean;
 };
 
+export type DeleteTopicResponse = {
+  existed: boolean;
+}
+
 export type AddContentResponse = {};
 
 export type GetContentResponse = {
@@ -24,6 +28,7 @@ export interface IStorage {
   getTopicStats(name: string): Promise<GetTopicStatsResponse>;
   getTopic(topic: string): Promise<Topic>;
   addTopic(topic: string, description: string): Promise<AddTopicResponse>;
+  deleteTopic(topic: string): Promise<DeleteTopicResponse>
   addContent(
     batchId: string,
     topic: string,
