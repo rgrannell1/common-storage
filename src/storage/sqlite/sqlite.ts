@@ -137,6 +137,7 @@ export class Sqlite implements IStorage {
     );
 
     await this.db.query("delete from topics where topic = ?", [topic]);
+    await this.db.query("delete from content where topic = ?", [topic]);
 
     return {
       existed: previousRow[0][0] !== 0

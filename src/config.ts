@@ -37,7 +37,7 @@ export function bindings(overrides: Record<string, any>) {
   } else if (values.CS_DB_ENGINE === "sqlite") {
     values.CS_SQLITE_DB_PATH = getEnv("CS_SQLITE_DB_PATH");
   } else {
-    throw new Error("Unknown storage engine");
+    throw new Error(`Unknown storage engine ${values.CS_DB_ENGINE}`);
   }
 
   return {

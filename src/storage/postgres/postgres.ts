@@ -152,6 +152,7 @@ export class Postgres implements IStorage {
     );
 
     await this.db.queryArray("delete from topics where topic = ?", [topic]);
+    await this.db.queryArray("delete from content where topic = ?", [topic]);
 
     const existingCount = Number(rows[0][0]);
 

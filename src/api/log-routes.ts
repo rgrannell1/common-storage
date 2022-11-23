@@ -7,6 +7,7 @@ export function logRoutes(cfg: IConfig) {
 
   return function (req: OpineRequest, _: OpineResponse, next: any) {
     log.info("Request Received", {
+      method: req.method,
       path: req.path,
     });
 

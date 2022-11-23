@@ -24,6 +24,19 @@ export async function testCreateDelete(
 ) {
   const user = testParams.config.user;
 
+  const postReq = superdeno(testParams.app)
+    .post(`/topic/${testData.topic}`)
+    .send({
+      description: testData.description,
+    })
+    .set("content-type", "application/json")
+    .auth(user.name, user.password);
+
+  RequestExpectations.jsonContentType(postReq);
+  RequestExpectations.ok(postReq);
+
+  await postReq;
+
   const deleteReq = superdeno(testParams.app)
     .delete(`/topic/${testData.topic}`)
     .set("content-type", "application/json")
@@ -31,6 +44,12 @@ export async function testCreateDelete(
 
   RequestExpectations.jsonContentType(deleteReq);
   RequestExpectations.ok(deleteReq);
+  deleteReq.expect((res) => {
+    assertObjectMatch(res.body, {
+      existed: true
+    });
+  });
+
 
   await deleteReq;
 }
