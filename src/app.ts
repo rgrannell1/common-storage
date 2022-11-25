@@ -7,6 +7,7 @@ import { topicPost } from "./api/topic/topic-post.ts";
 import { topicDelete } from "./api/topic/topic-delete.ts";
 import { contentPost } from "./api/content/content-post.ts";
 import { contentGet } from "./api/content/content-get.ts";
+import { options } from "./api/options.ts";
 import { authorised } from "./api/authorised.ts";
 import { setHeaders } from "./api/set-headers.ts";
 import { logRoutes } from "./api/log-routes.ts";
@@ -32,6 +33,10 @@ export class CommonStorage {
 
     app.use(logRoutes(cfg));
     app.use(json(cfg));
+
+    // -- cors responses, unauthenticated
+    app.options('/*', options(cfg));
+
     app.use(authorised(cfg));
     app.use(setHeaders(cfg));
 

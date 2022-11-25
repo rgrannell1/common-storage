@@ -8,7 +8,12 @@ import { Status } from "https://deno.land/std/http/http_status.ts";
 
 export class RequestExpectations {
   static jsonContentType(req: Test) {
-    req.expect("Content-Type", "application/json; charset=utf-8");
+    const expected = 'application/json; charset=utf-8';
+
+    req.expect(async (res) => {
+      const actual = res.headers['Content-Type'];
+      assertEquals(actual, expected, `Expected ${expected}, got ${actual} with body ${await res.text}`)
+    });
   }
   static unauthenticatedFailure(req: Test) {
     req.expect(Status.Unauthorized);
@@ -17,7 +22,9 @@ export class RequestExpectations {
     req.expect(Status.NotFound);
   }
   static ok(req: Test) {
-    req.expect(Status.OK);
+     req.expect(async (res) => {
+      assertEquals(res.status, Status.OK, `Expected 200, got ${res.status} with body ${await res.text}`)
+    });
   }
   static unprocessableEntity(req: Test) {
     req.expect(Status.UnprocessableEntity);

@@ -7,16 +7,6 @@ export function contentPost(cfg: IConfig) {
   return async function (req: OpineRequest, res: OpineResponse) {
     const storage = cfg.storage;
 
-    if (!req.body.batchId) {
-      res.status = Status.UnprocessableEntity;
-      res.send({
-        error: {
-          message: "batchId not provided",
-        },
-      });
-      return;
-    }
-
     if (!req.params.topic) {
       res.status = Status.UnprocessableEntity;
       res.send({

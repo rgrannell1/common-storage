@@ -11,11 +11,13 @@ import * as TopicDelete from "./expectations/routes/topic-delete.ts";
 import * as ContentPost from "./expectations/routes/content-post.ts";
 import { TestCases } from "./utils/cases.ts";
 
+const CASES = 1;
+
 /*
  * ContentGet
  */
 export async function contentGetTests(suite: ServerTest) {
-  for (const topic of TestCases.topics(10)) {
+  for (const topic of TestCases.topics(CASES)) {
     await Deno.test({
       name: "GET /content/:topic | fails when unauthorised",
       async fn() {
@@ -26,7 +28,7 @@ export async function contentGetTests(suite: ServerTest) {
     });
   }
 
-  for (const topic of TestCases.topics(10)) {
+  for (const topic of TestCases.topics(CASES)) {
     await Deno.test({
       name: "GET /content/:topic | fails when topic is missing",
       async fn() {
@@ -37,7 +39,7 @@ export async function contentGetTests(suite: ServerTest) {
     });
   }
 
-  for (const topic of TestCases.topics(10)) {
+  for (const topic of TestCases.topics(CASES)) {
     await Deno.test({
       name:
         "GET /content/:topic | returns empty content for newly created topic",
@@ -83,7 +85,7 @@ export async function feedGetTests(suite: ServerTest) {
     },
   });
 
-  for (const tcase of TestCases.topics(10)) {
+  for (const tcase of TestCases.topics(CASES)) {
     await Deno.test({
       name: "GET /feed | returns stats for topics",
       async fn() {
@@ -99,7 +101,7 @@ export async function feedGetTests(suite: ServerTest) {
 * TopicGet
 */
 export async function topicGetTests(suite: ServerTest) {
-  for (const tcase of TestCases.topics(10)) {
+  for (const tcase of TestCases.topics(CASES)) {
     await Deno.test({
       name: "GET /topic/:name | failed without authentication",
       async fn() {
@@ -110,7 +112,7 @@ export async function topicGetTests(suite: ServerTest) {
     });
   }
 
-  for (const tcase of TestCases.topics(10)) {
+  for (const tcase of TestCases.topics(CASES)) {
     await Deno.test({
       name: "GET /topic/:name | fails for missing topic",
       async fn() {
@@ -126,7 +128,7 @@ export async function topicGetTests(suite: ServerTest) {
 * TopicPost
 */
 export async function feedPostTests(suite: ServerTest) {
-  for (const tcase of TestCases.topics(10)) {
+  for (const tcase of TestCases.topics(CASES)) {
     await Deno.test({
       name: "POST /topic/:topic | failed without authentication",
       async fn() {
@@ -137,7 +139,7 @@ export async function feedPostTests(suite: ServerTest) {
     });
   }
 
-  for (const tcase of TestCases.topics(10)) {
+  for (const tcase of TestCases.topics(CASES)) {
     await Deno.test({
       name: "POST /topic/:topic | getset",
       async fn() {
@@ -152,7 +154,7 @@ export async function feedPostTests(suite: ServerTest) {
 * TopicDelete
 */
 export async function topicDeleteTests(suite: ServerTest) {
-  for (const tcase of TestCases.topics(10)) {
+  for (const tcase of TestCases.topics(CASES)) {
     await Deno.test({
       name: "DELETE /topic/:topic | failed without authentication",
       async fn() {
@@ -180,7 +182,7 @@ export async function topicDeleteTests(suite: ServerTest) {
 * ContentPost
 */
 export async function contentPostTests(suite: ServerTest) {
-  for (const tcase of TestCases.topics(10)) {
+  for (const tcase of TestCases.topics(CASES)) {
     await Deno.test({
       name: "POST /content/:topic | failed without authentication",
       async fn() {
@@ -191,7 +193,7 @@ export async function contentPostTests(suite: ServerTest) {
     });
   }
 
-  for (const tcase of TestCases.topics(10)) {
+  for (const tcase of TestCases.topics(CASES)) {
     await Deno.test({
       name: "POST /content/:topic | fails without content",
       async fn() {
@@ -208,6 +210,15 @@ export async function contentPostTests(suite: ServerTest) {
       async fn() {
         await suite.test(async (testParams) => {
           await ContentPost.testBatchWrites(testParams, tcase);
+        });
+      },
+    });
+
+    await Deno.test({
+      name: "POST /content/:topic | unbatched writes work",
+      async fn() {
+        await suite.test(async (testParams) => {
+          await ContentPost.testUnbatchedWrite(testParams, tcase);
         });
       },
     });

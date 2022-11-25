@@ -49,6 +49,40 @@ export async function testMalformed(
   await req;
 }
 
+export async function testUnbatchedWrite(
+  testParams: TestParams,
+  testData: { topic: string; content: any[] },
+) {
+  await Deno.test({
+    name: "POST /content/:topic | unbatched writes succeed",
+    async fn() {
+      const user = testParams.config.user;
+
+      const writeReq = superdeno(testParams.app)
+        .post(`/content/${testData.topic}`)
+        .send({
+          content: testData.content,
+        })
+        .auth(user.name, user.password);
+
+      RequestExpectations.jsonContentType(writeReq);
+      RequestExpectations.ok(writeReq);
+
+      writeReq.expect((res) => {
+        assertObjectMatch(res.body, {
+          topic: testData.topic,
+          stats: {
+            added: testData.content.length,
+          },
+        });
+      });
+
+      await writeReq;
+    },
+  });
+}
+
+
 export async function testBatchWrites(
   testParams: TestParams,
   testData: { topic: string; content: any[] },

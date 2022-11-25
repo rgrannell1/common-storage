@@ -248,10 +248,11 @@ export class Sqlite implements IStorage {
   }
 
   async addContent(
-    batchId: string,
+    batchId: string | undefined,
     topic: string,
     content: any[],
   ): Promise<AddContentResponse> {
+    if (batchId) {
     const batch = await this.getBatch(batchId);
 
     if (batch.status === "missing") {
@@ -264,6 +265,7 @@ export class Sqlite implements IStorage {
 
     if (content.length === 0) {
       this.#closeBatch(batchId);
+      }
     }
 
     for (const entry of content) {
@@ -271,7 +273,7 @@ export class Sqlite implements IStorage {
         `insert into content (batchId, topic, value, created)
         values (?, ?, ?, ?)`,
         [
-          batchId,
+          batchId ?? '',
           topic,
           JSON.stringify(entry),
           Date.now(),
