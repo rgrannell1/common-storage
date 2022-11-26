@@ -7,10 +7,10 @@ import { topicPost } from "./api/topic/topic-post.ts";
 import { topicDelete } from "./api/topic/topic-delete.ts";
 import { contentPost } from "./api/content/content-post.ts";
 import { contentGet } from "./api/content/content-get.ts";
-import { options } from "./api/options.ts";
 import { authorised } from "./api/authorised.ts";
 import { setHeaders } from "./api/set-headers.ts";
 import { logRoutes } from "./api/log-routes.ts";
+import { opineCors } from "https://deno.land/x/cors/mod.ts";
 
 function motd(cfg: IConfig) {
   console.log([
@@ -35,7 +35,8 @@ export class CommonStorage {
     app.use(json(cfg));
 
     // -- cors responses, unauthenticated
-    app.options('/*', options(cfg));
+    app.options('/*', opineCors());
+
 
     app.use(authorised(cfg));
     app.use(setHeaders(cfg));
@@ -49,7 +50,7 @@ export class CommonStorage {
     app.delete("/topic/:name", topicDelete(cfg));
 
     // -- content
-    app.post("/content/:topic", contentPost(cfg));
+    app.post("/content/:topic", opineCors(), contentPost(cfg));
     app.get("/content/:topic", contentGet(cfg));
 
     const port = cfg.port;
