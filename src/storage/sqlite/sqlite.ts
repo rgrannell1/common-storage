@@ -1,4 +1,4 @@
-import type { DeleteTopicResponse, IStorage } from "../.././types/interfaces/storage.ts";
+import type { AddSubscriptionResponse, DeleteSubscriptionResponse, DeleteTopicResponse, GetSubscriptionResponse, GetSubscriptionStatsResponse, IStorage } from "../.././types/interfaces/storage.ts";
 import type { Topic } from "../../types/types.ts";
 import type {
   AddContentResponse,
@@ -29,6 +29,17 @@ const tables = [
     created        text not null
   );
   `,
+  `create table if not exists subscription (
+    id                   text primary key,
+    topic                text not null,
+    target               text not null,
+    frequency            integer not null,
+    updateCount          integer not null,
+    contactedCount       integer not null,
+    lastContactedDate    text,
+    lastStatus           text not null,
+    lastUpdateDate       text
+  )`
 ];
 
 export class Sqlite implements IStorage {
@@ -70,7 +81,7 @@ export class Sqlite implements IStorage {
       [topic],
     );
     if (topicRow.length === 0) {
-      throw new Error(`topic ${topic} not present`);
+      throw new Error(`topic "${topic}" not present`);
     }
 
     const description = topicRow[0][0] as string;
@@ -282,6 +293,108 @@ export class Sqlite implements IStorage {
     }
 
     return {};
+  }
+
+  async getSubscription(id: string): Promise<GetSubscriptionResponse> {
+    this.assertLoaded();
+
+    const subscriptionRow = await this.db.query(
+      "select server, from, to, frequency from subscriptions where id = ?",
+      [id],
+    );
+
+    if (subscriptionRow.length === 0) {
+      throw new Error('subscription "${id}" not present');
+    }
+
+    const [server, from, to, frequency] = subscriptionRow[0] as [
+      string, string, string, number
+    ];
+
+    return {
+      server, from, to, frequency
+    }
+  }
+
+  async getSubscriptionStats(id: string): Promise<GetSubscriptionStatsResponse> {
+    this.assertLoaded();
+
+    const subscriptionRow = await this.db.query(
+      `select updateCount, contactedCount, lastContactedDate, lastStatus, lastUpdateDate from subscriptions where id = ?`,
+      [id],
+    );
+
+    if (subscriptionRow.length === 0) {
+      throw new Error(`subscription "${id}" not present`);
+    }
+
+    const [updateCount, contactedCount, lastContactedDate, lastStatus, lastUpdateDate] = subscriptionRow[0] as [
+      number, number, string, string, string
+    ];
+
+    return {
+      updateCount, contactedCount, lastContactedDate, lastStatus, lastUpdateDate
+    }
+  }
+
+  async addSubscription(topic: string, target: string, frequency: number): Promise<AddSubscriptionResponse> {
+    this.assertLoaded();
+
+    const previousRow = await this.db.query(
+      "select count(*), id from subscriptions where topic = ? and target = ?",
+      [topic],
+    );
+
+    const existed = previousRow[0][0] !== 0
+
+    if (existed) {
+      return {
+        id: previousRow[0][1] as string,
+        existed: true
+      }
+    } else {
+      const now = new Date();
+
+      const id = `urn:subscription:${topic}_${target}_${now.toISOString()}`;
+
+      const updateCount = 0;
+      const contactedCount = 0;
+      const lastContactedDate = '';
+      const lastStatus = 'NOT_CONTACTED';
+      const lastUpdateDate = '';
+
+      await this.db.query(`
+      insert or replace into subscriptions(
+        id,
+        topic,
+        target,
+        frequency,
+        updateCount,
+        contactedCount,
+        lastContactedDate,
+        lastStatus,
+        lastUpdateDate
+      ) values ( ?, ?, ?, ?, ?, ?, ?, ? );
+      `, [id, topic, target, frequency, updateCount, contactedCount, lastContactedDate, lastStatus, lastUpdateDate]);
+
+      return {
+        id,
+        existed
+      }
+    }
+  }
+
+  async deleteSubscription(id: string): Promise<DeleteSubscriptionResponse> {
+    const previousRow = await this.db.query(
+      "select count(*) from subscriptions where id = ?",
+      [id],
+    );
+
+    await this.db.query("delete from subscriptions where id = ?", [id]);
+
+    return {
+      existed: previousRow[0][0] !== 0
+    }
   }
 
   async cleanup() {

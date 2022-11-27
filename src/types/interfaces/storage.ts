@@ -22,6 +22,30 @@ export type GetContentResponse = {
   content: any[];
 };
 
+export type GetSubscriptionResponse = {
+  server: string;
+  from: string;
+  to: string;
+  frequency: number;
+}
+
+export type AddSubscriptionResponse = {
+  id: string;
+  existed: boolean;
+}
+
+export type DeleteSubscriptionResponse = {
+  existed: boolean;
+}
+
+export type GetSubscriptionStatsResponse = {
+  updateCount: number;
+  contactedCount: number;
+  lastContactedDate: string;
+  lastStatus: string;
+  lastUpdateDate: string;
+}
+
 export interface IStorage {
   init(): Promise<void>;
   getTopicNames(): Promise<string[]>;
@@ -38,6 +62,10 @@ export interface IStorage {
     topic: string,
     startId: string | undefined,
   ): Promise<GetContentResponse>;
+  getSubscription(id: string): Promise<GetSubscriptionResponse>;
+  getSubscriptionStats(id: string): Promise<GetSubscriptionStatsResponse>;
+  addSubscription(topic: string, target: string, frequency: number): Promise<AddSubscriptionResponse>;
+  deleteSubscription(id: string): Promise<DeleteSubscriptionResponse>;
   close(): void;
   cleanup(): Promise<void>;
 }
