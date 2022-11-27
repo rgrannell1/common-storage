@@ -34,22 +34,22 @@ export class CommonStorage {
     app.use(logRoutes(cfg));
     app.use(json(cfg));
 
-    // -- cors responses, unauthenticated
+    // -- cors options route for post preflight requests
     app.options('/*', opineCors());
 
-
+    //
     app.use(authorised(cfg));
     app.use(setHeaders(cfg));
 
     // -- feed routes
     app.get("/feed", feedGet(cfg));
 
-    // -- topic
+    // -- topic routes
     app.get("/topic/:name", topicGet(cfg));
     app.post("/topic/:name", topicPost(cfg));
     app.delete("/topic/:name", topicDelete(cfg));
 
-    // -- content
+    // -- content routes
     app.post("/content/:topic", opineCors(), contentPost(cfg));
     app.get("/content/:topic", contentGet(cfg));
 

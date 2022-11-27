@@ -105,6 +105,13 @@ export class TestCases {
       };
     }
   }
+  static *subscriptions(take: number) {
+    for (let idx = 0; idx < take; idx++) {
+      yield {
+        id: text(),
+      };
+    }
+  }
   static *content(take: number) {
     for (let idx = 0; idx < take; idx++) {
       yield {

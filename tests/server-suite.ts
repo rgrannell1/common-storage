@@ -9,6 +9,7 @@ import * as TopicGet from "./expectations/routes/topic-get.ts";
 import * as TopicPost from "./expectations/routes/topic-post.ts";
 import * as TopicDelete from "./expectations/routes/topic-delete.ts";
 import * as ContentPost from "./expectations/routes/content-post.ts";
+import * as SubscriptionGet from "./expectations/routes/subscription-get.ts";
 import { TestCases } from "./utils/cases.ts";
 
 const CASES = 1;
@@ -221,6 +222,22 @@ export async function contentPostTests(suite: ServerTest) {
           await ContentPost.testUnbatchedWrite(testParams, tcase);
         });
       },
+    });
+  }
+}
+
+/*
+ SubscriptionGet
+ */
+export async function subscriptionGetTests(suite: ServerTest) {
+  for (const tcase of TestCases.subscriptions(CASES)) {
+    await Deno.test({
+      name: 'GET /subscription/:id | failed without authentication',
+      async fn () {
+        await suite.test(async (testParams) => {
+          await SubscriptionGet.testUnauthorised(testParams, tcase);
+        });
+      }
     });
   }
 }

@@ -48,11 +48,15 @@ export type GetSubscriptionStatsResponse = {
 
 export interface IStorage {
   init(): Promise<void>;
+
+  /* topic methods */
   getTopicNames(): Promise<string[]>;
   getTopicStats(name: string): Promise<GetTopicStatsResponse>;
   getTopic(topic: string): Promise<Topic>;
   addTopic(topic: string, description: string): Promise<AddTopicResponse>;
   deleteTopic(topic: string): Promise<DeleteTopicResponse>
+
+  /* content methods */
   addContent(
     batchId: string,
     topic: string,
@@ -62,10 +66,13 @@ export interface IStorage {
     topic: string,
     startId: string | undefined,
   ): Promise<GetContentResponse>;
+
+  /* subscription methods */
   getSubscription(id: string): Promise<GetSubscriptionResponse>;
   getSubscriptionStats(id: string): Promise<GetSubscriptionStatsResponse>;
   addSubscription(topic: string, target: string, frequency: number): Promise<AddSubscriptionResponse>;
   deleteSubscription(id: string): Promise<DeleteSubscriptionResponse>;
+
   close(): void;
   cleanup(): Promise<void>;
 }
