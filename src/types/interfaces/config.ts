@@ -8,4 +8,5 @@ export interface IConfig {
   title: string;
   description: string;
   user: { name: string; password: string };
+  upstream: { name: string; password: string };
 }

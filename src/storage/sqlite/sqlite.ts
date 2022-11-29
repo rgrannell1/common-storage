@@ -41,6 +41,7 @@ const tables = [
     id                   text primary key,
     topic                text not null,
     target               text not null,
+    lastMaxId            integer not null,
     frequency            integer not null,
     updateCount          integer not null,
     contactedCount       integer not null,
@@ -307,7 +308,7 @@ export class Sqlite implements IStorage {
     this.assertLoaded();
 
     const subscriptionRow = await this.db.query(
-      "select server, from, to, frequency from subscriptions where id = ?",
+      "select topic, target, lastMaxId, frequency from subscriptions where id = ?",
       [id],
     );
 
@@ -315,17 +316,17 @@ export class Sqlite implements IStorage {
       throw new Error('subscription "${id}" not present');
     }
 
-    const [server, from, to, frequency] = subscriptionRow[0] as [
+    const [topic, target, lastMaxId, frequency] = subscriptionRow[0] as [
       string,
       string,
-      string,
+      number,
       number,
     ];
 
     return {
-      server,
-      from,
-      to,
+      topic,
+      target,
+      lastMaxId,
       frequency,
     };
   }
@@ -383,7 +384,7 @@ export class Sqlite implements IStorage {
     this.assertLoaded();
 
     const previousRow = await this.db.query(
-      "select count(*), id from subscriptions where topic = ? and target = ?",
+      "select count(*) from subscriptions where topic = ? and target = ?",
       [topic],
     );
 
@@ -404,6 +405,7 @@ export class Sqlite implements IStorage {
       const lastContactedDate = "";
       const lastStatus = "NOT_CONTACTED";
       const lastUpdateDate = "";
+      const lastMaxId = -1;
 
       await this.db.query(
         `
@@ -411,18 +413,20 @@ export class Sqlite implements IStorage {
         id,
         topic,
         target,
+        lastMaxId,
         frequency,
         updateCount,
         contactedCount,
         lastContactedDate,
         lastStatus,
         lastUpdateDate
-      ) values ( ?, ?, ?, ?, ?, ?, ?, ? );
+      ) values ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ? );
       `,
         [
           id,
           topic,
           target,
+          lastMaxId,
           frequency,
           updateCount,
           contactedCount,
@@ -439,17 +443,46 @@ export class Sqlite implements IStorage {
     }
   }
 
-  async addSubscriptionSuccess(id: string): Promise<void> {
+  async addSubscriptionSuccess(id: string, lastId: number): Promise<void> {
     this.assertLoaded();
 
     const subscriptionRow = await this.db.query(
-      `select updateCount, contactedCount, lastContactedDate, lastStatus, lastUpdateDate from subscriptions where id = ?`,
+      `select id from subscriptions where id = ?`,
       [id],
     );
 
     if (subscriptionRow.length === 0) {
       throw new Error(`subscription "${id}" not present`);
     }
+
+    const [[
+      updateCount,
+      contactedCount
+    ]] = await this.db.query(`
+    select updateCount, contactedCount from subscriptions where id = ?;
+    `, [id]) as any;
+
+    const now = new Date();
+
+    await this.db.query(`
+      update subscriptions
+        set lastMaxId         = ?,
+            updateCount       = ?,
+            contactedCount    = ?,
+            lastContactedDate = ?,
+            lastUpdateDate    = ?,
+            lastStatus        = ?
+      where id = ?
+      `,
+      [
+        lastId,
+        updateCount + 1,
+        contactedCount + 1,
+        now.toISOString(),
+        now.toISOString(),
+        'OK',
+        id ],
+    );
   }
 
   async addSubscriptionFailure(id: string): Promise<void> {

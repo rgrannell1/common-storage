@@ -25,6 +25,8 @@ export function bindings(overrides: Record<string, any>) {
     CS_PASSWORD: getEnv("CS_PASSWORD"),
     CS_DB_ENGINE: getEnv("CS_DB_ENGINE"),
     CS_LOGGER: getEnv("CS_LOGGER"),
+    CS_UPSTREAM_USER: getEnv("CS_UPSTREAM_USER"),
+    CS_UPSTREAM_PASSWORD: getEnv("CS_UPSTREAM_PASSWORD")
   };
 
   if (values.CS_DB_ENGINE === "postgres") {
@@ -70,7 +72,7 @@ export function getStorage(bindings: Record<string, any>): IStorage {
         caCertificates: [bindings.CS_POSTGRES_DB_CERT],
         enforce: true,
       },
-    });
+    }) as any;
   } else if (CS_DB_ENGINE === "sqlite") {
     return new Sqlite({
       fpath: bindings.CS_SQLITE_DB_PATH,
@@ -96,5 +98,9 @@ export function config(bindings: Record<string, any>) {
       name: bindings.CS_USER,
       password: bindings.CS_PASSWORD,
     },
+    upstream: {
+      name: bindings.CS_UPSTREAM_USER,
+      password: bindings.CS_UPSTREAM_PASSWORD,
+    }
   };
 }

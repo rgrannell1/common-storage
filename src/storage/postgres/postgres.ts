@@ -37,7 +37,7 @@ const tables = [
   `,
 ];
 
-export class Postgres implements IStorage {
+export class Postgres { //implements IStorage {
   db: Client;
   #loaded: boolean;
 

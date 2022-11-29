@@ -14,6 +14,8 @@ import { authorised } from "./api/authorised.ts";
 import { setHeaders } from "./api/set-headers.ts";
 import { logRoutes } from "./api/log-routes.ts";
 import { opineCors } from "https://deno.land/x/cors/mod.ts";
+import { stringify } from "https://deno.land/std@0.153.0/node/querystring.ts";
+import { diff } from "https://deno.land/std@0.153.0/testing/_diff.ts";
 
 function motd(cfg: IConfig) {
   console.log([
@@ -71,15 +73,18 @@ export class CommonStorage {
 
     await cfg.storage.init();
 
-    this.pollSubscriptions(cfg);
+    if (listen) {
+      this.pollSubscriptions(cfg);
+    }
 
     return app;
   }
 
-  static async overdue(cfg: IConfig, id: string): boolean {
+  static async overdue(cfg: IConfig, id: string): Promise<boolean> {
     // get subscription information
     try {
       var stats = await cfg.storage.getSubscriptionStats(id);
+      var subscription = await cfg.storage.getSubscription(id);
     } catch (getInfoErr) {
       cfg.logger.error("failed to retrieve subscription information", {
         id,
@@ -91,6 +96,25 @@ export class CommonStorage {
 
       return false;
     }
+
+    const now = Date.now();
+    const lastDate = (new Date(stats.lastContactedDate)).getTime();
+
+    const frequency = subscription.frequency;
+    const diffSeconds = (now - lastDate) / 1_000;
+
+    if (stats.lastStatus === "NOT_CONTACTED") {
+      cfg.logger.info('not contacted', { id });
+      return true;
+    }
+
+    const overdue = diffSeconds >= frequency;
+
+    if (overdue) {
+      cfg.logger.info('updating subscription', { id, lastDate });
+    }
+
+    return overdue;
   }
 
   /*
@@ -99,7 +123,43 @@ export class CommonStorage {
    *
    */
   async pollSubscription(cfg: IConfig, id: string) {
-    // fetch results, merge content, update statistics
+    const subscription = await cfg.storage.getSubscription(id);
+
+    let cursor = subscription.lastMaxId;
+
+    while (true) {
+      // try catch please
+      const res = await fetch(`${subscription.target}?startId=${ cursor }`, {
+        headers: new Headers({
+          'content-type': 'application/json',
+          'authorization': `Basic ${btoa( cfg.upstream.name + ':' + cfg.upstream.password )}` // yes this is terrible, and will be replaced
+        })
+      });
+
+      const results = await res.json()
+
+      if (results.error) {
+        cfg.logger.error('failure while polling', results.error);
+        break;
+      }
+
+      if (results.content.length === 0) {
+        break
+      }
+
+      try {
+        await cfg.storage.addContent(undefined as any, subscription.topic, results.content);
+      } catch (error) {
+        cfg.logger.error('failure writing content', { error });
+        break;
+      }
+
+      await cfg.storage.addSubscriptionSuccess(id, results.lastId);
+
+      cursor = results.lastId
+    }
+
+    await cfg.storage.addSubscriptionSuccess(id, cursor);
 
     // retrieve statistics
 

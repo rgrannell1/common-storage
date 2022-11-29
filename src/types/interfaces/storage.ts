@@ -23,9 +23,9 @@ export type GetContentResponse = {
 };
 
 export type GetSubscriptionResponse = {
-  server: string;
-  from: string;
-  to: string;
+  topic: string;
+  target: string;
+  lastMaxId: number;
   frequency: number;
 };
 
@@ -79,7 +79,7 @@ export interface IStorage {
     target: string,
     frequency: number,
   ): Promise<AddSubscriptionResponse>;
-  addSubscriptionSuccess(id: string): Promise<void>;
+  addSubscriptionSuccess(id: string, lastId: number): Promise<void>;
   addSubscriptionFailure(id: string): Promise<void>;
   deleteSubscription(id: string): Promise<DeleteSubscriptionResponse>;
   getSubscriptionIds(): Promise<GetSubscriptionIdsResponse>;
