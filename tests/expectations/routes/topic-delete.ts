@@ -46,10 +46,9 @@ export async function testCreateDelete(
   RequestExpectations.ok(deleteReq);
   deleteReq.expect((res) => {
     assertObjectMatch(res.body, {
-      existed: true
+      existed: true,
     });
   });
-
 
   await deleteReq;
 }

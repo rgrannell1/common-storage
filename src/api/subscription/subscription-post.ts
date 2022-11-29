@@ -6,6 +6,5 @@ import type { IStorage } from "../../types/interfaces/storage.ts";
 
 export function subscriptionPost(cfg: IConfig) {
   return async function (req: OpineRequest, res: OpineResponse) {
-
   };
 }

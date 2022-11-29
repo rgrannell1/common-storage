@@ -21,10 +21,10 @@ export function authorised(cfg: IConfig) {
         }
       }
     }
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE');
-    res.setHeader('Access-Control-Max-Age', '86400');
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Headers", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE");
+    res.setHeader("Access-Control-Max-Age", "86400");
 
     res.status = Status.Unauthorized;
     res.send({

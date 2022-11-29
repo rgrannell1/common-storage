@@ -1,4 +1,12 @@
-import type { AddSubscriptionResponse, DeleteSubscriptionResponse, DeleteTopicResponse, GetSubscriptionResponse, GetSubscriptionStatsResponse, IStorage } from "../.././types/interfaces/storage.ts";
+import type {
+  AddSubscriptionResponse,
+  DeleteSubscriptionResponse,
+  DeleteTopicResponse,
+  GetSubscriptionIdsResponse,
+  GetSubscriptionResponse,
+  GetSubscriptionStatsResponse,
+  IStorage,
+} from "../.././types/interfaces/storage.ts";
 import type { Topic } from "../../types/types.ts";
 import type {
   AddContentResponse,
@@ -29,7 +37,7 @@ const tables = [
     created        text not null
   );
   `,
-  `create table if not exists subscription (
+  `create table if not exists subscriptions (
     id                   text primary key,
     topic                text not null,
     target               text not null,
@@ -39,7 +47,7 @@ const tables = [
     lastContactedDate    text,
     lastStatus           text not null,
     lastUpdateDate       text
-  )`
+  )`,
 ];
 
 export class Sqlite implements IStorage {
@@ -151,8 +159,8 @@ export class Sqlite implements IStorage {
     await this.db.query("delete from content where topic = ?", [topic]);
 
     return {
-      existed: previousRow[0][0] !== 0
-    }
+      existed: previousRow[0][0] !== 0,
+    };
   }
 
   async #closeBatch(batchId: string) {
@@ -264,18 +272,18 @@ export class Sqlite implements IStorage {
     content: any[],
   ): Promise<AddContentResponse> {
     if (batchId) {
-    const batch = await this.getBatch(batchId);
+      const batch = await this.getBatch(batchId);
 
-    if (batch.status === "missing") {
-      this.addBatch(batchId);
-    }
+      if (batch.status === "missing") {
+        this.addBatch(batchId);
+      }
 
-    if (batch.status === "closed" && content.length > 0) {
-      throw new Error(`cannot add content to closed batch ${batchId}`);
-    }
+      if (batch.status === "closed" && content.length > 0) {
+        throw new Error(`cannot add content to closed batch ${batchId}`);
+      }
 
-    if (content.length === 0) {
-      this.#closeBatch(batchId);
+      if (content.length === 0) {
+        this.#closeBatch(batchId);
       }
     }
 
@@ -284,7 +292,7 @@ export class Sqlite implements IStorage {
         `insert into content (batchId, topic, value, created)
         values (?, ?, ?, ?)`,
         [
-          batchId ?? '',
+          batchId ?? "",
           topic,
           JSON.stringify(entry),
           Date.now(),
@@ -308,15 +316,31 @@ export class Sqlite implements IStorage {
     }
 
     const [server, from, to, frequency] = subscriptionRow[0] as [
-      string, string, string, number
+      string,
+      string,
+      string,
+      number,
     ];
 
     return {
-      server, from, to, frequency
-    }
+      server,
+      from,
+      to,
+      frequency,
+    };
   }
 
-  async getSubscriptionStats(id: string): Promise<GetSubscriptionStatsResponse> {
+  async getSubscriptionIds(): Promise<GetSubscriptionIdsResponse> {
+    const results = await this.db.query("select id from subscriptions");
+
+    return {
+      ids: results.map((result) => result[0] as string),
+    };
+  }
+
+  async getSubscriptionStats(
+    id: string,
+  ): Promise<GetSubscriptionStatsResponse> {
     this.assertLoaded();
 
     const subscriptionRow = await this.db.query(
@@ -328,16 +352,34 @@ export class Sqlite implements IStorage {
       throw new Error(`subscription "${id}" not present`);
     }
 
-    const [updateCount, contactedCount, lastContactedDate, lastStatus, lastUpdateDate] = subscriptionRow[0] as [
-      number, number, string, string, string
+    const [
+      updateCount,
+      contactedCount,
+      lastContactedDate,
+      lastStatus,
+      lastUpdateDate,
+    ] = subscriptionRow[0] as [
+      number,
+      number,
+      string,
+      string,
+      string,
     ];
 
     return {
-      updateCount, contactedCount, lastContactedDate, lastStatus, lastUpdateDate
-    }
+      updateCount,
+      contactedCount,
+      lastContactedDate,
+      lastStatus,
+      lastUpdateDate,
+    };
   }
 
-  async addSubscription(topic: string, target: string, frequency: number): Promise<AddSubscriptionResponse> {
+  async addSubscription(
+    topic: string,
+    target: string,
+    frequency: number,
+  ): Promise<AddSubscriptionResponse> {
     this.assertLoaded();
 
     const previousRow = await this.db.query(
@@ -345,13 +387,13 @@ export class Sqlite implements IStorage {
       [topic],
     );
 
-    const existed = previousRow[0][0] !== 0
+    const existed = previousRow[0][0] !== 0;
 
     if (existed) {
       return {
         id: previousRow[0][1] as string,
-        existed: true
-      }
+        existed: true,
+      };
     } else {
       const now = new Date();
 
@@ -359,11 +401,12 @@ export class Sqlite implements IStorage {
 
       const updateCount = 0;
       const contactedCount = 0;
-      const lastContactedDate = '';
-      const lastStatus = 'NOT_CONTACTED';
-      const lastUpdateDate = '';
+      const lastContactedDate = "";
+      const lastStatus = "NOT_CONTACTED";
+      const lastUpdateDate = "";
 
-      await this.db.query(`
+      await this.db.query(
+        `
       insert or replace into subscriptions(
         id,
         topic,
@@ -375,12 +418,50 @@ export class Sqlite implements IStorage {
         lastStatus,
         lastUpdateDate
       ) values ( ?, ?, ?, ?, ?, ?, ?, ? );
-      `, [id, topic, target, frequency, updateCount, contactedCount, lastContactedDate, lastStatus, lastUpdateDate]);
+      `,
+        [
+          id,
+          topic,
+          target,
+          frequency,
+          updateCount,
+          contactedCount,
+          lastContactedDate,
+          lastStatus,
+          lastUpdateDate,
+        ],
+      );
 
       return {
         id,
-        existed
-      }
+        existed,
+      };
+    }
+  }
+
+  async addSubscriptionSuccess(id: string): Promise<void> {
+    this.assertLoaded();
+
+    const subscriptionRow = await this.db.query(
+      `select updateCount, contactedCount, lastContactedDate, lastStatus, lastUpdateDate from subscriptions where id = ?`,
+      [id],
+    );
+
+    if (subscriptionRow.length === 0) {
+      throw new Error(`subscription "${id}" not present`);
+    }
+  }
+
+  async addSubscriptionFailure(id: string): Promise<void> {
+    this.assertLoaded();
+
+    const subscriptionRow = await this.db.query(
+      `select updateCount, contactedCount, lastContactedDate, lastStatus, lastUpdateDate from subscriptions where id = ?`,
+      [id],
+    );
+
+    if (subscriptionRow.length === 0) {
+      throw new Error(`subscription "${id}" not present`);
     }
   }
 
@@ -393,8 +474,8 @@ export class Sqlite implements IStorage {
     await this.db.query("delete from subscriptions where id = ?", [id]);
 
     return {
-      existed: previousRow[0][0] !== 0
-    }
+      existed: previousRow[0][0] !== 0,
+    };
   }
 
   async cleanup() {

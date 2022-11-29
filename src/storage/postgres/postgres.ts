@@ -3,10 +3,16 @@ import type { Topic } from "../../types/types.ts";
 import type {
   AddContentResponse,
   AddTopicResponse,
+  DeleteTopicResponse,
   GetTopicStatsResponse,
-  DeleteTopicResponse
 } from "../.././types/interfaces/storage.ts";
-import type { IStorage, DeleteSubscriptionResponse, GetSubscriptionResponse, GetSubscriptionStatsResponse, AddSubscriptionResponse } from "../.././types/interfaces/storage.ts";
+import type {
+  AddSubscriptionResponse,
+  DeleteSubscriptionResponse,
+  GetSubscriptionResponse,
+  GetSubscriptionStatsResponse,
+  IStorage,
+} from "../.././types/interfaces/storage.ts";
 
 const tables = [
   `create table if not exists batches (
@@ -317,47 +323,53 @@ export class Postgres implements IStorage {
 
   async getSubscription(topic: string): Promise<GetSubscriptionResponse> {
     return {
-      server: '',
-      from: '',
-      to: '',
-      frequency: 0
-    }
+      server: "",
+      from: "",
+      to: "",
+      frequency: 0,
+    };
   }
 
-  async getSubscriptionStats(topic: string): Promise<GetSubscriptionStatsResponse> {
+  async getSubscriptionStats(
+    topic: string,
+  ): Promise<GetSubscriptionStatsResponse> {
     return {
       updateCount: 0,
       contactedCount: 0,
-      lastContactedDate: '',
-      lastStatus: '',
-      lastUpdateDate: ''
-    }
+      lastContactedDate: "",
+      lastStatus: "",
+      lastUpdateDate: "",
+    };
   }
 
-  async addSubscription(topic: string, target: string): Promise<AddSubscriptionResponse> {
+  async addSubscription(
+    topic: string,
+    target: string,
+  ): Promise<AddSubscriptionResponse> {
     const previousRow = await this.db.queryArray(
       "select count(*), id from subscriptions where topic = ? and target = ?",
       [topic],
     ) as any;
 
-    const existed = previousRow[0][0] !== 0
+    const existed = previousRow[0][0] !== 0;
 
     if (existed) {
       return {
         id: previousRow[0][1] as string,
-        existed: true
-      }
+        existed: true,
+      };
     } else {
       const now = new Date();
 
       const id = `urn:subscription:${topic}_${target}_${now.toISOString()}`;
       const updateCount = 0;
       const contactedCount = 0;
-      const lastContactedDate = '';
-      const lastStatus = 'NOT_CONTACTED';
-      const lastUpdateDate = '';
+      const lastContactedDate = "";
+      const lastStatus = "NOT_CONTACTED";
+      const lastUpdateDate = "";
 
-      await this.db.queryArray(`
+      await this.db.queryArray(
+        `
       insert or replace into subscriptions(
         id,
         topic,
@@ -368,12 +380,23 @@ export class Postgres implements IStorage {
         lastStatus,
         lastUpdateDate
       ) values ( ?, ?, ?, ?, ?, ?, ?, ? );
-      `, [id, topic, target, updateCount, contactedCount, lastContactedDate, lastStatus, lastUpdateDate]);
+      `,
+        [
+          id,
+          topic,
+          target,
+          updateCount,
+          contactedCount,
+          lastContactedDate,
+          lastStatus,
+          lastUpdateDate,
+        ],
+      );
 
       return {
         id,
-        existed
-      }
+        existed,
+      };
     }
   }
 
@@ -386,8 +409,8 @@ export class Postgres implements IStorage {
     await this.db.queryArray("delete from subscriptions where id = ?", [id]);
 
     return {
-      existed: previousRow[0][0] !== 0
-    }
+      existed: previousRow[0][0] !== 0,
+    };
   }
 
   async cleanup() {
@@ -401,8 +424,6 @@ export class Postgres implements IStorage {
 
     await this.close();
   }
-
-
 
   close() {
     return this.db.end();

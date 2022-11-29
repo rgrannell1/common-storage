@@ -13,7 +13,7 @@ export type AddTopicResponse = {
 
 export type DeleteTopicResponse = {
   existed: boolean;
-}
+};
 
 export type AddContentResponse = {};
 
@@ -27,16 +27,20 @@ export type GetSubscriptionResponse = {
   from: string;
   to: string;
   frequency: number;
-}
+};
 
 export type AddSubscriptionResponse = {
   id: string;
   existed: boolean;
-}
+};
 
 export type DeleteSubscriptionResponse = {
   existed: boolean;
-}
+};
+
+export type GetSubscriptionIdsResponse = {
+  ids: string[];
+};
 
 export type GetSubscriptionStatsResponse = {
   updateCount: number;
@@ -44,7 +48,7 @@ export type GetSubscriptionStatsResponse = {
   lastContactedDate: string;
   lastStatus: string;
   lastUpdateDate: string;
-}
+};
 
 export interface IStorage {
   init(): Promise<void>;
@@ -54,7 +58,7 @@ export interface IStorage {
   getTopicStats(name: string): Promise<GetTopicStatsResponse>;
   getTopic(topic: string): Promise<Topic>;
   addTopic(topic: string, description: string): Promise<AddTopicResponse>;
-  deleteTopic(topic: string): Promise<DeleteTopicResponse>
+  deleteTopic(topic: string): Promise<DeleteTopicResponse>;
 
   /* content methods */
   addContent(
@@ -70,8 +74,15 @@ export interface IStorage {
   /* subscription methods */
   getSubscription(id: string): Promise<GetSubscriptionResponse>;
   getSubscriptionStats(id: string): Promise<GetSubscriptionStatsResponse>;
-  addSubscription(topic: string, target: string, frequency: number): Promise<AddSubscriptionResponse>;
+  addSubscription(
+    topic: string,
+    target: string,
+    frequency: number,
+  ): Promise<AddSubscriptionResponse>;
+  addSubscriptionSuccess(id: string): Promise<void>;
+  addSubscriptionFailure(id: string): Promise<void>;
   deleteSubscription(id: string): Promise<DeleteSubscriptionResponse>;
+  getSubscriptionIds(): Promise<GetSubscriptionIdsResponse>;
 
   close(): void;
   cleanup(): Promise<void>;

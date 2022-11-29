@@ -44,7 +44,7 @@ export function contentPost(cfg: IConfig) {
       topic,
       stats: {
         added: content.length,
-        total: stats.stats.count
+        total: stats.stats.count,
       },
     });
   };

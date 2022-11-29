@@ -174,10 +174,7 @@ export async function topicDeleteTests(suite: ServerTest) {
       },
     });
   }
-
 }
-
-
 
 /*
 * ContentPost
@@ -232,12 +229,12 @@ export async function contentPostTests(suite: ServerTest) {
 export async function subscriptionGetTests(suite: ServerTest) {
   for (const tcase of TestCases.subscriptions(CASES)) {
     await Deno.test({
-      name: 'GET /subscription/:id | failed without authentication',
-      async fn () {
+      name: "GET /subscription/:id | failed without authentication",
+      async fn() {
         await suite.test(async (testParams) => {
           await SubscriptionGet.testUnauthorised(testParams, tcase);
         });
-      }
+      },
     });
   }
 }

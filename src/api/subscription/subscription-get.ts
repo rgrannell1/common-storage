@@ -5,7 +5,6 @@ import type { IConfig } from "../../types/interfaces/config.ts";
 
 export function subscriptionGet(cfg: IConfig) {
   return async function (req: OpineRequest, res: OpineResponse) {
-
     try {
       const storage = cfg.storage;
       if (!req.params.topic) {
@@ -25,7 +24,7 @@ export function subscriptionGet(cfg: IConfig) {
 
       res.send({
         ...subscription,
-        ...stats
+        ...stats,
       });
     } catch (err) {
       console.log(err);

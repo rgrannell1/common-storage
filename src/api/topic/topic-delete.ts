@@ -17,7 +17,7 @@ export function topicDelete(cfg: IConfig) {
 
     const storage = cfg.storage;
     const deleteRes = await storage.deleteTopic(
-      req.params.name
+      req.params.name,
     );
 
     res.status = Status.OK;

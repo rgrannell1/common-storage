@@ -9,6 +9,5 @@ inventory.file
 fauna/
 coverage/
 coverage-html/
-client
 cs-db.sqlite
 cs.sqlite

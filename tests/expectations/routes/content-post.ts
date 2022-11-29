@@ -82,7 +82,6 @@ export async function testUnbatchedWrite(
   });
 }
 
-
 export async function testBatchWrites(
   testParams: TestParams,
   testData: { topic: string; content: any[] },

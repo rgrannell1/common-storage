@@ -7,4 +7,10 @@ export class JsonLogger implements ILogger {
       console.log(JSON.stringify(obj));
     }
   }
+  error(message: string, obj?: Record<string, any>) {
+    console.error(`📦 Common-Storage | ${message}`);
+    if (obj) {
+      console.error(JSON.stringify(obj));
+    }
+  }
 }
