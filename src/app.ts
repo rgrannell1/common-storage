@@ -14,8 +14,6 @@ import { authorised } from "./api/authorised.ts";
 import { setHeaders } from "./api/set-headers.ts";
 import { logRoutes } from "./api/log-routes.ts";
 import { opineCors } from "https://deno.land/x/cors/mod.ts";
-import { stringify } from "https://deno.land/std@0.153.0/node/querystring.ts";
-import { diff } from "https://deno.land/std@0.153.0/testing/_diff.ts";
 
 function motd(cfg: IConfig) {
   console.log([
@@ -104,14 +102,14 @@ export class CommonStorage {
     const diffSeconds = (now - lastDate) / 1_000;
 
     if (stats.lastStatus === "NOT_CONTACTED") {
-      cfg.logger.info('not contacted', { id });
+      cfg.logger.info("not contacted", { id });
       return true;
     }
 
     const overdue = diffSeconds >= frequency;
 
     if (overdue) {
-      cfg.logger.info('updating subscription', { id, lastDate });
+      cfg.logger.info("polling subscription", { id, lastDate, frequency });
     }
 
     return overdue;
@@ -129,34 +127,41 @@ export class CommonStorage {
 
     while (true) {
       // try catch please
-      const res = await fetch(`${subscription.target}?startId=${ cursor }`, {
+      const upstreamCredential = `Basic ${
+        btoa(cfg.upstream.name + ":" + cfg.upstream.password)
+      }`;
+      const res = await fetch(`${subscription.target}?startId=${cursor}`, {
         headers: new Headers({
-          'content-type': 'application/json',
-          'authorization': `Basic ${btoa( cfg.upstream.name + ':' + cfg.upstream.password )}` // yes this is terrible, and will be replaced
-        })
+          "content-type": "application/json",
+          "authorization": upstreamCredential, // yes this is terrible, and will be replaced
+        }),
       });
 
-      const results = await res.json()
+      const results = await res.json();
 
       if (results.error) {
-        cfg.logger.error('failure while polling', results.error);
+        cfg.logger.error("failure while polling", results.error);
         break;
       }
 
       if (results.content.length === 0) {
-        break
+        break;
       }
 
       try {
-        await cfg.storage.addContent(undefined as any, subscription.topic, results.content);
+        await cfg.storage.addContent(
+          undefined as any,
+          subscription.topic,
+          results.content,
+        );
       } catch (error) {
-        cfg.logger.error('failure writing content', { error });
+        cfg.logger.error("failure writing content", { error });
         break;
       }
 
       await cfg.storage.addSubscriptionSuccess(id, results.lastId);
 
-      cursor = results.lastId
+      cursor = results.lastId;
     }
 
     await cfg.storage.addSubscriptionSuccess(id, cursor);
@@ -186,8 +191,6 @@ export class CommonStorage {
   pollSubscriptions(cfg: IConfig) {
     this.pollSubscriptionPid = setInterval(async () => {
       const { ids } = await cfg.storage.getSubscriptionIds();
-
-      cfg.logger.info("polling subscriptions", { count: ids.length });
 
       for (const id of ids) {
         if (await CommonStorage.overdue(cfg, id)) {

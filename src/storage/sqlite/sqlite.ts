@@ -457,14 +457,18 @@ export class Sqlite implements IStorage {
 
     const [[
       updateCount,
-      contactedCount
-    ]] = await this.db.query(`
+      contactedCount,
+    ]] = await this.db.query(
+      `
     select updateCount, contactedCount from subscriptions where id = ?;
-    `, [id]) as any;
+    `,
+      [id],
+    ) as any;
 
     const now = new Date();
 
-    await this.db.query(`
+    await this.db.query(
+      `
       update subscriptions
         set lastMaxId         = ?,
             updateCount       = ?,
@@ -480,8 +484,9 @@ export class Sqlite implements IStorage {
         contactedCount + 1,
         now.toISOString(),
         now.toISOString(),
-        'OK',
-        id ],
+        "OK",
+        id,
+      ],
     );
   }
 

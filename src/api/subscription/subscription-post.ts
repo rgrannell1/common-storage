@@ -39,10 +39,24 @@ export function subscriptionPost(cfg: IConfig) {
     }
 
     const { topic, target, frequency } = req.body;
-    console.log([topic, target, frequency]);
 
-    await storage.addSubscription(topic, target, parseInt(frequency));
+    try {
+      await storage.getTopic(req.params.name);
+    } catch (err) {
+      res.status = Status.NotFound;
+      res.send({
+        error: {
+          message: "Topic does not exist",
+        },
+      });
+    }
 
-    res.send("asd");
+    const { id } = await storage.addSubscription(
+      topic,
+      target,
+      parseInt(frequency),
+    );
+
+    res.send({ id });
   };
 }
