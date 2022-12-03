@@ -1,7 +1,6 @@
 # Common-Storage [![Test](https://github.com/rgrannell1/common-storage/actions/workflows/test.yaml/badge.svg)](https://github.com/rgrannell1/common-storage/actions/workflows/test.yaml)
 
-Synchronise a collection of things (e.g photos, bookmarks) from one host to
-another.
+Synchronise a collection of things (e.g photos, bookmarks) from one host to another.
 
 ## Usage
 
@@ -18,6 +17,16 @@ Create a topic, to which content can be published.
 
 ```bash
 curl -X POST --user *** 'localhost:8080/topic/bookmarks' -H 'Content-Type: application/json' --data '{ "description": "bookmarks I want to store" }'
+```
+
+or, using the client
+
+```bash
+export CS_USER=*********
+export CS_PASWORD=*********
+
+cs post topic bookmarks --description 'bookmarks synced between hosts'
+cs post subscription bookmarks --target 'https://example.com' --frequency 60
 ```
 
 ## Motivation
@@ -41,30 +50,9 @@ Common-Storage has the following routes
 
 | Method | Route               | Description                         |
 | ------ | ------------------- | ----------------------------------- |
-| GET    | `/subscription`     | get all subscriptions to the server |
-| POST   | `/subscription`     | add a subscription                  |
 | GET    | `/subscription/:id` | get subscription data               |
 | POST   | `/subscription/:id` | update subscription                 |
 | DELETE | `/subscription/:id` | delete subscription                 |
-
-The workflow is:
-
-- Create a topic (e.g bookmarks) using `POST /topic/bookmarks`
-- Set up subscriptions to this topic using
-  `POST /subscription?topic=bookmarks&hookUrl=https://myserver.com/notify?`
-- Post some content using `POST /content/bookmarks` under a batch-id (e.g
-  '2022-01-01-photos'). Finalise the batch by posting an empty list
-- When this content is posted, `https://myserver.com/notify` will receive a
-  message that there is new content
-- Call `POST /content/bookmarks?lastId=<your-last-id>` and enumerate through new
-  results.
-
-## Storage Backends
-
-Common-storage can write to the following storage backends:
-
-- Sqlite
-- Postgres
 
 ## File Layouts
 
