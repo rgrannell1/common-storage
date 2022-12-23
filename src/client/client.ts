@@ -65,7 +65,7 @@ const res: any = await makeRequest();
 const body = await res.text();
 
 try {
-  console.log(JSON.parse(body));
+  console.log(body);
 } catch {
   console.log(body);
 }

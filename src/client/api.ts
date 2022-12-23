@@ -17,7 +17,7 @@ function auth() {
 export class API {
   endpoint: string;
 
-  constructor(dev: boolean) {
+  constructor(dev?: boolean) {
     this.endpoint = dev
       ? "http://localhost:8080"
       : "https://mycloud.rgrannell.xyz";
@@ -66,8 +66,10 @@ export class API {
     });
   }
 
-  getContent(topic: string) {
-    return fetch(`${this.endpoint}/content/${topic}`, {
+  getContent(topic: string, startId?: string) {
+    const params = typeof startId !== "undefined" ? `?startId=${startId}` : "";
+
+    return fetch(`${this.endpoint}/content/${topic}${params}`, {
       method: "get",
       headers: new Headers({
         "authorization": auth(),

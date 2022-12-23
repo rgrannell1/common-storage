@@ -1,7 +1,6 @@
 import { NoOpLogger } from "../src/logger/noop.ts";
 import { JsonLogger } from "../src/logger/json.ts";
 import { Sqlite } from "../src/storage/sqlite/sqlite.ts";
-import { Postgres } from "../src/storage/postgres/postgres.ts";
 import { IStorage } from "./types/interfaces/storage.ts";
 import { ILogger } from "./types/interfaces/logger.ts";
 
@@ -29,19 +28,6 @@ export function bindings(overrides: Record<string, any>) {
     CS_UPSTREAM_PASSWORD: getEnv("CS_UPSTREAM_PASSWORD"),
   };
 
-  if (values.CS_DB_ENGINE === "postgres") {
-    values.CS_POSTGRES_DB_USER = getEnv("CS_POSTGRES_DB_USER");
-    values.CS_POSTGRES_DB_PASSWORD = getEnv("CS_POSTGRES_DB_PASSWORD");
-    values.CS_POSTGRES_DB_HOST = getEnv("CS_POSTGRES_DB_HOST");
-    values.CS_POSTGRES_DB_NAME = getEnv("CS_POSTGRES_DB_NAME");
-    values.CS_POSTGRES_DB_PORT = getEnv("CS_POSTGRES_DB_PORT");
-    values.CS_POSTGRES_DB_CERT = getEnv("CS_POSTGRES_DB_CERT");
-  } else if (values.CS_DB_ENGINE === "sqlite") {
-    values.CS_SQLITE_DB_PATH = getEnv("CS_SQLITE_DB_PATH");
-  } else {
-    throw new Error(`Unknown storage engine ${values.CS_DB_ENGINE}`);
-  }
-
   return {
     ...values,
     ...overrides,
@@ -61,19 +47,7 @@ export function getLogger(bindings: Record<string, any>): ILogger {
 export function getStorage(bindings: Record<string, any>): IStorage {
   const CS_DB_ENGINE = bindings.CS_DB_ENGINE;
 
-  if (CS_DB_ENGINE === "postgres") {
-    return new Postgres({
-      user: bindings.CS_POSTGRES_DB_USER,
-      database: bindings.CS_POSTGRES_DB_NAME,
-      hostname: bindings.CS_POSTGRES_DB_HOST,
-      password: bindings.CS_POSTGRES_DB_PASSWORD,
-      port: bindings.CS_POSTGRES_DB_PORT,
-      tls: {
-        caCertificates: [bindings.CS_POSTGRES_DB_CERT],
-        enforce: true,
-      },
-    }) as any;
-  } else if (CS_DB_ENGINE === "sqlite") {
+  if (CS_DB_ENGINE === "sqlite") {
     return new Sqlite({
       fpath: bindings.CS_SQLITE_DB_PATH,
     });

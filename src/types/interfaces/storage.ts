@@ -4,6 +4,7 @@ export type GetTopicStatsResponse = {
   topic: Topic;
   stats: {
     count: number;
+    lastUpdated: string;
   };
 };
 

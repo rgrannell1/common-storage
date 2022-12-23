@@ -1,6 +1,7 @@
 # Common-Storage [![Test](https://github.com/rgrannell1/common-storage/actions/workflows/test.yaml/badge.svg)](https://github.com/rgrannell1/common-storage/actions/workflows/test.yaml)
 
-Synchronise a collection of things (e.g photos, bookmarks) from one host to another.
+Synchronise a collection of things (e.g photos, bookmarks) from one host to
+another.
 
 ## Usage
 
@@ -48,11 +49,11 @@ Common-Storage has the following routes
 | GET    | `/content/:name/` | get content from a topic                            |
 | POST   | `/content/:name`  | add content to a topic, as part of a batch          |
 
-| Method | Route               | Description                         |
-| ------ | ------------------- | ----------------------------------- |
-| GET    | `/subscription/:id` | get subscription data               |
-| POST   | `/subscription/:id` | update subscription                 |
-| DELETE | `/subscription/:id` | delete subscription                 |
+| Method | Route               | Description           |
+| ------ | ------------------- | --------------------- |
+| GET    | `/subscription/:id` | get subscription data |
+| POST   | `/subscription/:id` | update subscription   |
+| DELETE | `/subscription/:id` | delete subscription   |
 
 ## File Layouts
 

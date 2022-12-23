@@ -25,7 +25,7 @@ function motd(cfg: IConfig) {
 
 export class CommonStorage {
   config: IConfig;
-  pollSubscriptionPid?: number;
+  pollSubscriptionPid?: any;
 
   constructor(config: IConfig) {
     this.config = config;

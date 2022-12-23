@@ -117,10 +117,30 @@ export class Sqlite implements IStorage {
       [topic],
     );
 
+    const lastUpdatedRow = this.db.query(
+      `
+    select max(created) from content
+      where topic = ?
+    `,
+      [topic],
+    );
+
+    let lastUpdated = "";
+
+    if (lastUpdatedRow.length > 0) {
+      lastUpdated = lastUpdatedRow[0][0] as string;
+    } else {
+      [[lastUpdated]] = this.db.query(
+        `select created from topics where topic = ?`,
+        [topic],
+      );
+    }
+
     return {
       topic: await this.getTopic(topic),
       stats: {
         count: count as number,
+        lastUpdated: (new Date(lastUpdated)).toISOString()
       },
     };
   }
