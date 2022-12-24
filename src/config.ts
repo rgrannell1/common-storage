@@ -49,7 +49,7 @@ export function getStorage(bindings: Record<string, any>): IStorage {
 
   if (CS_DB_ENGINE === "sqlite") {
     return new Sqlite({
-      fpath: bindings.CS_SQLITE_DB_PATH,
+      fpath: bindings.CS_SQLITE_DB_PATH ?? '/cs.db',
     });
   } else {
     throw new Error(`storage engine ${CS_DB_ENGINE} not supported.`);

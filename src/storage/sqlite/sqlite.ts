@@ -140,7 +140,7 @@ export class Sqlite implements IStorage {
       topic: await this.getTopic(topic),
       stats: {
         count: count as number,
-        lastUpdated: (new Date(lastUpdated)).toISOString()
+        lastUpdated: (new Date(parseInt(lastUpdated, 10))).toISOString()
       },
     };
   }
