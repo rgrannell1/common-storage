@@ -1,7 +1,11 @@
 #!/bin/sh
 //bin/true; exec /home/rg/.deno/bin/deno run -A "$0" "$@"
 
-function auth() {
+function auth(username?: string, password?: string) {
+  if (username && password) {
+    return `Basic ${btoa(username + ":" + password)}`;
+  }
+
   const USER = Deno.env.get("CS_USER");
   const PASSWORD = Deno.env.get("CS_PASSWORD");
 
@@ -16,18 +20,23 @@ function auth() {
 
 export class API {
   endpoint: string;
+  credentials: {username: string, password: string};
 
-  constructor(dev?: boolean) {
+  constructor(credentials?: {username: string, password: string}, dev?: boolean) {
     this.endpoint = dev
       ? "http://localhost:8080"
       : "https://mycloud.rgrannell.xyz";
+
+      if (credentials) {
+        this.credentials = credentials;
+      }
   }
 
   getFeed() {
     return fetch(`${this.endpoint}/feed`, {
       method: "get",
       headers: new Headers({
-        "authorization": auth(),
+        "authorization": auth(this.credentials?.username, this.credentials?.password),
         "content-type": "application/json",
       }),
     });
@@ -37,7 +46,7 @@ export class API {
     return fetch(`${this.endpoint}/topic/${topic}`, {
       method: "get",
       headers: new Headers({
-        "authorization": auth(),
+        "authorization": auth(this.credentials?.username, this.credentials?.password),
         "content-type": "application/json",
       }),
     });
@@ -50,7 +59,7 @@ export class API {
         description,
       }),
       headers: new Headers({
-        "authorization": auth(),
+        "authorization": auth(this.credentials?.username, this.credentials?.password),
         "content-type": "application/json",
       }),
     });
@@ -60,7 +69,7 @@ export class API {
     return fetch(`${this.endpoint}/topic/${topic}`, {
       method: "delete",
       headers: new Headers({
-        "authorization": auth(),
+        "authorization": auth(this.credentials?.username, this.credentials?.password),
         "content-type": "application/json",
       }),
     });
@@ -72,7 +81,7 @@ export class API {
     return fetch(`${this.endpoint}/content/${topic}${params}`, {
       method: "get",
       headers: new Headers({
-        "authorization": auth(),
+        "authorization": auth(this.credentials?.username, this.credentials?.password),
         "content-type": "application/json",
       }),
     });
@@ -82,7 +91,7 @@ export class API {
     return fetch(`${this.endpoint}/content/${topic}`, {
       method: "post",
       headers: new Headers({
-        "authorization": auth(),
+        "authorization": auth(this.credentials?.username, this.credentials?.password),
         "content-type": "application/json",
       }),
       body: JSON.stringify({
@@ -95,7 +104,7 @@ export class API {
     return fetch(`${this.endpoint}/subscription`, {
       method: "post",
       headers: new Headers({
-        "authorization": auth(),
+        "authorization": auth(this.credentials?.username, this.credentials?.password),
         "content-type": "application/json",
       }),
       body: JSON.stringify({
