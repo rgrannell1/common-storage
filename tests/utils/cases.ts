@@ -88,12 +88,12 @@ import * as Peach from "https://raw.githubusercontent.com/rgrannell1/peach.ts/ma
 
 const text = Peach.String.from(
   Peach.String.letters(Peach.Number.uniform),
-  Peach.Number.uniform(0, 64),
+  Peach.Number.uniform(1, 64),
 );
 
 const contents = Peach.Array.from(
   Peach.Object.from(text, text, Peach.Number.uniform(1, 10)),
-  Peach.Number.uniform(0, 512),
+  Peach.Number.uniform(1, 512),
 );
 
 export class TestCases {

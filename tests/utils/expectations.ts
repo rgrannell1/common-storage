@@ -9,13 +9,13 @@ import { Status } from "https://deno.land/std/http/http_status.ts";
 export class RequestExpectations {
   static jsonContentType(req: Test) {
     const expected = "application/json; charset=utf-8";
-
     req.expect(async (res) => {
-      const actual = res.headers["Content-Type"];
+      const actual = res.headers["content-type"];
       assertEquals(
         actual,
         expected,
-        `Expected ${expected}, got ${actual} with body ${await res.text}`,
+        `Expected header ${expected}, got header ${actual} with body ${await res
+          .text}`,
       );
     });
   }

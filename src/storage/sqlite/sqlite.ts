@@ -127,7 +127,7 @@ export class Sqlite implements IStorage {
 
     let lastUpdated = "";
 
-    if (lastUpdatedRow.length > 0) {
+    if (lastUpdatedRow.length > 0 && lastUpdatedRow[0][0] !== null) {
       lastUpdated = lastUpdatedRow[0][0] as string;
     } else {
       [[lastUpdated]] = this.db.query(

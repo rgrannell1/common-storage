@@ -24,14 +24,12 @@
       "request": "launch",
       "name": "Debug Tests",
       "type": "node",
-      "program": "${workspaceFolder}/tests/server-test.ts",
+      "program": "${workspaceFolder}/tests/run-test.ts",
       "cwd": "${workspaceFolder}",
       "runtimeExecutable": "/home/rg/.deno/bin/deno",
       "runtimeArgs": [
         "run",
         "--unsafely-ignore-certificate-errors",
-        "--cert",
-        "/home/rg/Code/common-storage/certificates/ca-certificate.pem",
         "--inspect-brk",
         "--inspect",
         "--allow-all"

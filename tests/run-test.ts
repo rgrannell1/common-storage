@@ -13,18 +13,14 @@ class CommonStorageTests {
     this.opts = opts;
   }
 
-  /*
-   *
-   */
+  /* */
   async storageTests(suites: ServerTest[]) {
     for (const suite of suites) {
       await storageTests(suite);
     }
   }
 
-  /*
-   *
-   */
+  /* */
   async serverTests(suites: ServerTest[]) {
     for (const suite of suites) {
       await ServerSuite.contentGetTests(suite);
@@ -39,9 +35,7 @@ class CommonStorageTests {
     }
   }
 
-  /*
-   *
-   */
+  /* */
   backends() {
     const backends: ServerTest[] = [];
 
@@ -65,9 +59,7 @@ class CommonStorageTests {
     return backends;
   }
 
-  /*
-   *
-   */
+  /* */
   async run() {
     await this.storageTests(this.backends());
     await this.serverTests(this.backends());

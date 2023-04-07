@@ -12,7 +12,7 @@ import * as ContentPost from "./expectations/routes/content-post.ts";
 import * as SubscriptionGet from "./expectations/routes/subscription-get.ts";
 import { TestCases } from "./utils/cases.ts";
 
-const CASES = 1;
+const CASES = 10;
 
 /*
  * ContentGet
@@ -52,7 +52,7 @@ export async function contentGetTests(suite: ServerTest) {
     });
   }
 
-  for (const tcase of TestCases.content(10)) {
+  for (const tcase of TestCases.content(CASES)) {
     await Deno.test({
       name: "GET /content/:topic | expected content through pagination",
       async fn() {
@@ -65,8 +65,8 @@ export async function contentGetTests(suite: ServerTest) {
 }
 
 /*
-* FeedGet
-*/
+ * FeedGet
+ */
 export async function feedGetTests(suite: ServerTest) {
   await Deno.test({
     name: "GET /feed | failed without authentication",
@@ -99,8 +99,8 @@ export async function feedGetTests(suite: ServerTest) {
 }
 
 /*
-* TopicGet
-*/
+ * TopicGet
+ */
 export async function topicGetTests(suite: ServerTest) {
   for (const tcase of TestCases.topics(CASES)) {
     await Deno.test({
@@ -126,8 +126,8 @@ export async function topicGetTests(suite: ServerTest) {
 }
 
 /*
-* TopicPost
-*/
+ * TopicPost
+ */
 export async function feedPostTests(suite: ServerTest) {
   for (const tcase of TestCases.topics(CASES)) {
     await Deno.test({
@@ -152,8 +152,8 @@ export async function feedPostTests(suite: ServerTest) {
   }
 }
 /*
-* TopicDelete
-*/
+ * TopicDelete
+ */
 export async function topicDeleteTests(suite: ServerTest) {
   for (const tcase of TestCases.topics(CASES)) {
     await Deno.test({
@@ -177,8 +177,8 @@ export async function topicDeleteTests(suite: ServerTest) {
 }
 
 /*
-* ContentPost
-*/
+ * ContentPost
+ */
 export async function contentPostTests(suite: ServerTest) {
   for (const tcase of TestCases.topics(CASES)) {
     await Deno.test({
@@ -202,7 +202,7 @@ export async function contentPostTests(suite: ServerTest) {
     });
   }
 
-  for (const tcase of TestCases.content(10)) {
+  for (const tcase of TestCases.content(CASES)) {
     await Deno.test({
       name: "POST /content/:topic | batches can be rewritten to and closed",
       async fn() {

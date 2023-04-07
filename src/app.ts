@@ -42,8 +42,8 @@ export class CommonStorage {
     app.options("/*", opineCors());
 
     //
-    app.use(authorised(cfg));
     app.use(setHeaders(cfg));
+    app.use(authorised(cfg));
 
     // -- feed routes
     app.get("/feed", feedGet(cfg));
@@ -55,7 +55,7 @@ export class CommonStorage {
 
     // -- content routes
     app.post("/content/:topic", opineCors(), contentPost(cfg));
-    app.get("/content/:topic", contentGet(cfg));
+    app.get("/content/:topic", opineCors(), contentGet(cfg));
 
     // -- subscription routes
     app.post("/subscription", subscriptionPost(cfg));
@@ -118,7 +118,6 @@ export class CommonStorage {
   /*
    * Note: no locking is done here, so yes race conditions are likely if you delete a subscription as
    * polling is occuring.
-   *
    */
   async pollSubscription(cfg: IConfig, id: string) {
     const subscription = await cfg.storage.getSubscription(id);
@@ -186,7 +185,6 @@ export class CommonStorage {
 
   /*
    * In a single async loop, check for subscriptions that need polling for new entries.
-   *
    */
   pollSubscriptions(cfg: IConfig) {
     this.pollSubscriptionPid = setInterval(async () => {

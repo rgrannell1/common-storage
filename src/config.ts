@@ -26,6 +26,7 @@ export function bindings(overrides: Record<string, any>) {
     CS_LOGGER: getEnv("CS_LOGGER"),
     CS_UPSTREAM_USER: getEnv("CS_UPSTREAM_USER"),
     CS_UPSTREAM_PASSWORD: getEnv("CS_UPSTREAM_PASSWORD"),
+    CS_SQLITE_DB_PATH: getEnv("CS_SQLITE_DB_PATH"),
   };
 
   return {
@@ -59,7 +60,6 @@ export function getStorage(bindings: Record<string, any>): IStorage {
 /*
  * Return environmental variable bindings, and instantiated singleton classes
  * like storage and loggers
- *
  */
 export function config(bindings: Record<string, any>) {
   return {
