@@ -6,4 +6,5 @@ deno test \
   --unsafely-ignore-certificate-errors                                  \
   --coverage=./coverage                                                 \
   --allow-all                                                           \
+  --trace-ops                                                           \
   tests/*-test.ts
