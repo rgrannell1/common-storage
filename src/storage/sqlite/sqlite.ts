@@ -210,7 +210,7 @@ export class Sqlite implements IStorage {
       };
     }
 
-    const closed = rows[0][0];
+    const [closed] = rows[0];
 
     return {
       batchId,

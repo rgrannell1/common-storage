@@ -15,6 +15,10 @@ function getEnv(name: string) {
   return res;
 }
 
+/*
+ * Retrieve environmental variables, and optionally allow overrides
+ * with an override dictionary.
+ */
 export function bindings(overrides: Record<string, any>) {
   const values: Record<string, any> = {
     CS_PORT: parseInt(getEnv("CS_PORT")),
@@ -35,6 +39,9 @@ export function bindings(overrides: Record<string, any>) {
   };
 }
 
+/*
+ * Instantiate a logger
+ */
 export function getLogger(bindings: Record<string, any>): ILogger {
   if (bindings.CS_LOGGER === "noop") {
     return new NoOpLogger();

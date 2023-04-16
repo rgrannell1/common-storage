@@ -63,14 +63,17 @@ export class CommonStorage {
 
     const port = cfg.port;
 
+    // -- start the server, if asked to
     if (listen) {
       app.listen(port, () => {
         motd(cfg);
       });
     }
 
+    // -- initialise the storage engine
     await cfg.storage.init();
 
+    // -- start the subscription polling, if the server is started
     if (listen) {
       this.pollSubscriptions(cfg);
     }

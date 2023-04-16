@@ -30,6 +30,19 @@ cs post topic bookmarks --description 'bookmarks synced between hosts'
 cs post subscription bookmarks --target 'https://example.com' --frequency 60
 ```
 
+## Build System
+
+the following [rs](https://github.com/rgrannell1/rs) build operations are supported:
+
+```sh
+rs run                # launch the common-storage server directly
+rs test               # launch tests
+rs test:coverage      # get code-coverage
+rs docker:build       # build a docker-container
+rs docker:up          # start a docker container
+rs client:install     # install a common-storage CLI client
+```
+
 ## Motivation
 
 I'm moving from cloud-services to my own personal knowledge-hub. Common-storage
@@ -62,22 +75,10 @@ Common-Storage has the following routes
 
 ```
 .env                  # local environment-variable bindings
-digitalocean.tf       # deploy a database to digitalocean
 dockerfile            # deploy common-storage to a docker-container
 docker-compose.yml    # start a docker-container with environmental variable's bound
 ```
 
-```
-bs/                     # build scripts. Call directly with shell, or use
-  coverage.sh           # get code-coverage
-  deploy.sh             # deno-deploy the API
-  docker:build.sh       # build a docker-container
-  docker:up.sh          # start a docker container
-  launch.sh             # launch the common-storage directly
-  terraform:apply.sh    # apply digitalocean terraform template
-  terraform:apply.sh    # delete digitalocean terraform assets
-  test.sh               # launch tests
-```
 
 ```
 src/

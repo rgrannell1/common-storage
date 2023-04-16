@@ -14,6 +14,8 @@ services:
       - CS_SQLITE_DB_PATH=${CS_SQLITE_DB_PATH}
       - CS_DB_ENGINE=${CS_DB_ENGINE}
       - CS_LOGGER=${CS_LOGGER}
+      - CS_UPSTREAM_USER=${CS_UPSTREAM_USER}
+      - CS_UPSTREAM_PASSWORD=${CS_UPSTREAM_PASSWORD}
 
     environment:
       - CS_TITLE=${CS_TITLE}
@@ -24,5 +26,7 @@ services:
       - CS_SQLITE_DB_PATH=${CS_SQLITE_DB_PATH}
       - CS_DB_ENGINE=${CS_DB_ENGINE}
       - CS_LOGGER=${CS_LOGGER}
+      - CS_UPSTREAM_USER=${CS_UPSTREAM_USER}
+      - CS_UPSTREAM_PASSWORD=${CS_UPSTREAM_PASSWORD}
     volumes:
       - './database:/database'
