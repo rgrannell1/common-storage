@@ -24,12 +24,8 @@ export function bindings(overrides: Record<string, any>) {
     CS_PORT: parseInt(getEnv("CS_PORT")),
     CS_TITLE: getEnv("CS_TITLE"),
     CS_DESCRIPTION: getEnv("CS_DESCRIPTION"),
-    CS_USER: getEnv("CS_USER"),
-    CS_PASSWORD: getEnv("CS_PASSWORD"),
     CS_DB_ENGINE: getEnv("CS_DB_ENGINE"),
     CS_LOGGER: getEnv("CS_LOGGER"),
-    CS_UPSTREAM_USER: getEnv("CS_UPSTREAM_USER"),
-    CS_UPSTREAM_PASSWORD: getEnv("CS_UPSTREAM_PASSWORD"),
     CS_SQLITE_DB_PATH: getEnv("CS_SQLITE_DB_PATH"),
   };
 
@@ -64,6 +60,13 @@ export function getStorage(bindings: Record<string, any>): IStorage {
   }
 }
 
+export function getUsers(_: Record<string, any>): Record<string, any> {
+  // import users.json
+  const users = JSON.parse(Deno.readTextFileSync("./users.json"));
+
+  return users;
+}
+
 /*
  * Return environmental variable bindings, and instantiated singleton classes
  * like storage and loggers
@@ -75,13 +78,6 @@ export function config(bindings: Record<string, any>) {
     storage: getStorage(bindings),
     title: bindings.CS_TITLE,
     description: bindings.CS_DESCRIPTION,
-    user: {
-      name: bindings.CS_USER,
-      password: bindings.CS_PASSWORD,
-    },
-    upstream: {
-      name: bindings.CS_UPSTREAM_USER,
-      password: bindings.CS_UPSTREAM_PASSWORD,
-    },
+    users: getUsers(bindings)
   };
 }

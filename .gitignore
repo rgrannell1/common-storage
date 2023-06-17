@@ -16,3 +16,5 @@ inventory.file
 main.zsh
 terraform.*
 client
+upstreams.json
+users.json
