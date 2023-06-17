@@ -25,3 +25,13 @@ export type CommonStorageRequest = OpineRequest & {
 };
 
 export type SupportedDB = "sqlite";
+
+export type Permission = {
+  route: string;
+  methods: string[];
+}
+
+export type User = {
+  password: string;
+  permissions: Permission[]
+}

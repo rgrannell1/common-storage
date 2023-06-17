@@ -7,26 +7,18 @@ services:
       context: .
       args:
       - CS_TITLE=${CS_TITLE}
-      - CS_USER=${CS_USER}
       - CS_DESCRIPTION=${CS_DESCRIPTION}
-      - CS_PASSWORD=${CS_PASSWORD}
       - CS_PORT=${CS_PORT}
       - CS_SQLITE_DB_PATH=${CS_SQLITE_DB_PATH}
       - CS_DB_ENGINE=${CS_DB_ENGINE}
       - CS_LOGGER=${CS_LOGGER}
-      - CS_UPSTREAM_USER=${CS_UPSTREAM_USER}
-      - CS_UPSTREAM_PASSWORD=${CS_UPSTREAM_PASSWORD}
 
     environment:
       - CS_TITLE=${CS_TITLE}
-      - CS_USER=${CS_USER}
       - CS_DESCRIPTION=${CS_DESCRIPTION}
-      - CS_PASSWORD=${CS_PASSWORD}
       - CS_PORT=${CS_PORT}
       - CS_SQLITE_DB_PATH=${CS_SQLITE_DB_PATH}
       - CS_DB_ENGINE=${CS_DB_ENGINE}
       - CS_LOGGER=${CS_LOGGER}
-      - CS_UPSTREAM_USER=${CS_UPSTREAM_USER}
-      - CS_UPSTREAM_PASSWORD=${CS_UPSTREAM_PASSWORD}
     volumes:
       - './database:/database'
