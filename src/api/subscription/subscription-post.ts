@@ -1,11 +1,12 @@
-import { OpineRequest, OpineResponse } from "https://deno.land/x/opine/mod.ts";
+import { OpineResponse } from "https://deno.land/x/opine/mod.ts";
 import { Status } from "https://deno.land/std/http/http_status.ts";
+import type { CommonStorageRequest } from "../../types/types.ts";
 
 import type { IConfig } from "../../types/interfaces/config.ts";
 import type { IStorage } from "../../types/interfaces/storage.ts";
 
 export function subscriptionPost(cfg: IConfig) {
-  return async function (req: OpineRequest, res: OpineResponse) {
+  return async function (req: CommonStorageRequest, res: OpineResponse) {
     const storage = cfg.storage as IStorage;
 
     if (!req.body.topic) {
@@ -39,6 +40,15 @@ export function subscriptionPost(cfg: IConfig) {
     }
 
     const { topic, target, frequency } = req.body;
+
+    await storage.addActivity({
+      user: req.user as string,
+      action: "subscription-post",
+      createdAt: new Date().toISOString(),
+      metadata: {
+        topic,
+      },
+    });
 
     try {
       await storage.getTopic(req.params.name);

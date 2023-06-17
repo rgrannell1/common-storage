@@ -1,4 +1,15 @@
-import type { Topic } from "../../types/types.ts";
+import type { Activity, Topic } from "../../types/types.ts";
+
+/*
+ * Topic
+ */
+export type AddTopicResponse = {
+  existed: boolean;
+};
+
+export type DeleteTopicResponse = {
+  existed: boolean;
+};
 
 export type GetTopicStatsResponse = {
   topic: Topic;
@@ -8,14 +19,9 @@ export type GetTopicStatsResponse = {
   };
 };
 
-export type AddTopicResponse = {
-  existed: boolean;
-};
-
-export type DeleteTopicResponse = {
-  existed: boolean;
-};
-
+/*
+ * Content
+ */
 export type AddContentResponse = {};
 
 export type GetContentResponse = {
@@ -23,6 +29,9 @@ export type GetContentResponse = {
   content: any[];
 };
 
+/*
+ * Subscription
+ */
 export type GetSubscriptionResponse = {
   topic: string;
   target: string;
@@ -51,6 +60,13 @@ export type GetSubscriptionStatsResponse = {
   lastUpdateDate: string;
 };
 
+/*
+ * Activities
+ */
+
+/*
+ * The storage interface; implement this to add a backend to common-storage.
+ */
 export interface IStorage {
   init(): Promise<void>;
 
@@ -84,6 +100,9 @@ export interface IStorage {
   addSubscriptionFailure(id: string): Promise<void>;
   deleteSubscription(id: string): Promise<DeleteSubscriptionResponse>;
   getSubscriptionIds(): Promise<GetSubscriptionIdsResponse>;
+
+  /* activity methods */
+  addActivity<T>(activity: Activity<T>): void;
 
   close(): void;
   cleanup(): Promise<void>;

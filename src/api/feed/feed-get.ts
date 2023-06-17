@@ -1,11 +1,19 @@
 import { OpineRequest, OpineResponse } from "https://deno.land/x/opine/mod.ts";
 
 import type { IConfig } from "../.././types/interfaces/config.ts";
+import type { CommonStorageRequest } from "../../types/types.ts";
 
 export function feedGet(cfg: IConfig) {
-  return async function (_: OpineRequest, res: OpineResponse) {
+  return async function (req: CommonStorageRequest, res: OpineResponse) {
     try {
       const storage = cfg.storage;
+
+      storage.addActivity({
+        user: req.user as string,
+        action: "feed-get",
+        createdAt: new Date().toISOString(),
+        metadata: {},
+      });
 
       // -- suboptimal
       const topicNames = await storage.getTopicNames();

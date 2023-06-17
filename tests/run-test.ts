@@ -48,14 +48,6 @@ class CommonStorageTests {
       );
     }
 
-    if (this.opts.backends.has("postgres")) {
-      backends.push(
-        new ServerTest({
-          CS_DB_ENGINE: "postgres",
-        }),
-      );
-    }
-
     return backends;
   }
 

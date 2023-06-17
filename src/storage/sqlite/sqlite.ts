@@ -7,7 +7,7 @@ import type {
   GetSubscriptionStatsResponse,
   IStorage,
 } from "../.././types/interfaces/storage.ts";
-import type { Topic } from "../../types/types.ts";
+import type { Activity, Topic } from "../../types/types.ts";
 import type {
   AddContentResponse,
   AddTopicResponse,
@@ -48,6 +48,13 @@ const tables = [
     lastContactedDate    text,
     lastStatus           text not null,
     lastUpdateDate       text
+  )`,
+  `
+  create table if not exists activities (
+    user         text,
+    action       text not null,
+    createdAt    text not null,
+    metadata     text
   )`,
 ];
 
@@ -269,7 +276,7 @@ export class Sqlite implements IStorage {
     const res: any = {
       topic,
       startId,
-      content: rows.map((row: any) => {
+      content: rows.map((row: [string, string, string]) => {
         const date = parseInt(row[2]);
         const created = (new Date(date)).toISOString();
 
@@ -287,10 +294,10 @@ export class Sqlite implements IStorage {
     return res;
   }
 
-  async addContent(
+  async addContent<T>(
     batchId: string | undefined,
     topic: string,
-    content: any[],
+    content: T[],
   ): Promise<AddContentResponse> {
     if (batchId) {
       const batch = await this.getBatch(batchId);
@@ -483,7 +490,7 @@ export class Sqlite implements IStorage {
     select updateCount, contactedCount from subscriptions where id = ?;
     `,
       [id],
-    ) as any;
+    ) as [number, number][];
 
     const now = new Date();
 
@@ -534,6 +541,30 @@ export class Sqlite implements IStorage {
     return {
       existed: previousRow[0][0] !== 0,
     };
+  }
+
+  async addActivity<T>(activity: Activity<T>): Promise<void> {
+    const {
+      user,
+      action,
+      createdAt,
+      metadata,
+    } = activity;
+
+    await this.db.query(
+      `
+    insert or replace into activities(
+      user,
+      action,
+      createdAt,
+      metadata) values (?, ?, ?, ?)`,
+      [
+        user ?? "UNKNOWN_USER",
+        action,
+        createdAt,
+        JSON.stringify(metadata ?? {}),
+      ],
+    );
   }
 
   async cleanup() {

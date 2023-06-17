@@ -1,14 +1,25 @@
-import { OpineRequest, OpineResponse } from "https://deno.land/x/opine/mod.ts";
+import { OpineResponse } from "https://deno.land/x/opine/mod.ts";
 import { Status } from "https://deno.land/std/http/http_status.ts";
+import type { CommonStorageRequest } from "../../types/types.ts";
 
 import type { IConfig } from "../../types/interfaces/config.ts";
 
 const START_ID_PATTERN = /[0-9]+/;
 
 export function contentGet(cfg: IConfig) {
-  return async function (req: OpineRequest, res: OpineResponse) {
+  return async function (req: CommonStorageRequest, res: OpineResponse) {
     try {
       const storage = cfg.storage;
+
+      storage.addActivity({
+        user: req.user as string,
+        action: "content-get",
+        createdAt: new Date().toISOString(),
+        metadata: {
+          topic: req.params.topic,
+          startId: req.query.startId,
+        },
+      });
 
       if (!req.params.topic) {
         res.status = Status.UnprocessableEntity;
