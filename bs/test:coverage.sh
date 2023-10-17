@@ -1,6 +1,4 @@
-#! /usr/bin/env zsh
-
-./bs/test.sh
+#! /usr/bin/env bash
 
 COVERAGE_DIR=/tmp/cs-coverage
 
