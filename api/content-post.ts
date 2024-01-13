@@ -73,7 +73,7 @@ export function postContent(_: PostContentConfig, services: Services) {
 
       await logger.addActivity({
         request: ctx.request,
-        message: "failed to add content",
+        message: `failed to add content to topic ${topic}`,
         metadata: {
           message: err.message,
           stack: err.stack,
@@ -82,8 +82,9 @@ export function postContent(_: PostContentConfig, services: Services) {
 
       ctx.response.status = Status.InternalServerError;
       ctx.response.body = JSON.stringify({
-        error: "an exception occurred while validating content",
+        error: "an exception occurred while validating content: " + err.message,
       });
+      return;
     }
 
     await logger.addActivity({

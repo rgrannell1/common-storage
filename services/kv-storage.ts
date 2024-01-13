@@ -6,7 +6,7 @@ import {
   BATCH_CLOSED,
   BATCH_MISSING,
   BATCH_OPEN,
-} from "../services/constants.ts";
+} from "../shared/constants.ts";
 import { RoleInUseError, TopicValidationError } from "../shared/errors.ts";
 
 export class KVStorage implements IStorage {
@@ -264,6 +264,10 @@ export class KVStorage implements IStorage {
 
     // validate the new content
     for (const entry of content) {
+      if (!topicData.schema) {
+        continue;
+      }
+
       const ajv = new Ajv({ allErrors: true });
       const valid = ajv.validate(topicData.schema, entry);
       if (!valid) {

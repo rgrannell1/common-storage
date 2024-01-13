@@ -22,10 +22,10 @@ export class ConsoleLogger implements ILogger {
    * @param {Activity} activity - The activity to log.
    */
   async addActivity(activity: Activity) {
-    const { message, request } = activity;
+    const { message, request, metadata } = activity;
     const { method, url } = request;
 
-    console.error(`${method} ${url} | ${message} | ${JSON.stringify(activity.metadata)}`);
+    console.error(`${method} ${url} | ${message} | metadata=${JSON.stringify(metadata)}`);
   }
 
   /**
