@@ -25,7 +25,9 @@ export class ConsoleLogger implements ILogger {
     const { message, request, metadata } = activity;
     const { method, url } = request;
 
-    console.error(`${method} ${url} | ${message} | metadata=${JSON.stringify(metadata)}`);
+    console.error(
+      `${method} ${url} | ${message} | metadata=${JSON.stringify(metadata)}`,
+    );
   }
 
   /**

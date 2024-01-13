@@ -44,35 +44,41 @@ export function csRouter(config: Config, services: Services) {
   router
     .options(
       "/(.*)",
-      oakCors())
+      oakCors(),
+    )
     // ++ require admin auth for user management routes
     //
     // ++ ++ USER
     .get(
       "/user/:name",
       adminMiddleware,
-      getUser(config, services) as any)
+      getUser(config, services) as any,
+    )
     .post(
       "/user/:name",
       adminMiddleware,
-      postUser(config, services) as any)
+      postUser(config, services) as any,
+    )
     //
     // ++ ++ ROLE
     .get(
       "/role/:role",
       adminMiddleware,
-      getRole(config, services) as any)
+      getRole(config, services) as any,
+    )
     .post(
       "/role/:role",
       adminMiddleware,
-      postRole(config, services) as any)
+      postRole(config, services) as any,
+    )
     // ++ allow any unauthorized user
     //
     // ++ ++ FEED
     .get(
       "/feed",
       oakCors(),
-      getFeed(config, services) as any)
+      getFeed(config, services) as any,
+    )
     // ++ require role-based auth for content and topic routes
     //
     // ++ ++ CONTENT
@@ -94,12 +100,14 @@ export function csRouter(config: Config, services: Services) {
       "/topic/:topic",
       oakCors(),
       roleMiddleware,
-      getTopic(config, services) as any)
+      getTopic(config, services) as any,
+    )
     .post(
       "/topic/:topic",
       oakCors(),
       roleMiddleware,
-      postTopic(config, services) as any)
+      postTopic(config, services) as any,
+    )
     .delete(
       "/topic/:topic",
       oakCors(),

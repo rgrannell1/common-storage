@@ -9,4 +9,4 @@ export const Status = {
   OK: 200,
   Unauthorized: 401,
   UnprocessableEntity: 422,
-}
+};
