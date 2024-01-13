@@ -7,7 +7,7 @@ import type {
   SchemaValidator,
 } from "../types.ts";
 import { RequestPart } from "../types.ts";
-import { Status } from "https://deno.land/std/http/http_status.ts";
+import { Status } from "../shared/status.ts";
 import { BodyParsers } from "../services/parsers.ts";
 
 type Services = {

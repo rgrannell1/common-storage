@@ -1,4 +1,4 @@
-import { Status } from "https://deno.land/std/http/http_status.ts";
+import { Status } from "../shared/status.ts";
 import type {
   Config,
   IAddContent,
@@ -74,7 +74,10 @@ export function postContent(_: PostContentConfig, services: Services) {
       await logger.addActivity({
         request: ctx.request,
         message: "failed to add content",
-        metadata: {},
+        metadata: {
+          message: err.message,
+          stack: err.stack,
+        },
       });
 
       ctx.response.status = Status.InternalServerError;

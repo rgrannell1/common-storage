@@ -1,4 +1,4 @@
-import { Status } from "https://deno.land/std/http/http_status.ts";
+import { Status } from "../shared/status.ts";
 import * as bcrypt from "https://deno.land/x/bcrypt/mod.ts";
 
 import { AdminAuthenticationState, RoleAuthenticationState } from "../types.ts";

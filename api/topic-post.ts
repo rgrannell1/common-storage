@@ -1,5 +1,5 @@
 import Ajv from "https://esm.sh/ajv";
-import { Status } from "https://deno.land/std/http/http_status.ts";
+import { Status } from "../shared/status.ts";
 import type { Config, IAddTopic, ILogger, SchemaValidator } from "../types.ts";
 import { RequestPart } from "../types.ts";
 import { BodyParsers } from "../services/parsers.ts";

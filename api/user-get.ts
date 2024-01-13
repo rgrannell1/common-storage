@@ -7,8 +7,7 @@ import type {
   SchemaValidator,
 } from "../types.ts";
 import { RequestPart } from "../types.ts";
-import { Status } from "https://deno.land/std/http/http_status.ts";
-import { BodyParsers } from "../services/parsers.ts";
+import { Status } from "../shared/status.ts";
 
 type Services = {
   storage: IGetUser & IGetRole;

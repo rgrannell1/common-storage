@@ -1,4 +1,4 @@
-import { Status } from "https://deno.land/std/http/http_status.ts";
+import { Status } from "../shared/status.ts";
 
 import type {
   CSContext,
