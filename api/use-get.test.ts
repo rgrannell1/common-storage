@@ -1,8 +1,8 @@
 import { assert } from "https://deno.land/std@0.198.0/assert/mod.ts";
 
-import { Context, validateSchema } from "../shared/test-utils.js";
+import { Context, validateSchema } from "../shared/test-utils.ts";
 
-import { getUser } from "./user-get.js";
+import { getUser } from "./user-get.ts";
 
 const config = {
   port: 8080,

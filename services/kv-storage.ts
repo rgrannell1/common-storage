@@ -238,7 +238,7 @@ export class KVStorage implements IStorage {
     batchId: string | undefined,
     topic: string,
     content: T[],
-  ): Promise<{ lastId: string }> {
+  ): Promise<{ lastId: number }> {
     if (batchId) {
       let batch = await this.getBatch(batchId);
 
@@ -285,7 +285,7 @@ export class KVStorage implements IStorage {
 
     let topicCount = (await this.kv.get(["topic-count", topic]))?.value;
     if (typeof topicCount === "undefined" || topicCount === null) {
-      topicCount = -1;
+      topicCount = 0;
     }
 
     for (const entry of content) {
@@ -295,7 +295,7 @@ export class KVStorage implements IStorage {
       const now = Date.now();
       await this.kv.atomic()
         .set(["content-id"], contentId)
-        .set(["topic-count", topic], topicCount++)
+        .set(["topic-count", topic], topicCount)
         .set(["topic-last-updated", topic], now)
         .set(["content", topic, contentId], {
           batchId,

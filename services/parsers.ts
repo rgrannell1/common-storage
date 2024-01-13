@@ -4,6 +4,8 @@ import type { Request } from "../types.ts";
 export class BodyParsers {
   /*
    * Parse the request body as JSON
+   *
+   * @throws JSONError
    */
   static async json(request: Request) {
     try {

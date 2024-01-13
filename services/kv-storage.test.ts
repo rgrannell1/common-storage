@@ -203,6 +203,7 @@ Deno.test({
     ]);
     const stats = await store.getTopicStats("testing-2");
 
+    assertEquals(content.lastId, 2);
     assertEquals(stats.topic, "testing-2");
     assertEquals(stats.stats.count, 3);
 

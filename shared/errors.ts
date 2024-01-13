@@ -5,10 +5,26 @@
  */
 export class InputValidationError extends Error {}
 
+/**
+ * An error that is thrown when attempting to submit
+ * schema-invalid entries to the database
+ *
+ * @extends Error
+ */
 export class TopicValidationError extends Error {}
 
+/**
+ * An error that is thrown when attempting to parse invalid JSON
+ *
+ * @extends Error
+ */
 export class JSONError extends Error {}
 
+/**
+ * An error that is thrown when configuration is missing
+ *
+ * @extends Error
+ */
 export class ConfigurationMissingError extends Error {}
 
 /**

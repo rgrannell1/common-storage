@@ -163,7 +163,7 @@ export interface IGetContent {
 
 export interface IAddContent {
   addContent<T>(topic: string, batchId: string, content: T[]): Promise<{
-    lastId: string;
+    lastId: number;
   }>;
 }
 
