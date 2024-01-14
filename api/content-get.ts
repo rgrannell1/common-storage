@@ -26,9 +26,13 @@ export function getContent(_: GetContentConfig, services: Services) {
       metadata: {},
     });
 
-    schema("contentGet", ctx.params, RequestPart.Params);
+    const params = {
+      ...ctx.params,
+      startId: ctx.request.url.searchParams.get('startId')
+    }
+    schema("contentGet", params, RequestPart.Params);
 
-    const { startId, topic } = ctx?.params;
+    const { startId, topic } = params;
 
     await logger.addActivity({
       request: ctx.request,
