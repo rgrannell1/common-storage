@@ -1,11 +1,6 @@
 import { Status } from "../shared/status.ts";
 
-import type {
-  CSContext,
-  IAddActivity,
-  IDeleteTopic,
-  SchemaValidator,
-} from "../types.ts";
+import type { IAddActivity, IDeleteTopic, SchemaValidator } from "../types.ts";
 import { RequestPart } from "../types.ts";
 
 type Services = {
@@ -19,7 +14,7 @@ type DeleteTopicConfig = {};
 export function deleteTopic(_: DeleteTopicConfig, services: Services) {
   const { storage, logger, schema } = services;
 
-  return async function (ctx: CSContext) {
+  return async function (ctx: any) {
     logger.addActivity({
       message: "starting request",
       request: ctx.request,

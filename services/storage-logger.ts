@@ -6,6 +6,9 @@ import type {
 } from "../types.ts";
 
 export class StorageLogger implements ILogger {
+  /*
+   * Logs activity and exceptions to the storage backend
+   */
   storage: IAddActivity & IAddException;
 
   constructor(storage: IAddActivity & IAddException) {

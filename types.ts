@@ -8,7 +8,8 @@ export type Activity = {
 };
 
 export type CSContext = Context & {
-  params: Record<string, any>;
+  state?: Record<string, any>;
+  params?: Record<string, any>;
 };
 
 // ++ ++ //

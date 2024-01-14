@@ -1,7 +1,7 @@
 import Ajv from "https://esm.sh/ajv@8.12.0";
 
-import { Activity, Batch, Content, IStorage, Permission } from "../types.ts";
-import { monotonicFactory } from "https://deno.land/x/ulid/mod.ts";
+import { Activity, Batch, IStorage, Permission } from "../types.ts";
+import { monotonicFactory } from "https://deno.land/x/ulid@v0.3.0/mod.ts";
 import {
   BATCH_CLOSED,
   BATCH_MISSING,
@@ -182,7 +182,7 @@ export class KVStorage implements IStorage {
     topic: string,
     user: string,
     description: string,
-    schema: any,
+    schema: Record<string, any> | undefined,
   ) {
     const current = await this.kv.get(["topics", topic]);
 
@@ -271,7 +271,7 @@ export class KVStorage implements IStorage {
       const ajv = new Ajv({ allErrors: true });
       const valid = ajv.validate(topicData.schema, entry);
       if (!valid) {
-        const messages = (ajv.errors ?? []).map((err: any) => {
+        const messages = (ajv.errors ?? []).map((err) => {
           return `- ${err.instancePath}: ${err.message}`;
         }).join("\n");
 
@@ -356,7 +356,7 @@ export class KVStorage implements IStorage {
       content,
     };
 
-    return response as any;
+    return response;
   }
 
   // +++ CONTENT BATCHES +++ //

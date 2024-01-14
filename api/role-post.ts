@@ -1,7 +1,6 @@
 import { Status } from "../shared/status.ts";
 
 import type {
-  CSContext,
   IAddActivity,
   IAddRole,
   IGetRole,
@@ -21,7 +20,7 @@ type PostRoleConfig = {};
 export function postRole(_: PostRoleConfig, services: Services) {
   const { storage, logger, schema } = services;
 
-  return async function (ctx: CSContext) {
+  return async function (ctx: any) {
     logger.addActivity({
       message: "starting request",
       request: ctx.request,

@@ -11,7 +11,7 @@ export class BodyParsers {
     try {
       const result = await request.body();
       return await result.value;
-    } catch (err) {
+    } catch (_) {
       throw new JSONError("Failed to parse JSON body");
     }
   }
@@ -21,9 +21,9 @@ export class HeaderParsers {
   /*
    * Parses the Authorization header and returns the username and password
    */
-  static async basicAuthentication(
+  static basicAuthentication(
     request: Request,
-  ): Promise<{ username: string; password: string }> {
+  ): { username: string; password: string } {
     const auth = request.headers.get("Authorization");
 
     if (!auth) {

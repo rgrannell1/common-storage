@@ -38,19 +38,18 @@ async function isAdminAuthenticated(
   }
 
   // extract username and password from Basic authentication header
-  var username: string;
-  var password: string;
+  let credentials: { username: string; password: string };
+
   try {
-    var {
-      username,
-      password,
-    } = await HeaderParsers.basicAuthentication(ctx.request);
-  } catch (err) {
+    credentials = HeaderParsers.basicAuthentication(ctx.request);
+  } catch (_) {
     return {
       authenticated: false,
       state: AdminAuthenticationState.InvalidHeader,
     };
   }
+
+  const { username, password } = credentials;
 
   const adminPasswordHash = bcrypt.hashSync(adminPassword);
 
@@ -79,19 +78,18 @@ async function isRoleAuthenticated(
   const { adminUsername } = cfg;
 
   // extract username and password from Basic authentication header
-  var username: string;
-  var password: string;
+
+  let credentials: { username: string; password: string };
   try {
-    var {
-      username,
-      password,
-    } = await HeaderParsers.basicAuthentication(ctx.request);
-  } catch (err) {
+    credentials = HeaderParsers.basicAuthentication(ctx.request);
+  } catch (_) {
     return {
       authenticated: false,
       state: RoleAuthenticationState.InvalidHeader,
     };
   }
+
+  const { username, password } = credentials;
 
   if (!username || !password) {
     return {
