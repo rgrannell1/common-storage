@@ -154,8 +154,16 @@
             "maxLength": 128
           },
           "startId": {
-            "type": "number",
-            "minimum": 0
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              }
+            ]
           }
         },
         "required": [

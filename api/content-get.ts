@@ -33,6 +33,9 @@ export function getContent(_: GetContentConfig, services: Services) {
     schema("contentGet", params, RequestPart.Params);
 
     const { startId, topic } = params;
+    const parsedStartId = typeof startId === "string"
+      ? parseInt(startId, 10)
+      : startId;
 
     await logger.addActivity({
       request: ctx.request,
@@ -42,7 +45,7 @@ export function getContent(_: GetContentConfig, services: Services) {
       },
     });
 
-    const content = await storage.getContent(topic, startId);
+    const content = await storage.getContent(topic, parsedStartId);
 
     ctx.response.status = Status.OK;
     ctx.response.body = JSON.stringify(content);
