@@ -1,13 +1,13 @@
-import Ajv from "https://esm.sh/ajv";
+import Ajv from "https://esm.sh/ajv@8.12.0";
 import { Status } from "./shared/status.ts";
-import { Application, Router } from "https://deno.land/x/oak/mod.ts";
-import { oakCors } from "https://deno.land/x/cors/mod.ts";
+import { Application, Router } from "https://deno.land/x/oak@v12.6.2/mod.ts";
+import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 
 import schema from "./schema.json" assert { type: "json" };
 
 import { InputValidationError } from "./shared/errors.ts";
 
-import type { Config, ILogger } from "./types.ts";
+import type { Config, Services } from "./types.ts";
 import { RequestPart } from "./types.ts";
 import { StorageLogger } from "./services/storage-logger.ts";
 import { ConsoleLogger } from "./services/console-logger.ts";
@@ -27,12 +27,6 @@ import { deleteTopic } from "./api/topic-delete.ts";
 import { notFound } from "./api/not-found.ts";
 
 const ajv = new Ajv({ allErrors: true });
-
-type Services = {
-  storage: any;
-  logger: ILogger;
-  schema: any;
-};
 
 export function csRouter(config: Config, services: Services) {
   // ++ combined router
@@ -235,6 +229,14 @@ export async function csServices(cfg: Config): Promise<Services> {
   };
 }
 
+/*
+ * Construct the common-storage application
+ *
+ * @params config Application configuration
+ * @params services Application services
+ *
+ * @returns The application
+ */
 export function csApp(config: Config, services: Services): Application {
   const router = csRouter(config, services);
   const app = new Application();
@@ -249,7 +251,15 @@ export function csApp(config: Config, services: Services): Application {
   return app;
 }
 
-export async function startApp(app: Application, config: Config) {
+/*
+ * Start the application
+ *
+ * @param app Application to start
+ * @param config Application configuration
+ *
+ * @returns AbortController for the application
+ */
+export function startApp(app: Application, config: Config) {
   const controller = new AbortController();
 
   app.listen({

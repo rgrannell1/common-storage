@@ -1,4 +1,4 @@
-import Ajv from "https://esm.sh/ajv";
+import Ajv from "https://esm.sh/ajv@8.12.0";
 
 import { Activity, Batch, Content, IStorage, Permission } from "../types.ts";
 import { monotonicFactory } from "https://deno.land/x/ulid/mod.ts";

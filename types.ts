@@ -201,6 +201,12 @@ export interface ILogger extends IAddActivity, IAddException {}
 
 // ++
 
+export type Services = {
+  storage: IStorage;
+  logger: ILogger;
+  schema: <T>(name: string, data: T, part: RequestPart) => void;
+};
+
 export type Config = {
   port: number;
   title: string;

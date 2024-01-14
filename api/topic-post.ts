@@ -1,4 +1,4 @@
-import Ajv from "https://esm.sh/ajv";
+import Ajv from "https://esm.sh/ajv@8.12.0";
 import { Status } from "../shared/status.ts";
 import type { Config, IAddTopic, ILogger, SchemaValidator } from "../types.ts";
 import { RequestPart } from "../types.ts";
