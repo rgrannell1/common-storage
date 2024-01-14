@@ -1,5 +1,19 @@
-import { JSONError } from "../shared/errors.ts";
+import { InputValidationError, JSONError } from "../shared/errors.ts";
 import type { Request } from "../types.ts";
+
+export class ParamsParsers {
+  static startId(startId: string | number) {
+    const parsedStartId = typeof startId === "string"
+      ? parseInt(startId, 10)
+      : startId;
+
+    if (isNaN(parsedStartId)) {
+      throw new InputValidationError("Failed to parse startId");
+    }
+
+    return parsedStartId;
+  }
+}
 
 export class BodyParsers {
   /*

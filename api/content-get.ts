@@ -7,6 +7,7 @@ import type {
   SchemaValidator,
 } from "../types.ts";
 import { RequestPart } from "../types.ts";
+import { ParamsParsers } from "../services/parsers.ts";
 
 type Services = {
   storage: IGetTopic & IGetContent;
@@ -33,9 +34,6 @@ export function getContent(_: GetContentConfig, services: Services) {
     schema("contentGet", params, RequestPart.Params);
 
     const { startId, topic } = params;
-    const parsedStartId = typeof startId === "string"
-      ? parseInt(startId, 10)
-      : startId;
 
     await logger.addActivity({
       request: ctx.request,
@@ -45,7 +43,7 @@ export function getContent(_: GetContentConfig, services: Services) {
       },
     });
 
-    const content = await storage.getContent(topic, parsedStartId);
+    const content = await storage.getContent(topic, ParamsParsers.startId(startId));
 
     ctx.response.status = Status.OK;
     ctx.response.body = JSON.stringify(content);
