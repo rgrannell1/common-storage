@@ -5,7 +5,7 @@ import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 
 import schema from "./schema.json" assert { type: "json" };
 
-import { InputValidationError } from "./shared/errors.ts";
+import { InputValidationError, JSONError } from "./shared/errors.ts";
 
 import type { Config, Services } from "./types.ts";
 import { RequestPart } from "./types.ts";
@@ -168,6 +168,13 @@ function errorHandler(_: Config, services: Services) {
     } catch (err) {
       if (err instanceof InputValidationError) {
         ctx.response.status = Status.UnprocessableEntity;
+        ctx.response.body = JSON.stringify({
+          error: err.message,
+        });
+
+        return;
+      } else if (err instanceof JSONError) {
+        ctx.response.status = Status.BadRequest;
         ctx.response.body = JSON.stringify({
           error: err.message,
         });

@@ -3,6 +3,7 @@
  */
 
 export const Status = {
+  BadRequest: 400,
   Conflict: 409,
   InternalServerError: 500,
   NotFound: 404,
