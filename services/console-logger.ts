@@ -1,4 +1,4 @@
-import type { Activity, ILogger, IStorage } from "../types.ts";
+import type { Activity, ILogger, IStorage } from "../types/index.ts";
 
 /**
  * A logger that logs activities and exceptions to the console.

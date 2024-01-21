@@ -5,8 +5,8 @@ import type {
   IGetUser,
   ILogger,
   SchemaValidator,
-} from "../types.ts";
-import { RequestPart } from "../types.ts";
+} from "../types/index.ts";
+import { RequestPart } from "../types/index.ts";
 import { Status } from "../shared/status.ts";
 import { BodyParsers } from "../services/parsers.ts";
 

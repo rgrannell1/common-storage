@@ -5,8 +5,8 @@ import type {
   IGetTopic,
   ILogger,
   SchemaValidator,
-} from "../types.ts";
-import { RequestPart } from "../types.ts";
+} from "../types/index.ts";
+import { RequestPart } from "../types/index.ts";
 import { ParamsParsers } from "../services/parsers.ts";
 
 type Services = {

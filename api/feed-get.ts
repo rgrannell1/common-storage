@@ -6,7 +6,7 @@ import type {
   IGetTopicNames,
   IGetTopicStats,
   SchemaValidator,
-} from "../types.ts";
+} from "../types/index.ts";
 
 type Services = {
   storage: IGetTopicNames & IGetTopicStats;

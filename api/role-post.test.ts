@@ -4,7 +4,7 @@ import { Context, validateSchema } from "../shared/test-utils.ts";
 
 import { postRole } from "./role-post.ts";
 
-import { Permission } from "../types.ts";
+import { Permission } from "../types/index.ts";
 
 const config = {
   port: 8080,

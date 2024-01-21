@@ -5,8 +5,8 @@ import type {
   IAddRole,
   IGetRole,
   SchemaValidator,
-} from "../types.ts";
-import { RequestPart } from "../types.ts";
+} from "../types/index.ts";
+import { RequestPart } from "../types/index.ts";
 import { BodyParsers } from "../services/parsers.ts";
 
 type Services = {

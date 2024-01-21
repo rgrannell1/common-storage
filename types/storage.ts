@@ -1,35 +1,16 @@
-import { Context, Request } from "https://deno.land/x/oak/mod.ts";
 
-export type { Request } from "https://deno.land/x/oak/mod.ts";
+import type { Request } from "https://deno.land/x/oak/mod.ts";
+
+import type {
+  User,
+  Role,
+  Permission
+} from "./auth.ts";
+
 export type Activity = {
   request: Request;
   message: string;
   metadata: Record<string, unknown>;
-};
-
-export type CSContext = Context & {
-  state?: Record<string, any>;
-  params?: Record<string, any>;
-};
-
-// ++ ++ //
-
-export type Role = {
-  name: string;
-  created: string;
-  permissions: Permission[];
-};
-
-export type User = {
-  name: string;
-  role: string;
-  password: string;
-  created: string;
-};
-
-export type Permission = {
-  routes: string | string[];
-  topics: string | string[];
 };
 
 export type Content = {
@@ -43,21 +24,6 @@ export type Batch = {
   status: string;
   created?: string;
 };
-
-export enum RequestPart {
-  Body,
-  Params,
-}
-
-// ++ Functions ++ //
-
-export type SchemaValidator = <T>(
-  name: string,
-  data: T,
-  part: RequestPart,
-) => void;
-
-// +++ Interfaces +++ //
 
 export interface ILogger {
   addActivity(activity: Activity): Promise<void>;
@@ -197,40 +163,3 @@ export interface IStorage
     IAddContent,
     IGetBatch,
     IAddBatch {}
-
-export interface ILogger extends IAddActivity, IAddException {}
-
-// ++
-
-export type Services = {
-  storage: IStorage;
-  logger: ILogger;
-  schema: <T>(name: string, data: T, part: RequestPart) => void;
-};
-
-export type Config = {
-  port: number;
-  title: string;
-  logger: string;
-  description: string;
-  adminUsername: string;
-  adminPassword: string;
-};
-
-export enum AdminAuthenticationState {
-  MissingConfiguration,
-  InvalidHeader,
-  IncorrectCredentials,
-  Authenticated,
-}
-
-export enum RoleAuthenticationState {
-  AdminUser,
-  MissingConfiguration,
-  InvalidHeader,
-  IncorrectCredentials,
-  Authenticated,
-  UserNotRegistered,
-  RoleMissing,
-  NotAuthorised,
-}

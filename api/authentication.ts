@@ -1,14 +1,14 @@
 import { Status } from "../shared/status.ts";
 import * as bcrypt from "https://deno.land/x/bcrypt/mod.ts";
 
-import { AdminAuthenticationState, RoleAuthenticationState } from "../types.ts";
+import { AdminAuthenticationState, RoleAuthenticationState } from "../types/index.ts";
 import type {
   Config,
   IGetRole,
   IGetUser,
   ILogger,
   SchemaValidator,
-} from "../types.ts";
+} from "../types/index.ts";
 import { HeaderParsers } from "../services/parsers.ts";
 
 type Services = {

@@ -1,6 +1,6 @@
 import { Status } from "../shared/status.ts";
 
-import type { Config, ILogger, SchemaValidator } from "../types.ts";
+import type { Config, ILogger, SchemaValidator } from "../types/index.ts";
 
 type Services = {
   storage: {};

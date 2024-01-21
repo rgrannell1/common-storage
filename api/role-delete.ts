@@ -5,8 +5,8 @@ import type {
   IAddActivity,
   IDeleteRole,
   SchemaValidator,
-} from "../types.ts";
-import { RequestPart } from "../types.ts";
+} from "../types/index.ts";
+import { RequestPart } from "../types/index.ts";
 
 type Services = {
   storage: IDeleteRole;

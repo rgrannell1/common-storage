@@ -6,8 +6,8 @@ import type {
   IGetTopicStats,
   ILogger,
   SchemaValidator,
-} from "../types.ts";
-import { RequestPart } from "../types.ts";
+} from "../types/index.ts";
+import { RequestPart } from "../types/index.ts";
 import { BodyParsers } from "../services/parsers.ts";
 import { TopicValidationError } from "../shared/errors.ts";
 

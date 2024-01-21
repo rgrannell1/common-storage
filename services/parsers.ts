@@ -1,5 +1,5 @@
 import { InputValidationError, JSONError } from "../shared/errors.ts";
-import type { Request } from "../types.ts";
+import type { Request } from "../types/index.ts";
 
 export class ParamsParsers {
   static startId(startId: string | number) {

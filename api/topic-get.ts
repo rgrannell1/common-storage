@@ -1,6 +1,6 @@
 import { Status } from "../shared/status.ts";
-import type { Config, IGetTopic, ILogger, SchemaValidator } from "../types.ts";
-import { RequestPart } from "../types.ts";
+import type { Config, IGetTopic, ILogger, SchemaValidator } from "../types/index.ts";
+import { RequestPart } from "../types/index.ts";
 
 type Services = {
   storage: IGetTopic;

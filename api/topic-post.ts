@@ -1,7 +1,7 @@
 import Ajv from "https://esm.sh/ajv@8.12.0";
 import { Status } from "../shared/status.ts";
-import type { Config, IAddTopic, ILogger, SchemaValidator } from "../types.ts";
-import { RequestPart } from "../types.ts";
+import type { Config, IAddTopic, ILogger, SchemaValidator } from "../types/index.ts";
+import { RequestPart } from "../types/index.ts";
 import { BodyParsers } from "../services/parsers.ts";
 
 type Services = {

@@ -7,8 +7,8 @@ import schema from "./schema.json" assert { type: "json" };
 
 import { InputValidationError, JSONError } from "./shared/errors.ts";
 
-import type { Config, Services } from "./types.ts";
-import { RequestPart } from "./types.ts";
+import type { Config, Services } from "./types/index.ts";
+import { RequestPart } from "./types/index.ts";
 import { StorageLogger } from "./services/storage-logger.ts";
 import { ConsoleLogger } from "./services/console-logger.ts";
 import { KVStorage } from "./services/kv-storage.ts";

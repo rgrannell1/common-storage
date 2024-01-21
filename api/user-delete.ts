@@ -5,8 +5,8 @@ import type {
   IAddActivity,
   IDeleteUser,
   SchemaValidator,
-} from "../types.ts";
-import { RequestPart } from "../types.ts";
+} from "../types/index.ts";
+import { RequestPart } from "../types/index.ts";
 import { RoleInUseError } from "../shared/errors.ts";
 
 type Services = {
