@@ -216,7 +216,7 @@ function preprocessRequest() {
  * @param config Application configuration
  */
 export async function csServices(cfg: Config): Promise<Services> {
-  const storage = new KVStorage(undefined);
+  const storage = new KVStorage(cfg.kvPath);
   await storage.init();
 
   let logger;

@@ -38,6 +38,7 @@ export type Config = {
   port: number;
   title: string;
   logger: string;
+  kvPath: string | undefined;
   description: string;
   adminUsername: string;
   adminPassword: string;
