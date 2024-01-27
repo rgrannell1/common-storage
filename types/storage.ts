@@ -1,11 +1,6 @@
-
 import type { Request } from "https://deno.land/x/oak/mod.ts";
 
-import type {
-  User,
-  Role,
-  Permission
-} from "./auth.ts";
+import type { Permission, Role, User } from "./auth.ts";
 
 export type Activity = {
   request: Request;

@@ -1,5 +1,10 @@
 import { Status } from "../shared/status.ts";
-import type { Config, IGetTopic, ILogger, SchemaValidator } from "../types/index.ts";
+import type {
+  Config,
+  IGetTopic,
+  ILogger,
+  SchemaValidator,
+} from "../types/index.ts";
 import { RequestPart } from "../types/index.ts";
 
 type Services = {

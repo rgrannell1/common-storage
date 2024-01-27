@@ -1,10 +1,5 @@
 import { Context } from "https://deno.land/x/oak/mod.ts";
-import {
-  IStorage,
-  IAddActivity,
-  IAddException
-} from "./storage.ts";
-
+import { IAddActivity, IAddException, IStorage } from "./storage.ts";
 
 export type { Request } from "https://deno.land/x/oak/mod.ts";
 export * from "./auth.ts";

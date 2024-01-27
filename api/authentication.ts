@@ -1,7 +1,10 @@
 import { Status } from "../shared/status.ts";
 import * as bcrypt from "https://deno.land/x/bcrypt/mod.ts";
 
-import { AdminAuthenticationState, RoleAuthenticationState } from "../types/index.ts";
+import {
+  AdminAuthenticationState,
+  RoleAuthenticationState,
+} from "../types/index.ts";
 import type {
   Config,
   IGetRole,
@@ -24,6 +27,13 @@ type AdminConfig = Partial<Config> & {
 
 /*
  * Authenticate administrator access; if it fails give a state indicating why
+ *
+ * @param { string } adminUsername
+ * @param { string } adminPassword
+ * @param { any } ctx
+ *
+ * @returns
+ *
  */
 async function isAdminAuthenticated(
   adminUsername: string,
@@ -51,10 +61,10 @@ async function isAdminAuthenticated(
 
   const { username, password } = credentials;
 
-  const adminPasswordHash = bcrypt.hashSync(adminPassword);
+  const adminPasswordHash = await bcrypt.hash(adminPassword);
 
   const usernameMatch = username === adminUsername;
-  const passwordMatch = await bcrypt.compareSync(password, adminPasswordHash);
+  const passwordMatch = await bcrypt.compare(password, adminPasswordHash);
 
   if (!usernameMatch || !passwordMatch) {
     return {
@@ -69,6 +79,10 @@ async function isAdminAuthenticated(
   };
 }
 
+/*
+ * Authenticate role access; if it fails give a state indicating why
+ *
+ */
 async function isRoleAuthenticated(
   cfg: AdminConfig,
   services: Services,
@@ -115,8 +129,8 @@ async function isRoleAuthenticated(
   }
 
   // check the password
-  const actualPassword = bcrypt.hashSync(user.password);
-  const passwordMatch = bcrypt.compareSync(password, actualPassword);
+  const actualPassword = await bcrypt.hash(user.password);
+  const passwordMatch = await bcrypt.compare(password, actualPassword);
 
   if (!passwordMatch) {
     return {
@@ -285,6 +299,7 @@ export function roleAccess(cfg: AdminConfig, services: Services) {
     const roleAuthenticated = await isRoleAuthenticated(cfg, services, ctx);
     const roleState = roleAuthenticated.state;
 
+    // Handle each potential state for role-based authentication
     if (roleState === RoleAuthenticationState.InvalidHeader) {
       ctx.response.status = Status.Unauthorized;
       ctx.response.body = JSON.stringify({

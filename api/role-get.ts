@@ -1,4 +1,9 @@
-import type { Config, IGetRole, ILogger, SchemaValidator } from "../types/index.ts";
+import type {
+  Config,
+  IGetRole,
+  ILogger,
+  SchemaValidator,
+} from "../types/index.ts";
 import { RequestPart } from "../types/index.ts";
 import { Status } from "../shared/status.ts";
 

@@ -21,6 +21,4 @@ COPY start.ts    /app/start.ts
 COPY deno.json   /app/deno.json
 COPY schema.json /app/schema.json
 
-RUN apk --no-cache add curl
-
 CMD ["deno", "run", "-A", "--unstable-kv", "/app/start.ts"]

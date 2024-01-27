@@ -29,8 +29,8 @@ export function getContent(_: GetContentConfig, services: Services) {
 
     const params = {
       ...ctx.params,
-      startId: ctx.request.url.searchParams.get('startId')
-    }
+      startId: ctx.request.url.searchParams.get("startId"),
+    };
     schema("contentGet", params, RequestPart.Params);
 
     const { startId, topic } = params;
@@ -43,7 +43,10 @@ export function getContent(_: GetContentConfig, services: Services) {
       },
     });
 
-    const content = await storage.getContent(topic, ParamsParsers.startId(startId));
+    const content = await storage.getContent(
+      topic,
+      ParamsParsers.startId(startId),
+    );
 
     ctx.response.status = Status.OK;
     ctx.response.body = JSON.stringify(content);

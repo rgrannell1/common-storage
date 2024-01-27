@@ -2,6 +2,11 @@ import { InputValidationError, JSONError } from "../shared/errors.ts";
 import type { Request } from "../types/index.ts";
 
 export class ParamsParsers {
+  /*
+   * Parses the startId parameter
+   *
+   * @throws InputValidationError
+   */
   static startId(startId: string | number) {
     const parsedStartId = typeof startId === "string"
       ? parseInt(startId, 10)

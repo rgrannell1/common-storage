@@ -10,6 +10,11 @@ import {
 import { RoleInUseError, TopicValidationError } from "../shared/errors.ts";
 
 export class KVStorage implements IStorage {
+  /*
+   * KV Storage
+   *
+   * Uses Deno KV as a storage backend
+   */
   kv: any;
   fpath: string | undefined;
   ulid: () => string;

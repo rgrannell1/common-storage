@@ -18,6 +18,6 @@
         "--allow-all"
       ],
       "attachSimplePort": 9229
-    },
+    }
   ]
 }
