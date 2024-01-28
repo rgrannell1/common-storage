@@ -10,4 +10,5 @@ export const Status = {
   OK: 200,
   Unauthorized: 401,
   UnprocessableEntity: 422,
+  TooManyRequests: 429,
 };

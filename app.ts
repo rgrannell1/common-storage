@@ -14,6 +14,7 @@ import { ConsoleLogger } from "./services/console-logger.ts";
 import { KVStorage } from "./services/kv-storage.ts";
 
 import * as Authentication from "./api/authentication.ts";
+import * as RateLimiting from "./api/rate-limit.ts";
 import { getFeed } from "./api/feed-get.ts";
 import { getUser } from "./api/user-get.ts";
 import { postUser } from "./api/user-post.ts";
@@ -35,6 +36,8 @@ export function csRouter(config: Config, services: Services) {
   const adminMiddleware = Authentication.adminAccess(config, services) as any;
   const roleMiddleware = Authentication.roleAccess(config, services) as any;
 
+  const rateLimitMiddleware = RateLimiting.rateLimit(config, services) as any;
+
   router
     .options(
       "/(.*)",
@@ -45,11 +48,13 @@ export function csRouter(config: Config, services: Services) {
     // ++ ++ USER
     .get(
       "/user/:name",
+      rateLimitMiddleware,
       adminMiddleware,
       getUser(config, services) as any,
     )
     .post(
       "/user/:name",
+      rateLimitMiddleware,
       adminMiddleware,
       postUser(config, services) as any,
     )
@@ -57,11 +62,13 @@ export function csRouter(config: Config, services: Services) {
     // ++ ++ ROLE
     .get(
       "/role/:role",
+      rateLimitMiddleware,
       adminMiddleware,
       getRole(config, services) as any,
     )
     .post(
       "/role/:role",
+      rateLimitMiddleware,
       adminMiddleware,
       postRole(config, services) as any,
     )
@@ -71,6 +78,7 @@ export function csRouter(config: Config, services: Services) {
     .get(
       "/feed",
       oakCors(),
+      rateLimitMiddleware,
       getFeed(config, services) as any,
     )
     // ++ require role-based auth for content and topic routes
@@ -79,12 +87,14 @@ export function csRouter(config: Config, services: Services) {
     .get(
       "/content/:topic",
       oakCors(),
+      rateLimitMiddleware,
       roleMiddleware,
       getContent(config, services) as any,
     )
     .post(
       "/content/:topic",
       oakCors(),
+      rateLimitMiddleware,
       roleMiddleware,
       postContent(config, services) as any,
     )
@@ -93,18 +103,21 @@ export function csRouter(config: Config, services: Services) {
     .get(
       "/topic/:topic",
       oakCors(),
+      rateLimitMiddleware,
       roleMiddleware,
       getTopic(config, services) as any,
     )
     .post(
       "/topic/:topic",
       oakCors(),
+      rateLimitMiddleware,
       roleMiddleware,
       postTopic(config, services) as any,
     )
     .delete(
       "/topic/:topic",
       oakCors(),
+      rateLimitMiddleware,
       roleMiddleware,
       deleteTopic(config, services) as any,
     );
