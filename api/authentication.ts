@@ -1,3 +1,7 @@
+/*
+ * Note: Bcrypt has to be used synchronously, as Deno Deploy
+ * does not provide `Worker`
+ */
 import { Status } from "../shared/status.ts";
 import * as bcrypt from "https://deno.land/x/bcrypt/mod.ts";
 
@@ -61,10 +65,10 @@ async function isAdminAuthenticated(
 
   const { username, password } = credentials;
 
-  const adminPasswordHash = await bcrypt.hash(adminPassword);
+  const adminPasswordHash = bcrypt.hashSync(adminPassword);
 
   const usernameMatch = username === adminUsername;
-  const passwordMatch = await bcrypt.compare(password, adminPasswordHash);
+  const passwordMatch = bcrypt.compareSync(password, adminPasswordHash);
 
   if (!usernameMatch || !passwordMatch) {
     return {
@@ -129,8 +133,8 @@ async function isRoleAuthenticated(
   }
 
   // check the password
-  const actualPassword = await bcrypt.hash(user.password);
-  const passwordMatch = await bcrypt.compare(password, actualPassword);
+  const actualPassword = bcrypt.hashSync(user.password);
+  const passwordMatch = bcrypt.compareSync(password, actualPassword);
 
   if (!passwordMatch) {
     return {

@@ -162,7 +162,7 @@ export class RateLimiter {
  * Rate-limiting middleware
  *
  */
-export function rateLimit(cfg: RateLimitConfig, services: Services) {
+export function rateLimit(_: RateLimitConfig, services: Services) {
   const limiter = new RateLimiter({
     limitWindow: RATE_LIMIT_WINDOW,
     maxRate: RATE_LIMIT_MAX_IN_WINDOW,
