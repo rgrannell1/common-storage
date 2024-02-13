@@ -37,7 +37,6 @@ type AdminConfig = Partial<Config> & {
  * @param { any } ctx
  *
  * @returns
- *
  */
 async function isAdminAuthenticated(
   adminUsername: string,
@@ -85,7 +84,6 @@ async function isAdminAuthenticated(
 
 /*
  * Authenticate role access; if it fails give a state indicating why
- *
  */
 async function isRoleAuthenticated(
   cfg: AdminConfig,

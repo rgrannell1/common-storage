@@ -1,17 +1,17 @@
 import { Status } from "../shared/status.ts";
 import {
-  RATE_LIMIT_WINDOW,
   RATE_LIMIT_MAX_IN_WINDOW,
-  RATE_LIMIT_THROTTLE_DURATION
+  RATE_LIMIT_THROTTLE_DURATION,
+  RATE_LIMIT_WINDOW,
 } from "../shared/constants.ts";
 import type {
   Config,
-  Request,
   ILogger,
+  Request,
   SchemaValidator,
 } from "../types/index.ts";
 
-type RateLimitConfig = Partial<Config>
+type RateLimitConfig = Partial<Config>;
 type Services = {
   storage: unknown;
   logger: ILogger;
@@ -28,17 +28,16 @@ type RateLimiterOptions = {
   // a user sent more than maxRequests in the limitWindow, so
   // throttle them for this duration
   throttleDuration: number;
-}
+};
 
 export class RateLimiter {
   /*
    * Tracks the number of requests received in the configured time-window,
    * by IP address.
-   *
    */
 
   throttles: Map<string, number>;
-  observations: Map<string, number[]>
+  observations: Map<string, number[]>;
   limitWindow: number;
   maxRate: number;
   throttleDuration: number;
@@ -47,7 +46,7 @@ export class RateLimiter {
     const {
       limitWindow,
       maxRate,
-      throttleDuration
+      throttleDuration,
     } = opts;
 
     this.observations = new Map();
@@ -66,7 +65,6 @@ export class RateLimiter {
    * Get a user-identifier from the request
    *
    * @param {Request} req
-   *
    */
   getIdentifier(req: Request): string {
     return req.ip;
@@ -77,7 +75,6 @@ export class RateLimiter {
    * state.
    *
    * @param {Request} req
-   *
    */
   add(req: Request): void {
     const now = Date.now();
@@ -104,7 +101,7 @@ export class RateLimiter {
     const timestamps = this.observations.get(identifier) ?? [];
 
     const now = Date.now();
-    const inRange = timestamps.filter(timestamp => {
+    const inRange = timestamps.filter((timestamp) => {
       return (now - timestamp) < this.limitWindow;
     });
 
@@ -138,7 +135,6 @@ export class RateLimiter {
       return false;
     }
 
-
     this.add(req);
 
     // there are too many requests in the configured time-window...
@@ -160,13 +156,12 @@ export class RateLimiter {
 
 /*
  * Rate-limiting middleware
- *
  */
 export function rateLimit(_: RateLimitConfig, services: Services) {
   const limiter = new RateLimiter({
     limitWindow: RATE_LIMIT_WINDOW,
     maxRate: RATE_LIMIT_MAX_IN_WINDOW,
-    throttleDuration: RATE_LIMIT_THROTTLE_DURATION
+    throttleDuration: RATE_LIMIT_THROTTLE_DURATION,
   });
   const { logger } = services;
 
@@ -177,7 +172,7 @@ export function rateLimit(_: RateLimitConfig, services: Services) {
       await logger.addActivity({
         request: ctx.request,
         message: "rate-limit-exceeded",
-        metadata: { },
+        metadata: {},
       });
 
       ctx.response.status = Status.TooManyRequests;
@@ -185,8 +180,8 @@ export function rateLimit(_: RateLimitConfig, services: Services) {
         error: "Rate limit exceeded.",
       });
       return;
-    };
+    }
 
     return await next(ctx);
-  }
+  };
 }

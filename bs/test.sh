@@ -1,7 +1,6 @@
 #! /usr/bin/env bash
 
 deno test \
-  --coverage=./coverage \
-  --unstable            \
+  --unstable-kv         \
   --allow-all           \
   --trace-ops

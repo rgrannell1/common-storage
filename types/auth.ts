@@ -1,4 +1,3 @@
-
 export type Role = {
   name: string;
   created: string;

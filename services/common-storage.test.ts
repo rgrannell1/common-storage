@@ -3,16 +3,25 @@ import {
   assertEquals,
   assertRejects,
 } from "https://deno.land/std@0.198.0/assert/mod.ts";
-import { KVStorage } from "./kv-storage.ts";
+import { CommonStorage } from "./common-storage.ts";
+import { DenoKVBackend } from "./storage-backend.ts";
 
 // +++ ROLE +++ //
+
+async function backend() {
+  const tmp = await Deno.makeTempFile();
+  const kv = new DenoKVBackend(tmp);
+
+  const store = new CommonStorage(kv);
+  await store.init();
+
+  return store;
+}
 
 Deno.test({
   name: "addRole(x) -> getRole(x) is x",
   async fn() {
-    const tmp = await Deno.makeTempFile();
-    const store = new KVStorage(tmp);
-    await store.init();
+    const store = await backend();
 
     const permissions = [{
       routes: "ALL",
@@ -38,9 +47,7 @@ Deno.test({
 Deno.test({
   name: "setTopic(x) -> getTopic(x) is x",
   async fn() {
-    const tmp = await Deno.makeTempFile();
-    const store = new KVStorage(tmp);
-    await store.init();
+    const store = await backend();
 
     const addResult = await store.addTopic(
       "test",
@@ -71,9 +78,7 @@ Deno.test({
 Deno.test({
   name: "getTopicNames() returns expected topics",
   async fn() {
-    const tmp = await Deno.makeTempFile();
-    const store = new KVStorage(tmp);
-    await store.init();
+    const store = await backend();
 
     await store.addTopic("test0", "myuser", "test description", undefined);
     await store.addTopic("test1", "myuser", "test description", undefined);
@@ -87,9 +92,7 @@ Deno.test({
 Deno.test({
   name: "addTopic(x) => addContent(x) rejects invalid case",
   async fn() {
-    const tmp = await Deno.makeTempFile();
-    const store = new KVStorage(tmp);
-    await store.init();
+    const store = await backend();
 
     await store.addTopic("test", "myuser", "test description", {
       type: "integer",
@@ -112,9 +115,7 @@ Deno.test({
 Deno.test({
   name: "setTopic(x) -> deleteTopic(x) removes topic",
   async fn() {
-    const tmp = await Deno.makeTempFile();
-    const store = new KVStorage(tmp);
-    await store.init();
+    const store = await backend();
 
     await store.addTopic("test", "myuser", "test description", undefined);
 
@@ -132,9 +133,7 @@ Deno.test({
 Deno.test({
   name: "getContent()",
   async fn() {
-    const tmp = await Deno.makeTempFile();
-    const store = new KVStorage(tmp);
-    await store.init();
+    const store = await backend();
 
     await store.addTopic("testing", "myuser", "test description", {
       "type": "integer",
@@ -160,7 +159,8 @@ Deno.test({
     assertEquals(batchStatus.status, "open");
 
     const content = await store.addContent("test-batch", "testing", []);
-    assert(content.hasOwnProperty("lastId"));
+    assert(
+      Object.prototype.hasOwnProperty.call(content, "lastId"));
 
     const closedBatchStatus = await store.getBatch("test-batch");
     assertEquals(closedBatchStatus.id, "test-batch");
@@ -188,9 +188,7 @@ Deno.test({
 Deno.test({
   name: "getTopicStats",
   async fn() {
-    const tmp = await Deno.makeTempFile();
-    const store = new KVStorage(tmp);
-    await store.init();
+    const store = await backend();
 
     await store.addTopic("testing-2", "myuser", "test description", {
       type: "string",
@@ -202,6 +200,9 @@ Deno.test({
       "c",
     ]);
     const stats = await store.getTopicStats("testing-2");
+    if (!stats) {
+      throw new Error("stats is undefined");
+    }
 
     assertEquals(content.lastId, 2);
     assertEquals(stats.topic, "testing-2");

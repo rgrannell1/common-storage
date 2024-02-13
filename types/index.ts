@@ -1,4 +1,4 @@
-import { Context } from "https://deno.land/x/oak/mod.ts";
+import { Context } from "https://deno.land/x/oak@v13.2.3/mod.ts";
 import { IAddActivity, IAddException, IStorage } from "./storage.ts";
 
 export type { Request } from "https://deno.land/x/oak/mod.ts";
@@ -8,6 +8,13 @@ export * from "./storage.ts";
 export type CSContext = Context & {
   state?: Record<string, any>;
   params?: Record<string, any>;
+};
+
+export type Topic = {
+  title: string;
+  description: string;
+  created: string;
+  schema: any;
 };
 
 export enum RequestPart {

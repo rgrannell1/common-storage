@@ -53,21 +53,21 @@ Deno.test({
   name: "GET /user | get user information",
   async fn() {
     const storage = {
-      async getUser() {
-        return {
+      getUser() {
+        return Promise.resolve({
           name: "bob",
           role: "admin",
           created: 123,
-        };
+        });
       },
-      async getRole() {
-        return {
+      getRole() {
+        return Promise.resolve({
           created: 1234,
           permissions: [{
             routes: "ALL",
             topics: "ALL",
           }],
-        };
+        });
       },
     };
 

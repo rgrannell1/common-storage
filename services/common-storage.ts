@@ -1,66 +1,49 @@
 import Ajv from "https://esm.sh/ajv@8.12.0";
 
 import { Activity, Batch, IStorage, Permission } from "../types/index.ts";
-import { monotonicFactory } from "https://deno.land/x/ulid@v0.3.0/mod.ts";
 import {
   BATCH_CLOSED,
   BATCH_MISSING,
   BATCH_OPEN,
 } from "../shared/constants.ts";
 import { RoleInUseError, TopicValidationError } from "../shared/errors.ts";
+import { IStorageBackend } from "../types/storage.ts";
+import { Role, User } from "../types/auth.ts";
+import { Topic } from "../types/index.ts";
 
-export class KVStorage implements IStorage {
-  /*
-   * KV Storage
-   *
-   * Uses Deno KV as a storage backend
-   */
-  kv: any;
-  fpath: string | undefined;
-  ulid: () => string;
+export class CommonStorage implements IStorage {
+  backend: IStorageBackend;
 
-  constructor(fpath: string | undefined) {
-    this.kv = null;
-    this.fpath = fpath;
-    this.ulid = monotonicFactory();
+  constructor(backend: IStorageBackend) {
+    this.backend = backend;
   }
 
   async init() {
-    this.kv = await Deno.openKv(this.fpath);
-  }
-
-  private assertInitialised() {
-    if (!this.kv) {
-      throw new Error("KV Storage not initialised");
-    }
+    await this.backend.init();
   }
 
   // +++ ACTIVITY +++ //
 
   async addActivity(actitity: Activity): Promise<void> {
-    this.assertInitialised();
   }
 
   // +++ ERROR +++ //
 
   async addException(err: Error): Promise<void> {
-    this.assertInitialised();
   }
 
   // +++ ROLE +++ //
 
   async getRole(role: string) {
-    this.assertInitialised();
-
-    const roleData = await this.kv.get(["roles", role]);
-    if (roleData.value === null) {
+    const roleData = await this.backend.getValue<Role>(["roles"], role);
+    if (roleData === null) {
       return null;
     }
 
     const {
       permissions,
       created,
-    } = roleData.value;
+    } = roleData;
 
     return {
       name: role,
@@ -70,11 +53,9 @@ export class KVStorage implements IStorage {
   }
 
   async deleteRole(role: string) {
-    this.assertInitialised();
-
     // block deletion on user
 
-    for await (const entry of this.kv.list({ prefix: ["users"] })) {
+    for await (const entry of this.backend.listTable<string, User>(["users"])) {
       const user = entry.value;
 
       if (user.role === role) {
@@ -83,37 +64,34 @@ export class KVStorage implements IStorage {
         );
       }
     }
+    const current = await this.backend.getValue<Role>(["roles"], role);
 
-    const current = await this.kv.get(["roles", role]);
-    await this.kv.delete(["roles", role]);
+    await this.backend.deleteValue(["roles"], role);
 
     return {
-      existed: current.value !== null,
+      existed: current !== null,
     };
   }
 
   async addRole(role: string, permissions: Permission[]) {
-    this.assertInitialised();
-    const current = await this.kv.get(["roles", role]);
+    const current = await this.backend.getValue(["roles"], role);
 
-    await this.kv.set(["roles", role], {
+    await this.backend.setValue(["roles"], role, {
       name: role,
       permissions,
       created: Date.now(),
     });
 
     return {
-      existed: current.value !== null,
+      existed: current !== null,
     };
   }
 
   // +++ USER +++ //
 
   async getUser(user: string) {
-    this.assertInitialised();
-
-    const roleData = await this.kv.get(["users", user]);
-    if (roleData.value === null) {
+    const roleData = await this.backend.getValue<User>(["users"], user);
+    if (roleData === null) {
       return null;
     }
 
@@ -122,7 +100,7 @@ export class KVStorage implements IStorage {
       role,
       password,
       created,
-    } = roleData.value;
+    } = roleData;
 
     return {
       name,
@@ -133,21 +111,18 @@ export class KVStorage implements IStorage {
   }
 
   async deleteUser(user: string) {
-    this.assertInitialised();
-
-    const current = await this.kv.get(["users", user]);
-    await this.kv.delete(["users", user]);
+    const current = await this.backend.getValue(["users"], user);
+    await this.backend.deleteValue(["users"], user);
 
     return {
-      existed: current.value !== null,
+      existed: current !== null,
     };
   }
 
   async addUser(user: string, role: string, password: string) {
-    this.assertInitialised();
-    const current = await this.kv.get(["users", user]);
+    const current = await this.backend.getValue(["users"], user);
 
-    await this.kv.set(["users", user], {
+    await this.backend.setValue(["users"], user, {
       name: user,
       role,
       password,
@@ -155,17 +130,15 @@ export class KVStorage implements IStorage {
     });
 
     return {
-      existed: current.value !== null,
+      existed: current !== null,
     };
   }
 
   // +++ TOPIC +++ //
 
   async getTopic(topic: string) {
-    this.assertInitialised();
-
-    const topicData = await this.kv.get(["topics", topic]);
-    if (topicData.value === null) {
+    const topicData = await this.backend.getValue<Topic>(["topics"], topic);
+    if (topicData === null) {
       return null;
     }
 
@@ -173,7 +146,7 @@ export class KVStorage implements IStorage {
       description,
       schema,
       created,
-    } = topicData.value;
+    } = topicData;
 
     return {
       name: topic,
@@ -189,9 +162,9 @@ export class KVStorage implements IStorage {
     description: string,
     schema: Record<string, any> | undefined,
   ) {
-    const current = await this.kv.get(["topics", topic]);
+    const current = await this.backend.getValue(["topics"], topic);
 
-    await this.kv.set(["topics", topic], {
+    await this.backend.setValue(["topics"], topic, {
       description,
       user,
       schema,
@@ -199,15 +172,15 @@ export class KVStorage implements IStorage {
     });
 
     return {
-      existed: current.value !== null,
+      existed: current !== null,
     };
   }
 
   async getTopicNames(): Promise<string[]> {
-    this.assertInitialised();
-
     const names: string[] = [];
-    for await (const entry of this.kv.list({ prefix: ["topics"] })) {
+    for await (
+      const entry of this.backend.listTable<string[2], unknown>(["topics"])
+    ) {
       names.push(entry.key[1]);
     }
 
@@ -215,25 +188,33 @@ export class KVStorage implements IStorage {
   }
 
   async getTopicStats(topic: string) {
-    const lastUpdated = await this.kv.get(["topic-last-updated", topic]);
-    const count = await this.kv.get(["topic-count", topic]);
+    const topicData = await this.backend.getValue<Topic>(["topics"], topic);
+    if (topicData === null) {
+      return null;
+    }
 
+    const lastUpdated = await this.backend.getValue<number>([
+      "topic-last-updated",
+    ], topic);
+    const count = await this.backend.getValue<number>(["topic-count"], topic);
+
+    // TODO bad
     return {
       topic: topic,
       stats: {
-        count: count.value ?? 0,
-        lastUpdated: lastUpdated.value,
+        count: count ?? 0,
+        lastUpdated: lastUpdated!,
       },
     };
   }
 
   async deleteTopic(topic: string): Promise<{ existed: boolean }> {
-    const current = await this.kv.get(["topics", topic]);
+    const current = await this.backend.getValue(["topics"], topic);
 
-    await this.kv.delete(["topics", topic]);
+    await this.backend.deleteValue(["topics"], topic);
 
     return {
-      existed: current.value !== null,
+      existed: current !== null,
     };
   }
 
@@ -287,12 +268,15 @@ export class KVStorage implements IStorage {
     }
 
     // set each entry consequetively
-    let contentId = (await this.kv.get(["content-id"])).value;
+    let contentId = await this.backend.getValue<number>(["content-id"]);
     if (typeof contentId === "undefined" || contentId === null) {
       contentId = -1;
     }
 
-    let topicCount = (await this.kv.get(["topic-count", topic]))?.value;
+    let topicCount = await this.backend.getValue<number>(
+      ["topic-count"],
+      topic,
+    );
     if (typeof topicCount === "undefined" || topicCount === null) {
       topicCount = 0;
     }
@@ -302,17 +286,18 @@ export class KVStorage implements IStorage {
       topicCount++;
 
       const now = Date.now();
-      await this.kv.atomic()
-        .set(["content-id"], contentId)
-        .set(["topic-count", topic], topicCount)
-        .set(["topic-last-updated", topic], now)
-        .set(["content", topic, contentId], {
+
+      await this.backend.setValues<unknown>([
+        [["content-id"], contentId],
+        [["topic-count", topic], topicCount],
+        [["topic-last-updated", topic], now],
+        [["content", topic, contentId], {
           batchId,
           topic,
           content: JSON.stringify(entry),
           created: now,
-        })
-        .commit();
+        }],
+      ]);
     }
 
     return { lastId: contentId! };
@@ -321,22 +306,21 @@ export class KVStorage implements IStorage {
   async getContent<T>(topic: string, startId?: number): Promise<{
     topic: string;
     startId: number | undefined;
-    lastId: number;
-    nextId: number;
+    lastId: number | undefined;
+    nextId: number | undefined;
     content: T[];
   }> {
     let from = startId;
     let lastId;
 
-    const listOptions = {
-      prefix: ["content", topic],
-      limit: 10,
-    };
-
     const content: T[] = [];
 
     let size = 0;
-    for await (const entry of this.kv.list(listOptions)) {
+    for await (
+      const entry of this.backend.listTable<number[], { content: string }>([
+        "content",
+      ], 10)
+    ) {
       const contentId = lastId = entry.key[2];
 
       if (from && contentId < from) {
@@ -345,7 +329,7 @@ export class KVStorage implements IStorage {
         from = contentId;
       }
 
-      content.push(JSON.parse(entry.value.content));
+      content.push(JSON.parse(entry.value.content)); // TODO this looks far too specific
       size++;
 
       if (size >= 10) {
@@ -357,7 +341,7 @@ export class KVStorage implements IStorage {
       topic,
       startId: from,
       lastId,
-      nextId: lastId + 1,
+      nextId: lastId ? lastId + 1 : undefined,
       content,
     };
 
@@ -366,22 +350,20 @@ export class KVStorage implements IStorage {
 
   // +++ CONTENT BATCHES +++ //
   async addBatch(batchId: string) {
-    this.assertInitialised();
-    const current = await this.kv.get(["batches", batchId]);
+    const current = await this.backend.getValue(["batches"], batchId);
 
-    await this.kv.set(["batches", batchId], {
+    await this.backend.setValue<Batch>(["batches"], batchId, {
       id: batchId,
-      closed: false,
+      status: BATCH_OPEN,
       created: Date.now(),
     });
 
     return {
-      existed: current.value !== null,
+      existed: current !== null,
     };
   }
 
   private async closeBatch(batchId: string) {
-    this.assertInitialised();
     let current = await this.getBatch(batchId);
 
     if (current === null) {
@@ -389,18 +371,17 @@ export class KVStorage implements IStorage {
       current = await this.getBatch(batchId);
     }
 
-    await this.kv.set(["batches", batchId], {
+    await this.backend.setValue(["batches"], batchId, {
       id: batchId,
-      closed: true,
+      status: BATCH_CLOSED,
       created: current.created,
     });
   }
 
+  // TODO types may be broken here
   async getBatch(batchId: string): Promise<Batch> {
-    this.assertInitialised();
-
-    const batchData = await this.kv.get(["batches", batchId]);
-    if (batchData.value === null) {
+    const batchData = await this.backend.getValue<Batch>(["batches"], batchId);
+    if (batchData === null) {
       return {
         id: batchId,
         status: "missing",
@@ -409,20 +390,22 @@ export class KVStorage implements IStorage {
 
     const {
       id,
-      closed,
+      status,
       created,
-    } = batchData.value;
-
-    const iso = (new Date(parseInt(created))).toISOString();
+    } = batchData;
 
     return {
       id,
-      status: closed ? BATCH_CLOSED : BATCH_OPEN,
-      created: iso,
+      status: status === "closed" ? BATCH_CLOSED : BATCH_OPEN,
+      created,
     };
   }
 
   async close() {
-    await this.kv.close();
+    await this.backend.close();
+  }
+
+  async [Symbol.asyncDispose]() {
+    await this.close();
   }
 }

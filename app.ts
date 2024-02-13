@@ -1,6 +1,6 @@
 import Ajv from "https://esm.sh/ajv@8.12.0";
 import { Status } from "./shared/status.ts";
-import { Application, Router } from "https://deno.land/x/oak@v12.6.2/mod.ts";
+import { Application, Router } from "https://deno.land/x/oak@v13.2.3/mod.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 
 import schema from "./schema.json" assert { type: "json" };
@@ -11,7 +11,8 @@ import type { Config, Services } from "./types/index.ts";
 import { RequestPart } from "./types/index.ts";
 import { StorageLogger } from "./services/storage-logger.ts";
 import { ConsoleLogger } from "./services/console-logger.ts";
-import { KVStorage } from "./services/kv-storage.ts";
+import { CommonStorage } from "./services/common-storage.ts";
+import { DenoKVBackend } from "./services/storage-backend.ts";
 
 import * as Authentication from "./api/authentication.ts";
 import * as RateLimiting from "./api/rate-limit.ts";
@@ -207,7 +208,6 @@ function errorHandler(_: Config, services: Services) {
 
 /*
  * Preprocess the request; set request headers
- *
  */
 function preprocessRequest() {
   return async (ctx: any, next: any) => {
@@ -219,7 +219,10 @@ function preprocessRequest() {
 
     response.headers.set("X-Content-Type-Options", "nosniff");
     response.headers.set("Content-Type", "application/json; charset=utf-8");
-    response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=63072000; includeSubDomains; preload",
+    );
     response.headers.set("X-Frame-Options", "DENY");
     response.headers.set("X-XSS-Protection", "1; mode=block");
     response.headers.set("Referrer-Policy", "no-referrer");
@@ -235,7 +238,8 @@ function preprocessRequest() {
  * @param config Application configuration
  */
 export async function csServices(cfg: Config): Promise<Services> {
-  const storage = new KVStorage(cfg.kvPath);
+  const backend = new DenoKVBackend(cfg.kvPath);
+  const storage = new CommonStorage(backend);
   await storage.init();
 
   let logger;

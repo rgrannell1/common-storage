@@ -40,7 +40,9 @@ export function deleteUser(_: DeleteUserConfig, services: Services) {
     });
 
     try {
-      var response = await storage.deleteUser(topic);
+      const response = await storage.deleteUser(topic);
+      ctx.response.status = Status.OK;
+      ctx.response.body = JSON.stringify(response);
     } catch (err) {
       if (err instanceof RoleInUseError) {
         ctx.response.status = Status.Conflict;
@@ -53,7 +55,5 @@ export function deleteUser(_: DeleteUserConfig, services: Services) {
       throw err;
     }
 
-    ctx.response.status = Status.OK;
-    ctx.response.body = JSON.stringify(response);
   };
 }

@@ -1,4 +1,4 @@
-import type { Request } from "https://deno.land/x/oak/mod.ts";
+import type { Request } from "https://deno.land/x/oak@v13.2.3/mod.ts";
 
 import type { Permission, Role, User } from "./auth.ts";
 
@@ -11,13 +11,13 @@ export type Activity = {
 export type Content = {
   id: string;
   value: unknown;
-  created: string;
+  created: number;
 };
 
 export type Batch = {
   id: string;
   status: string;
-  created?: string;
+  created?: number;
 };
 
 export interface ILogger {
@@ -98,13 +98,15 @@ export interface IGetTopicNames {
 }
 
 export interface IGetTopicStats {
-  getTopicStats(topic: string): Promise<{
-    topic: string;
-    stats: {
-      count: number;
-      lastUpdated: number;
-    };
-  }>;
+  getTopicStats(topic: string): Promise<
+    {
+      topic: string;
+      stats: {
+        count: number;
+        lastUpdated: number;
+      };
+    } | null
+  >;
 }
 
 export interface IDeleteTopic {
@@ -117,8 +119,8 @@ export interface IGetContent {
   getContent<T>(topic: string, startId?: number): Promise<{
     topic: string;
     startId: number | undefined;
-    lastId: number;
-    nextId: number;
+    lastId: number | undefined;
+    nextId: number | undefined;
     content: T[];
   }>;
 }
@@ -158,3 +160,18 @@ export interface IStorage
     IAddContent,
     IGetBatch,
     IAddBatch {}
+
+type Row<T> = [(string | number)[], T];
+
+export interface IStorageBackend {
+  init(): Promise<void>;
+  close(): Promise<void>;
+  getValue<T>(table: string[], id?: string): Promise<T | null>;
+  deleteValue(table: string[], id: string): Promise<void>;
+  listTable<K, T>(
+    table: string[],
+    limit?: number,
+  ): AsyncGenerator<{ key: K; value: T }>;
+  setValue<T>(table: string[], id: string, value: T): Promise<void>;
+  setValues<T>(rows: Row<T>[]): Promise<void>;
+}
