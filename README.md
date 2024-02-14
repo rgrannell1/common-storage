@@ -21,6 +21,10 @@ other data can be added.
   [JSON Schema](https://json-schema.org/)
 - [`content`](#/content): append & retrieve "content" (json entries) to a topic
 
+**Data Sync**
+
+- [`subscription`](#/subscription): create & manage subscriptions, which sync content from a remote common-storage server's topic to a local topic  
+
 ---
 
 ## API Details
@@ -40,6 +44,10 @@ statistics
 None
 
 **Body**
+
+None
+
+**Response**
 
 ```json
 {
@@ -175,3 +183,8 @@ members to matching [JSON Schema](https://json-schema.org/)
 </details>
 
 Append & retrieve "content" (json entries) to a topic
+
+### `subscription`
+
+Create & manage subscriptions, which sync content from a remote common-storage server's topic to a local topic  
+
