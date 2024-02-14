@@ -1,4 +1,4 @@
-import type { Request } from "https://deno.land/x/oak@v13.2.3/mod.ts";
+import type { Request } from "https://deno.land/x/oak@v12.6.2/mod.ts";
 
 import type { Permission, Role, User } from "./auth.ts";
 

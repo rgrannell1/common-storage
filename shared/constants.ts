@@ -10,3 +10,9 @@ export const BATCH_CLOSED = "closed";
 export const RATE_LIMIT_WINDOW = 60_000;
 export const RATE_LIMIT_MAX_IN_WINDOW = 120;
 export const RATE_LIMIT_THROTTLE_DURATION = 300_000;
+
+// Special roles
+export const PERMISSIONLESS_ROLE = "PERMISSIONLESS";
+
+// Namespaces
+export const SUBSCRIPION_TOPIC_PREFIX = "subscription.";

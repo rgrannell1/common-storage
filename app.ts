@@ -28,6 +28,8 @@ import { postTopic } from "./api/topic-post.ts";
 import { deleteTopic } from "./api/topic-delete.ts";
 import { notFound } from "./api/not-found.ts";
 
+import { PERMISSIONLESS_ROLE } from "./shared/constants.ts";
+
 const ajv = new Ajv({ allErrors: true });
 
 export function csRouter(config: Config, services: Services) {
@@ -241,6 +243,9 @@ export async function csServices(cfg: Config): Promise<Services> {
   const backend = new DenoKVBackend(cfg.kvPath);
   const storage = new CommonStorage(backend);
   await storage.init();
+
+  // a special service-account role, for subscriptions.
+  await storage.addRole(PERMISSIONLESS_ROLE, []);
 
   let logger;
 

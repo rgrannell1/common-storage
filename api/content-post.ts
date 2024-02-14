@@ -10,6 +10,7 @@ import type {
 import { RequestPart } from "../types/index.ts";
 import { BodyParsers } from "../services/parsers.ts";
 import { TopicValidationError } from "../shared/errors.ts";
+import { SUBSCRIPION_TOPIC_PREFIX } from "../shared/constants.ts";
 
 type Services = {
   storage: IAddContent & IGetTopic & IGetTopicStats;
@@ -37,6 +38,15 @@ export function postContent(_: PostContentConfig, services: Services) {
     const topic = ctx?.params?.topic;
 
     const { batchId, content } = body;
+
+    // special handling for subscription topics
+    if (topic.startsWith(SUBSCRIPION_TOPIC_PREFIX)) {
+      ctx.response.status = Status.UnprocessableEntity;
+      ctx.response.body = JSON.stringify({
+        error: "Cannot post content to topics prefixed 'subscription.', as these topics are reserved as subscription targets",
+      });
+      return;
+    }
 
     await logger.addActivity({
       request: ctx.request,
