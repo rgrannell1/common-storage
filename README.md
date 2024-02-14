@@ -187,4 +187,38 @@ Append & retrieve "content" (json entries) to a topic
 ### `subscription`
 
 Create & manage subscriptions, which sync content from a remote common-storage server's topic to a local topic  
+<details>
+  <summary><code>GET /subscription/:target_topic</code> </summary>
 
+**Parameters**
+
+**Body**
+
+```json
+```
+
+</details>
+
+<details>
+  <summary><code>POST /subscription/</code> </summary>
+
+**Parameters**
+
+**Body**
+
+```json
+```
+
+</details>
+
+<details>
+  <summary><code>DELETE /subscription/:target_topic</code> </summary>
+
+**Parameters**
+
+**Body**
+
+```json
+```
+
+</details>
