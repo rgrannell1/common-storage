@@ -21,7 +21,7 @@ other data can be added.
   [JSON Schema](https://json-schema.org/)
 - [`content`](#/content): append & retrieve "content" (json entries) to a topic
 
-**Data Sync**
+**Data Synchronisation**
 
 - [`subscription`](#/subscription): create & manage subscriptions, which sync content from a remote common-storage server's topic to a local topic  
 
