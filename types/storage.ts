@@ -108,6 +108,7 @@ export interface IGetTopicStats {
   getTopicStats(topic: string): Promise<
     {
       topic: string;
+      description: string;
       stats: {
         count: number;
         lastUpdated: number;

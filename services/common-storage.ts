@@ -201,6 +201,7 @@ export class CommonStorage implements IStorage {
     // TODO bad
     return {
       topic: topic,
+      description: topicData.description,
       stats: {
         count: count ?? 0,
         lastUpdated: lastUpdated!,
