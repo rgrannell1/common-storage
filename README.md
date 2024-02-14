@@ -158,6 +158,8 @@ members to matching [JSON Schema](https://json-schema.org/)
 
 ### `content`
 
+Append & retrieve "content" (json entries) to a topic
+
 <details>
   <summary><code>GET /content/:name</code> </summary>
 
