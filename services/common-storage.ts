@@ -9,7 +9,7 @@ import {
 import { RoleInUseError, TopicValidationError } from "../shared/errors.ts";
 import { IStorageBackend } from "../types/storage.ts";
 import { Role, User } from "../types/auth.ts";
-import { Topic } from "../types/index.ts";
+import { Topic } from "../types/storage.ts";
 
 export class CommonStorage implements IStorage {
   backend: IStorageBackend;
@@ -24,12 +24,12 @@ export class CommonStorage implements IStorage {
 
   // +++ ACTIVITY +++ //
 
-  async addActivity(actitity: Activity): Promise<void> {
+  async addActivity(_: Activity): Promise<void> {
   }
 
   // +++ ERROR +++ //
 
-  async addException(err: Error): Promise<void> {
+  async addException(_: Error): Promise<void> {
   }
 
   // +++ ROLE +++ //

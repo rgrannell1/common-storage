@@ -1,13 +1,15 @@
 import { csApp, csServices, startApp } from "./app.ts";
 
+const port = parseInt(Deno.env.get("CS_PORT") ?? "8080", 10);
+
 const config = {
-  port: Deno.env.get("CS_PORT"),
-  title: Deno.env.get("CS_TITLE"),
-  description: Deno.env.get("CS_DESCRIPTION"),
-  logger: Deno.env.get("CS_LOGGER"),
-  adminUsername: Deno.env.get("CS_ADMIN_USERNAME"),
-  adminPassword: Deno.env.get("CS_ADMIN_PASSWORD"),
-  kvPath: Deno.env.get("CS_KV_PATH"),
+  port,
+  title: Deno.env.get("CS_TITLE")!,
+  description: Deno.env.get("CS_DESCRIPTION")!,
+  logger: Deno.env.get("CS_LOGGER")!,
+  adminUsername: Deno.env.get("CS_ADMIN_USERNAME")!,
+  adminPassword: Deno.env.get("CS_ADMIN_PASSWORD")!,
+  kvPath: Deno.env.get("CS_KV_PATH")!,
 };
 
 const services = await csServices(config);

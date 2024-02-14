@@ -13,7 +13,7 @@ type Services = {
   schema: SchemaValidator;
 };
 
-type DeleteTopicConfig = Record<string | number | symbol, never>;
+type DeleteTopicConfig = Record<string, unknown>;
 
 export function deleteTopic(_: DeleteTopicConfig, services: Services) {
   const { storage, logger, schema } = services;

@@ -20,6 +20,13 @@ export type Batch = {
   created?: number;
 };
 
+export type Topic = {
+  title: string;
+  description: string;
+  created: string;
+  schema: any;
+};
+
 export interface ILogger {
   addActivity(activity: Activity): Promise<void>;
   addException(err: Error): Promise<void>;
