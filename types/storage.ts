@@ -20,6 +20,13 @@ export type Batch = {
   created?: number;
 };
 
+export type Subscription = {
+  source: string;
+  target: string;
+  serviceAccount: string;
+  frequency: number;
+}
+
 export type Topic = {
   title: string;
   description: string;
@@ -149,6 +156,15 @@ export interface IAddBatch {
   addBatch(batch: string): Promise<{ existed: boolean }>;
 }
 
+// Subscriptions
+export interface IGetSubscription {
+  getSubscription(id: string): Promise<Subscription | null>;
+}
+
+export interface IPostSubscription {
+  addSubscription(subscription: string, target: string, serviceAccount: string, frequency: number): Promise<{ existed: boolean }>;
+}
+
 export interface IStorage
   extends
     IAddActivity,
@@ -167,7 +183,9 @@ export interface IStorage
     IGetContent,
     IAddContent,
     IGetBatch,
-    IAddBatch {}
+    IAddBatch,
+    IGetSubscription,
+    IPostSubscription {}
 
 type Row<T> = [(string | number)[], T];
 

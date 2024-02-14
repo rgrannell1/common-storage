@@ -9,7 +9,7 @@ import {
 import { RoleInUseError, TopicValidationError } from "../shared/errors.ts";
 import { IStorageBackend } from "../types/storage.ts";
 import { Role, User } from "../types/auth.ts";
-import { Topic } from "../types/storage.ts";
+import { Topic, Subscription } from "../types/storage.ts";
 
 export class CommonStorage implements IStorage {
   backend: IStorageBackend;
@@ -400,6 +400,30 @@ export class CommonStorage implements IStorage {
       status: status === "closed" ? BATCH_CLOSED : BATCH_OPEN,
       created,
     };
+  }
+
+  // +++ SUBSCRIPTION +++ //
+  async getSubscription(id: string): Promise<Subscription | null> {
+    const subscription = await this.backend.getValue<Subscription>(["subscriptions"], id);
+    if (subscription === null) {
+      return null;
+    }
+
+    return subscription;
+  }
+
+  async addSubscription(source: string, target: string, serviceAccount: string, frequency: number): Promise<{ existed: boolean }> {
+    const current = await this.backend.getValue(["subscriptions"], target);
+
+    await this.backend.setValue(["subscriptions"], target, {
+      source,
+      target,
+      serviceAccount,
+      frequency,
+      created: Date.now(),
+    });
+
+    return { existed: current !== null }
   }
 
   async close() {
