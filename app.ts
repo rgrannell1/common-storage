@@ -3,7 +3,8 @@ import { Status } from "./shared/status.ts";
 import { Application, Router } from "https://deno.land/x/oak@v12.6.2/mod.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 
-import schema from "./schema.json" with { type: "json" };
+//import schema from "./schema.json" with { type: "json" };//
+import { schema } from "./shared/schema.ts";
 
 import { InputValidationError, JSONError } from "./shared/errors.ts";
 
@@ -140,13 +141,13 @@ export function validateSchema<T>(
   data: T,
   part: RequestPart = RequestPart.Body,
 ) {
-  const defs = schema["$defs"] as any;
+  const defs = schema["$defs"];
   var subschema;
 
   if (part === RequestPart.Params) {
-    subschema = defs["params"][name];
+    subschema = defs.params[name];
   } else if (part === RequestPart.Body) {
-    subschema = defs["body"][name];
+    subschema = defs.body[name];
   } else {
     throw new Error(`Invalid request part: ${part}`);
   }
@@ -260,7 +261,7 @@ export async function csServices(cfg: Config): Promise<Services> {
   return {
     storage,
     logger,
-    schema: validateSchema,
+    schema: validateSchema
   };
 }
 

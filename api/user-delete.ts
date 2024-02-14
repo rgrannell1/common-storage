@@ -39,6 +39,8 @@ export function deleteUser(_: DeleteUserConfig, services: Services) {
       },
     });
 
+    // TODO block deletion of subscription users
+
     try {
       const response = await storage.deleteUser(topic);
       ctx.response.status = Status.OK;

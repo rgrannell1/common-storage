@@ -8,6 +8,7 @@ import type {
 } from "../types/index.ts";
 import { RequestPart } from "../types/index.ts";
 import { BodyParsers } from "../services/parsers.ts";
+import { PERMISSIONLESS_ROLE } from "../shared/constants.ts";
 
 type Services = {
   storage: IGetRole & IAddRole;
@@ -41,6 +42,15 @@ export function postRole(_: PostRoleConfig, services: Services) {
         role: ctx.params.role,
       },
     });
+
+    if (ctx.params.role === PERMISSIONLESS_ROLE) {
+      ctx.response.status = Status.UnprocessableEntity;
+      ctx.response.body = JSON.stringify({
+        error: `You may not modify ${PERMISSIONLESS_ROLE}`,
+      });
+
+      return;
+    }
 
     const role = await storage.getRole(ctx.params.role);
 

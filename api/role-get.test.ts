@@ -56,7 +56,9 @@ Deno.test({
     };
 
     const ctx = Context({
-      params: {},
+      params: {
+        role: "test",
+      },
     });
 
     await getRole(config, {

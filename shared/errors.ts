@@ -34,3 +34,10 @@ export class ConfigurationMissingError extends Error {}
  * @extends Error
  */
 export class RoleInUseError extends Error {}
+
+/**
+ * An error that is thrown when an invalid URL is encountered
+ *
+ * @extends Error
+ */
+export class InvalidUrlError extends Error {}
