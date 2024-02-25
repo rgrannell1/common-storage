@@ -1,5 +1,6 @@
 import { Context } from "https://deno.land/x/oak@v12.6.2/mod.ts";
 import { IAddActivity, IAddException, IStorage } from "./storage.ts";
+import { IntertalkClient } from "../services/intertalk.ts";
 
 export type { Request } from "https://deno.land/x/oak@v12.6.2/mod.ts";
 export * from "./auth.ts";
@@ -34,6 +35,7 @@ export type Services = {
   storage: IStorage;
   logger: ILogger;
   schema: <T>(name: string, data: T, part: RequestPart) => void;
+  intertalk: any;
 };
 
 export type Config = {

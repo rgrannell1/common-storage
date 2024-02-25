@@ -6,12 +6,54 @@
 export class InputValidationError extends Error {}
 
 /**
+ * An error that is thrown when a topic is not found
+ *
+ * @extends Error
+ */
+export class TopicNotFoundError extends Error {}
+
+/*
+ * An error that is thrown when a topic is not empty
+ */
+export class TopicNotEmptyError extends Error {}
+
+/**
+ * An error that is thrown when a user is not found
+ *
+ * @extends Error
+ */
+export class UserNotFound extends Error {}
+
+/**
+ * An error that is thrown when a user is found to have
+ * permissions that they should not have
+ *
+ * @extends Error
+ */
+export class UserHasPermissionsError extends Error {}
+
+/*
+ * An error that is thrown when a network error occurs
+ *
+ * @extends Error
+ */
+export class NetworkError extends Error {}
+
+/**
  * An error that is thrown when attempting to submit
  * schema-invalid entries to the database
  *
  * @extends Error
  */
 export class TopicValidationError extends Error {}
+
+/**
+ * An error that is thrown when attempting to submit
+ * schema-invalid entries to the database
+ *
+ * @extends Error
+ */
+export class ContentInvalidError extends Error {}
 
 /**
  * An error that is thrown when attempting to parse invalid JSON
@@ -41,3 +83,12 @@ export class RoleInUseError extends Error {}
  * @extends Error
  */
 export class InvalidUrlError extends Error {}
+
+/**
+ * An error indicating that a batch is closed
+ *
+ * @extends Error
+ */
+export class BatchClosedError extends Error {}
+
+export class MultipleSubscriptionError extends Error {}

@@ -23,7 +23,8 @@ other data can be added.
 
 **Data Synchronisation**
 
-- [`subscription`](#/subscription): create & manage subscriptions, which sync content from a remote common-storage server's topic to a local topic  
+- [`subscription`](#/subscription): create & manage subscriptions, which sync
+  content from a remote common-storage server's topic to a local topic
 
 ---
 
@@ -188,7 +189,9 @@ Append & retrieve "content" (json entries) to a topic
 
 ### `subscription`
 
-Create & manage subscriptions, which sync content from a remote common-storage server's topic to a local topic  
+Create & manage subscriptions, which sync content from a remote common-storage
+server's topic to a local topic
+
 <details>
   <summary><code>GET /subscription/:target_topic</code> </summary>
 

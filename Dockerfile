@@ -19,6 +19,5 @@ COPY types       /app/types
 COPY app.ts      /app/app.ts
 COPY start.ts    /app/start.ts
 COPY deno.json   /app/deno.json
-COPY schema.json /app/schema.json
 
 CMD ["deno", "run", "-A", "--unstable-kv", "/app/start.ts"]

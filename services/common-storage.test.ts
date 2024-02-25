@@ -160,7 +160,8 @@ Deno.test({
 
     const content = await store.addContent("test-batch", "testing", []);
     assert(
-      Object.prototype.hasOwnProperty.call(content, "lastId"));
+      Object.prototype.hasOwnProperty.call(content, "lastId"),
+    );
 
     const closedBatchStatus = await store.getBatch("test-batch");
     assertEquals(closedBatchStatus.id, "test-batch");

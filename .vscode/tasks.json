@@ -12,7 +12,7 @@
         "--allow-all"
       ],
       "group": "test",
-      "label": "deno: test"
+      "label": "🦾 Deno Test"
     }
   ]
 }

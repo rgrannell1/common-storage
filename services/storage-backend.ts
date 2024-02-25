@@ -3,7 +3,6 @@ import { IStorageBackend } from "../types/storage.ts";
 export class DenoKVBackend implements IStorageBackend {
   /*
    * A backend based on Deno KV
-   *
    */
   private kv: Deno.Kv | null;
   private fpath: string | undefined;

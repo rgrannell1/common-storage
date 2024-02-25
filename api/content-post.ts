@@ -43,7 +43,8 @@ export function postContent(_: PostContentConfig, services: Services) {
     if (topic.startsWith(SUBSCRIPION_TOPIC_PREFIX)) {
       ctx.response.status = Status.UnprocessableEntity;
       ctx.response.body = JSON.stringify({
-        error: "Cannot post content to topics prefixed 'subscription.', as these topics are reserved as subscription targets",
+        error:
+          "Cannot post content to topics prefixed 'subscription.', as these topics are reserved as subscription targets",
       });
       return;
     }

@@ -1,27 +1,48 @@
 import type {
   Config,
-  IGetRole,
-  IGetUser,
-  IGetTopic,
   ILogger,
   SchemaValidator,
+  SubscriptionStorage,
 } from "../types/index.ts";
 import { RequestPart } from "../types/index.ts";
 import { Status } from "../shared/status.ts";
 import { BodyParsers } from "../services/parsers.ts";
-import { PERMISSIONLESS_ROLE } from "../shared/constants.ts";
 import { IntertalkClient } from "../services/intertalk.ts";
+import {
+  ContentInvalidError,
+  NetworkError,
+  TopicNotFoundError,
+  TopicValidationError,
+  UserHasPermissionsError,
+  UserNotFound,
+} from "../shared/errors.ts";
+import { Subscriptions } from "../services/subscriptions.ts";
+import { JSONError } from "../shared/errors.ts";
 
 type Services = {
-  storage: IGetUser & IGetRole & IGetTopic;
+  storage: SubscriptionStorage;
   logger: ILogger;
   schema: SchemaValidator;
-  intertalk: IntertalkClient;
+  intertalk: typeof IntertalkClient;
 };
 
 type PostSubscriptionConfig = Partial<Config>;
 
-export function postSubscription(_: PostSubscriptionConfig, services: Services) {
+// A map of error-constructors to response codes
+const errorMap = new Map<any, number>([
+  [TopicNotFoundError, Status.NotFound],
+  [UserNotFound, Status.NotFound],
+  [UserHasPermissionsError, Status.UnprocessableEntity],
+  [NetworkError, Status.InternalServerError],
+  [JSONError, Status.BadGateway],
+  [ContentInvalidError, Status.BadGateway],
+  [TopicValidationError, Status.UnprocessableEntity],
+]);
+
+export function postSubscription(
+  _: PostSubscriptionConfig,
+  services: Services,
+) {
   const { storage, logger, schema } = services;
 
   return async function (ctx: any) {
@@ -36,48 +57,33 @@ export function postSubscription(_: PostSubscriptionConfig, services: Services) 
     schema("subscriptionPost", ctx.params, RequestPart.Params);
     schema("subscriptionPost", body, RequestPart.Body);
 
-    const { topic } = ctx.params.topic
+    const { topic } = ctx.params.topic;
     const { source, serviceAccount, frequency } = body;
 
-    // check the target topic actually exists. JSON schema
-    // will check it starts with subscription.
-    const topicData = await storage.getTopic(topic);
-    if (!topicData) {
-      ctx.response.status = Status.NotFound;
-      ctx.response.body = JSON.stringify({
-        error: `Topic "${topic}" does not exist`,
-      });
-      return;
-    }
+    const subscriptionClient = new Subscriptions(storage, IntertalkClient);
 
-    // check the service-account actually exists
-    const userData = await storage.getUser(serviceAccount);
-    if (!userData) {
-      ctx.response.status = Status.NotFound;
-      ctx.response.body = JSON.stringify({
-        error: `User "${name}" does not exist`,
-      });
-      return;
-    }
-
-    if (userData.role !== PERMISSIONLESS_ROLE) {
-      ctx.response.status = Status.UnprocessableEntity;
-      ctx.response.body = JSON.stringify({
-        error: `User "${name}" does not have the ${PERMISSIONLESS_ROLE} role, so cannot be used as a service-account for retrieving subscriptions from another server`,
-      });
-      return;
-    }
-
-    const client = new IntertalkClient(IntertalkClient.baseurl(source));
-
+    // sync the subsciption data, which also stores a subscription
     try {
-      await client.contentGet(topic);
+      await subscriptionClient.sync(source, topic, serviceAccount, frequency);
     } catch (err) {
+      let code = Status.InternalServerError;
 
+      // find an appropriate response code, by checking the error type
+      for (const [error, status] of errorMap) {
+        if (err instanceof error) {
+          code = status;
+          break;
+        }
+      }
+
+      ctx.response.status = code;
+      // pass the message forward
+      ctx.response.body = JSON.stringify({
+        error: code === Status.InternalServerError
+          ? "Internal service error"
+          : err.message,
+      });
+      return;
     }
-
-    // GET /content/:target. Check topic, connection, content returned
-    // write to check schema matches
-    // check no existing subscription
   };
 }

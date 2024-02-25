@@ -5,11 +5,18 @@ import {
   BATCH_CLOSED,
   BATCH_MISSING,
   BATCH_OPEN,
+  SUBSCRIPION_TOPIC_PREFIX,
 } from "../shared/constants.ts";
-import { RoleInUseError, TopicValidationError } from "../shared/errors.ts";
+import {
+  BatchClosedError,
+  RoleInUseError,
+  TopicNotFoundError,
+  TopicValidationError,
+} from "../shared/errors.ts";
 import { IStorageBackend } from "../types/storage.ts";
 import { Role, User } from "../types/auth.ts";
-import { Topic, Subscription } from "../types/storage.ts";
+import { Subscription, Topic } from "../types/storage.ts";
+import * as bcrypt from "https://deno.land/x/bcrypt/mod.ts";
 
 export class CommonStorage implements IStorage {
   backend: IStorageBackend;
@@ -125,7 +132,9 @@ export class CommonStorage implements IStorage {
     await this.backend.setValue(["users"], user, {
       name: user,
       role,
+      // TODO this is horrible. Only store this credential if we are creating a service-account
       password,
+      hash: bcrypt.hashSync(password),
       created: Date.now(),
     });
 
@@ -143,12 +152,14 @@ export class CommonStorage implements IStorage {
     }
 
     const {
+      user,
       description,
       schema,
       created,
     } = topicData;
 
     return {
+      user,
       name: topic,
       description,
       schema,
@@ -219,34 +230,10 @@ export class CommonStorage implements IStorage {
     };
   }
 
-  // +++ CONTENT +++ //
-
-  async addContent<T>(
-    batchId: string | undefined,
-    topic: string,
-    content: T[],
-  ): Promise<{ lastId: number }> {
-    if (batchId) {
-      let batch = await this.getBatch(batchId);
-
-      if (batch.status === BATCH_MISSING) {
-        await this.addBatch(batchId);
-        batch = await this.getBatch(batchId);
-      }
-
-      if (batch.status === BATCH_CLOSED && content.length > 0) {
-        throw new Error(`batch "${batchId}" is closed; cannot add content`);
-      }
-
-      // close the batch if there is no content, and we are using a batch
-      if (content.length === 0) {
-        await this.closeBatch(batchId);
-      }
-    }
-
+  async validateContent<T>(topic: string, content: T[]) {
     const topicData = await this.getTopic(topic);
     if (!topicData) {
-      throw new Error(`topic "${topic}" does not exist`);
+      throw new TopicNotFoundError(`topic "${topic}" does not exist`);
     }
 
     // validate the new content
@@ -267,7 +254,29 @@ export class CommonStorage implements IStorage {
         );
       }
     }
+  }
 
+  async #updateBatch<T>(batchId: string, content: T[]) {
+    let batch = await this.getBatch(batchId);
+
+    if (batch.status === BATCH_MISSING) {
+      await this.addBatch(batchId);
+      batch = await this.getBatch(batchId);
+    }
+
+    if (batch.status === BATCH_CLOSED && content.length > 0) {
+      throw new BatchClosedError(
+        `batch "${batchId}" is closed; cannot add content`,
+      );
+    }
+
+    // close the batch if there is no content, and we are using a batch
+    if (content.length === 0) {
+      await this.closeBatch(batchId);
+    }
+  }
+
+  async #getTopicMetadata(topic: string) {
     // set each entry consequetively
     let contentId = await this.backend.getValue<number>(["content-id"]);
     if (typeof contentId === "undefined" || contentId === null) {
@@ -282,13 +291,40 @@ export class CommonStorage implements IStorage {
       topicCount = 0;
     }
 
+    let subscriptionLastId = await this.backend.getValue<number>(
+      ["subscription-last-id"],
+      topic,
+    );
+    if (
+      typeof subscriptionLastId === "undefined" || subscriptionLastId === null
+    ) {
+      subscriptionLastId = -1;
+    }
+
+    return { contentId, topicCount, subscriptionLastId };
+  }
+
+  async addContent<T>(
+    batchId: string | undefined,
+    topic: string,
+    content: T[],
+  ): Promise<{ lastId: number }> {
+    if (batchId) {
+      await this.#updateBatch(batchId, content);
+    }
+
+    await this.validateContent(topic, content);
+
+    let { contentId, topicCount, subscriptionLastId } = await this
+      .#getTopicMetadata(topic);
+
     for (const entry of content) {
       contentId++;
       topicCount++;
 
       const now = Date.now();
 
-      await this.backend.setValues<unknown>([
+      const atomicDataUpdate = [
         [["content-id"], contentId],
         [["topic-count", topic], topicCount],
         [["topic-last-updated", topic], now],
@@ -298,7 +334,18 @@ export class CommonStorage implements IStorage {
           content: JSON.stringify(entry),
           created: now,
         }],
-      ]);
+      ];
+
+      if (topic.startsWith(SUBSCRIPION_TOPIC_PREFIX)) {
+        // increment the last-id (so subscription polling can pick up), and update the subscription ID
+        atomicDataUpdate.push([
+          ["subscription-last-id", topic],
+          subscriptionLastId,
+        ]);
+        subscriptionLastId++;
+      }
+
+      await this.backend.setValues(atomicDataUpdate as any);
     }
 
     return { lastId: contentId! };
@@ -404,7 +451,9 @@ export class CommonStorage implements IStorage {
 
   // +++ SUBSCRIPTION +++ //
   async getSubscription(id: string): Promise<Subscription | null> {
-    const subscription = await this.backend.getValue<Subscription>(["subscriptions"], id);
+    const subscription = await this.backend.getValue<Subscription>([
+      "subscriptions",
+    ], id);
     if (subscription === null) {
       return null;
     }
@@ -412,18 +461,50 @@ export class CommonStorage implements IStorage {
     return subscription;
   }
 
-  async addSubscription(source: string, target: string, serviceAccount: string, frequency: number): Promise<{ existed: boolean }> {
+  async getSubscriptionState(id: string) {
+    const lastId = await this.backend.getValue<number>(
+      ["subscription-last-id"],
+      id,
+    );
+
+    return {
+      lastId: lastId ?? undefined,
+    };
+  }
+
+  // List all the subscriptions
+  async *getSubscriptions() {
+    for await (
+      const entry of this.backend.listTable<string, Subscription>([
+        "subscriptions",
+      ])
+    ) {
+      yield entry.value;
+    }
+  }
+
+  async addSubscription(
+    source: string,
+    target: string,
+    serviceAccount: string,
+    frequency: number,
+  ): Promise<{ existed: boolean }> {
     const current = await this.backend.getValue(["subscriptions"], target);
 
-    await this.backend.setValue(["subscriptions"], target, {
+    const subscription = {
       source,
       target,
       serviceAccount,
       frequency,
       created: Date.now(),
-    });
+    };
 
-    return { existed: current !== null }
+    await this.backend.setValues<any>([
+      [["subscriptions", target], subscription],
+      [["subscription-last-id", target], -1],
+    ]);
+
+    return { existed: current !== null };
   }
 
   async close() {

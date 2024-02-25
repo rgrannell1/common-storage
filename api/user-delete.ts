@@ -56,6 +56,5 @@ export function deleteUser(_: DeleteUserConfig, services: Services) {
 
       throw err;
     }
-
   };
 }

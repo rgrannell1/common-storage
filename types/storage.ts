@@ -25,11 +25,15 @@ export type Subscription = {
   target: string;
   serviceAccount: string;
   frequency: number;
-}
+};
+
+export type SubscriptionState = {
+  lastId: number | undefined;
+};
 
 export type Topic = {
-  title: string;
   description: string;
+  user: string;
   created: string;
   schema: any;
 };
@@ -141,7 +145,11 @@ export interface IGetContent {
 }
 
 export interface IAddContent {
-  addContent<T>(topic: string, batchId: string, content: T[]): Promise<{
+  addContent<T>(
+    batchId: string | undefined,
+    topic: string,
+    content: T[],
+  ): Promise<{
     lastId: number;
   }>;
 }
@@ -156,13 +164,34 @@ export interface IAddBatch {
   addBatch(batch: string): Promise<{ existed: boolean }>;
 }
 
+export interface IValidateContent {
+  validateContent<T>(topic: string, content: T[]): Promise<void>;
+}
+
 // Subscriptions
 export interface IGetSubscription {
   getSubscription(id: string): Promise<Subscription | null>;
 }
 
-export interface IPostSubscription {
-  addSubscription(subscription: string, target: string, serviceAccount: string, frequency: number): Promise<{ existed: boolean }>;
+export interface IGetSubscriptions {
+  getSubscriptions(): AsyncGenerator<Subscription>;
+}
+
+export interface IGetSubscriptionState {
+  getSubscriptionState(id: string): Promise<SubscriptionState | null>;
+}
+
+export interface IAddSubscription {
+  addSubscription(
+    subscription: string,
+    target: string,
+    serviceAccount: string,
+    frequency: number,
+  ): Promise<{ existed: boolean }>;
+}
+
+export abstract class AIntertalk {
+  abstract contentGet(topic: string, startId: number, username: string, password: string): Promise<Response>
 }
 
 export interface IStorage
@@ -184,8 +213,23 @@ export interface IStorage
     IAddContent,
     IGetBatch,
     IAddBatch,
+    IValidateContent,
     IGetSubscription,
-    IPostSubscription {}
+    IGetSubscriptions,
+    IGetSubscriptionState,
+    IAddSubscription {}
+
+export type SubscriptionStorage =
+  & IGetUser
+  & IGetRole
+  & IGetTopic
+  & IGetTopicStats
+  & IGetSubscriptions
+  & IGetSubscriptionState
+  & IAddContent
+  & IAddSubscription
+  & IValidateContent;
+
 
 type Row<T> = [(string | number)[], T];
 

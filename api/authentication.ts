@@ -130,8 +130,9 @@ async function isRoleAuthenticated(
     };
   }
 
-  // check the password
-  const actualPassword = bcrypt.hashSync(user.password);
+  // check the password matches the stored bcrypt hash, or in the case
+  // of service accounts the actual password itself
+  const actualPassword = user.hash ? user.hash : bcrypt.hashSync(user.password);
   const passwordMatch = bcrypt.compareSync(password, actualPassword);
 
   if (!passwordMatch) {

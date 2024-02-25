@@ -6,6 +6,7 @@ export const Status = {
   BadRequest: 400,
   Conflict: 409,
   InternalServerError: 500,
+  BadGateway: 502,
   NotFound: 404,
   OK: 200,
   Unauthorized: 401,

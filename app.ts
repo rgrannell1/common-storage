@@ -27,9 +27,12 @@ import { postContent } from "./api/content-post.ts";
 import { getTopic } from "./api/topic-get.ts";
 import { postTopic } from "./api/topic-post.ts";
 import { deleteTopic } from "./api/topic-delete.ts";
+import { postSubscription } from "./api/subscription-post.ts";
 import { notFound } from "./api/not-found.ts";
 
 import { PERMISSIONLESS_ROLE } from "./shared/constants.ts";
+import { Subscriptions } from "./services/subscriptions.ts";
+import { IntertalkClient } from "./services/intertalk.ts";
 
 const ajv = new Ajv({ allErrors: true });
 
@@ -61,6 +64,15 @@ export function csRouter(config: Config, services: Services) {
       rateLimitMiddleware,
       adminMiddleware,
       postUser(config, services) as any,
+    )
+
+    // ++ ++ SUBSCRIPTION
+    .post(
+      "/subscription/:topic",
+      oakCors(),
+      rateLimitMiddleware,
+      adminMiddleware,
+      postSubscription(config, services) as any,
     )
     //
     // ++ ++ ROLE
@@ -124,7 +136,8 @@ export function csRouter(config: Config, services: Services) {
       rateLimitMiddleware,
       roleMiddleware,
       deleteTopic(config, services) as any,
-    );
+    )
+
 
   return router;
 }
@@ -150,6 +163,10 @@ export function validateSchema<T>(
     subschema = defs.body[name];
   } else {
     throw new Error(`Invalid request part: ${part}`);
+  }
+
+  if (!subschema || typeof subschema !== "object") {
+    throw new Error(`Schema not found: ${name} (${part})`);
   }
 
   const valid = ajv.validate(subschema!, data);
@@ -261,7 +278,8 @@ export async function csServices(cfg: Config): Promise<Services> {
   return {
     storage,
     logger,
-    schema: validateSchema
+    schema: validateSchema,
+    intertalk: IntertalkClient
   };
 }
 
@@ -276,6 +294,10 @@ export async function csServices(cfg: Config): Promise<Services> {
 export function csApp(config: Config, services: Services): Application {
   const router = csRouter(config, services);
   const app = new Application();
+
+  // start a subscriptions client, so that we can poll
+  const subscriptionClient = new Subscriptions(services.storage, IntertalkClient);
+  subscriptionClient.startPoll();
 
   app
     .use(errorHandler(config, services))

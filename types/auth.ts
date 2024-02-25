@@ -8,6 +8,7 @@ export type User = {
   name: string;
   role: string;
   password: string;
+  hash?: string;
   created: string;
 };
 
