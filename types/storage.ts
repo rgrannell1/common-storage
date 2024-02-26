@@ -168,6 +168,14 @@ export interface IValidateContent {
   validateContent<T>(topic: string, content: T[]): Promise<void>;
 }
 
+export interface ISetSubscriptionState {
+  setSubscriptionState(
+    target: string,
+    state: string,
+    message: string
+  ): Promise<void>;
+}
+
 // Subscriptions
 export interface IGetSubscription {
   getSubscription(id: string): Promise<Subscription | null>;
@@ -214,6 +222,7 @@ export interface IStorage
     IGetBatch,
     IAddBatch,
     IValidateContent,
+    ISetSubscriptionState,
     IGetSubscription,
     IGetSubscriptions,
     IGetSubscriptionState,
@@ -226,6 +235,7 @@ export type SubscriptionStorage =
   & IGetTopicStats
   & IGetSubscriptions
   & IGetSubscriptionState
+  & ISetSubscriptionState
   & IAddContent
   & IAddSubscription
   & IValidateContent;

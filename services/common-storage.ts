@@ -483,6 +483,13 @@ export class CommonStorage implements IStorage {
     }
   }
 
+  async setSubscriptionState(target: string, state: string, message: string) {
+    await this.backend.setValue(["subscription-state"], target, {
+      state,
+      message
+    });
+  }
+
   async addSubscription(
     source: string,
     target: string,

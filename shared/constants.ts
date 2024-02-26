@@ -16,3 +16,7 @@ export const PERMISSIONLESS_ROLE = "PERMISSIONLESS";
 
 // Namespaces
 export const SUBSCRIPION_TOPIC_PREFIX = "subscription.";
+
+// Subscription Statuses
+export const SUBSCRIPTION_FAILED = "failed";
+export const SUBSCRIPTION_OK = "ok";

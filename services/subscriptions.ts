@@ -1,6 +1,7 @@
 import type {
 AIntertalk,
   SubscriptionStorage,
+  User,
 } from "../types/index.ts";
 import {
   ContentInvalidError,
@@ -11,7 +12,7 @@ import {
   UserHasPermissionsError,
   UserNotFound,
 } from "../shared/errors.ts";
-import { PERMISSIONLESS_ROLE } from "../shared/constants.ts";
+import { PERMISSIONLESS_ROLE, SUBSCRIPTION_FAILED } from "../shared/constants.ts";
 import { IntertalkClient } from "./intertalk.ts";
 
 /**
@@ -24,6 +25,61 @@ export class Subscriptions {
   constructor(storage: SubscriptionStorage, intertalk: any) {
     this.storage = storage;
     this.intertalk = intertalk;
+  }
+
+  async fetchRemoteContent(user: User, source: string, topic: string, nextId: number) {
+    // Establish a connection to the second common-storage server
+    let response: Response;
+    try {
+      const client = new this.intertalk(IntertalkClient.baseurl(source));
+      response = await client.contentGet(
+        topic,
+        nextId,
+        user.name,
+        user.password,
+      );
+    } catch (err) {
+      // TODO can fail for many many reasons
+      throw new NetworkError(`Failed to connect to the source server: ${err}`);
+    }
+
+    // check the response is even JSON
+    let resBody: unknown;
+    try {
+      resBody = await response.json();
+    } catch (err) {
+      throw new JSONError(
+        `Could not parse response from requested server as JSON`,
+      );
+    }
+
+    // Validate "content" property exists
+    if (!Object.prototype.hasOwnProperty.call(resBody, "content")) {
+      throw new ContentInvalidError(
+        `The requested server returned a response to /content/<your-topic> without a "content" property`,
+      );
+    }
+
+    // Validate "content" property is an array
+    if (!Array.isArray((resBody as { content: unknown }).content)) {
+      throw new ContentInvalidError(
+        `The requested server returned a response to /content/<your-topic> with a non-array "content" property`,
+      );
+    }
+
+    // Add the content to the server
+    const content = (resBody as { content: unknown[] }).content;
+
+    // Validate the content before attempting to save the subscription
+    await this.storage.validateContent(topic, content);
+
+    return content;
+  }
+
+  async getNextId(topic: string) {
+    // We need to find a start-id to enumerate from
+    const subscriptionState = await this.storage.getSubscriptionState(topic);
+    return subscriptionState?.lastId ? subscriptionState.lastId + 1 : 0;
   }
 
   /*
@@ -66,54 +122,8 @@ export class Subscriptions {
       }
     }
 
-    // We need to find a start-id to enumerate from
-    const subscriptionState = await this.storage.getSubscriptionState(topic);
-    const nextId = subscriptionState?.lastId ? subscriptionState.lastId + 1 : 0;
-
-    // Establish a connection to the second common-storage server
-    let response: Response;
-    try {
-      const client = new this.intertalk(IntertalkClient.baseurl(source));
-      response = await client.contentGet(
-        topic,
-        nextId,
-        serviceAccount,
-        userData.password,
-      );
-    } catch (err) {
-      // TODO can fail for many many reasons
-      throw new NetworkError(`Failed to connect to the source server: ${err}`);
-    }
-
-    // check the response is even JSON
-    let resBody: unknown;
-    try {
-      resBody = await response.json();
-    } catch (err) {
-      throw new JSONError(
-        `Could not parse response from requested server as JSON`,
-      );
-    }
-
-    // Validate "content" property exists
-    if (!Object.prototype.hasOwnProperty.call(resBody, "content")) {
-      throw new ContentInvalidError(
-        `The requested server returned a response to /content/<your-topic> without a "content" property`,
-      );
-    }
-
-    // Validate "content" property is an array
-    if (!Array.isArray((resBody as { content: unknown }).content)) {
-      throw new ContentInvalidError(
-        `The requested server returned a response to /content/<your-topic> with a non-array "content" property`,
-      );
-    }
-
-    // Add the content to the server
-    const content = (resBody as { content: unknown[] }).content;
-
-    // Validate the content before attempting to save the subscription
-    await this.storage.validateContent(topic, content);
+    const nextId = await this.getNextId(topic);
+    const content = await this.fetchRemoteContent(userData, source, topic, nextId);
 
     // Save a subscription
     await this.storage.addSubscription(
@@ -121,10 +131,21 @@ export class Subscriptions {
       topic,
       serviceAccount,
       frequency,
-    );
+      );
+      await this.storage.addContent(undefined, topic, content);
 
-    // Attempt to add the content
-    await this.storage.addContent(undefined, topic, content);
+    // we've performed an initial sync; now lets sync more of the content
+    // up to some limit
+    for (let breaker = 0; breaker < 100; breaker++) {
+      const nextId = await this.getNextId(topic);
+      const content = await this.fetchRemoteContent(userData, source, topic, nextId);
+
+      if (content.length === 0) {
+        break;
+      }
+
+      await this.storage.addContent(undefined, topic, content);
+    }
   }
 
   /*
@@ -139,7 +160,7 @@ export class Subscriptions {
         const topicData = await this.storage.getTopicStats(subsciption.target);
 
         if (!topicData) {
-          // TODO log an error, this should not happpen
+          await this.storage.setSubscriptionState(subsciption.target, SUBSCRIPTION_FAILED, `Topic "${subsciption.target}" does not exist"`);
           continue;
         }
 
