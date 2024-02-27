@@ -92,3 +92,5 @@ export class InvalidUrlError extends Error {}
 export class BatchClosedError extends Error {}
 
 export class MultipleSubscriptionError extends Error {}
+
+export class SubscriptionAuthorisationError extends Error {}

@@ -4,13 +4,14 @@ const parts = {
     description: "A logical grouping of data under a schema",
     minLength: 1,
     maxLength: 128,
+    pattern: "^[^\/]+$"
   },
   subscriptionTopic: {
     type: "string",
     description: "A topic that remote subscriptions are synced into",
     minLength: 1,
     maxLength: 128,
-    pattern: "^subscription\..+",
+    pattern: "^subscription\..+$",
   },
   username: {
     type: "string",
@@ -110,7 +111,7 @@ const parts = {
     type: "string",
     description: "A URL to a topic on another common-storage server",
     maxLength: 1024,
-    pattern: "^https://.+/topic/.+$",
+    pattern: "^http[s]{0,1}://.+/topic/.+$",
   },
   frequency: {
     type: "number",

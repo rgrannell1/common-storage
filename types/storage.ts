@@ -172,7 +172,7 @@ export interface ISetSubscriptionState {
   setSubscriptionState(
     target: string,
     state: string,
-    message: string
+    message: string,
   ): Promise<void>;
 }
 
@@ -199,7 +199,12 @@ export interface IAddSubscription {
 }
 
 export abstract class AIntertalk {
-  abstract contentGet(topic: string, startId: number, username: string, password: string): Promise<Response>
+  abstract contentGet(
+    topic: string,
+    startId: number,
+    username: string,
+    password: string,
+  ): Promise<Response>;
 }
 
 export interface IStorage
@@ -239,7 +244,6 @@ export type SubscriptionStorage =
   & IAddContent
   & IAddSubscription
   & IValidateContent;
-
 
 type Row<T> = [(string | number)[], T];
 

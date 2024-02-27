@@ -11,6 +11,7 @@ import { IntertalkClient } from "../services/intertalk.ts";
 import {
   ContentInvalidError,
   NetworkError,
+  SubscriptionAuthorisationError,
   TopicNotFoundError,
   TopicValidationError,
   UserHasPermissionsError,
@@ -36,7 +37,9 @@ const errorMap = new Map<any, number>([
   [NetworkError, Status.InternalServerError],
   [JSONError, Status.BadGateway],
   [ContentInvalidError, Status.BadGateway],
+  [NetworkError, Status.BadGateway],
   [TopicValidationError, Status.UnprocessableEntity],
+  [SubscriptionAuthorisationError, Status.Unauthorized],
 ]);
 
 export function postSubscription(
@@ -57,7 +60,7 @@ export function postSubscription(
     schema("subscriptionPost", ctx.params, RequestPart.Params);
     schema("subscriptionPost", body, RequestPart.Body);
 
-    const { topic } = ctx.params.topic;
+    const { topic } = ctx.params;
     const { source, serviceAccount, frequency } = body;
 
     const subscriptionClient = new Subscriptions(storage, IntertalkClient);

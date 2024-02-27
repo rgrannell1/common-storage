@@ -1,18 +1,18 @@
-import type {
-AIntertalk,
-  SubscriptionStorage,
-  User,
-} from "../types/index.ts";
+import type { AIntertalk, SubscriptionStorage, User } from "../types/index.ts";
 import {
   ContentInvalidError,
   JSONError,
   MultipleSubscriptionError,
   NetworkError,
+  SubscriptionAuthorisationError,
   TopicNotFoundError,
   UserHasPermissionsError,
   UserNotFound,
 } from "../shared/errors.ts";
-import { PERMISSIONLESS_ROLE, SUBSCRIPTION_FAILED } from "../shared/constants.ts";
+import {
+  PERMISSIONLESS_ROLE,
+  SUBSCRIPTION_FAILED,
+} from "../shared/constants.ts";
 import { IntertalkClient } from "./intertalk.ts";
 
 /**
@@ -20,27 +20,41 @@ import { IntertalkClient } from "./intertalk.ts";
  */
 export class Subscriptions {
   storage: SubscriptionStorage;
-  intertalk: any
+  intertalk: any;
 
   constructor(storage: SubscriptionStorage, intertalk: any) {
     this.storage = storage;
     this.intertalk = intertalk;
   }
 
-  async fetchRemoteContent(user: User, source: string, topic: string, nextId: number) {
+  async fetchRemoteContent(
+    user: User,
+    source: string,
+    nextId: number,
+  ) {
     // Establish a connection to the second common-storage server
     let response: Response;
+
     try {
-      const client = new this.intertalk(IntertalkClient.baseurl(source));
+      const client = new this.intertalk();
       response = await client.contentGet(
-        topic,
+        source,
         nextId,
         user.name,
         user.password,
       );
     } catch (err) {
-      // TODO can fail for many many reasons
+      if (err.message.includes('tcp connect error')) {
+        throw new NetworkError(`Failed to establish a TCP connection to${source}`);
+      }
+
       throw new NetworkError(`Failed to connect to the source server: ${err}`);
+    }
+
+    if (response.status === 401) {
+      throw new SubscriptionAuthorisationError(
+        `The service-account "${user.name}" is not authorised to access /content/<your-topic>`,
+      );
     }
 
     // check the response is even JSON
@@ -123,7 +137,11 @@ export class Subscriptions {
     }
 
     const nextId = await this.getNextId(topic);
-    const content = await this.fetchRemoteContent(userData, source, topic, nextId);
+    const content = await this.fetchRemoteContent(
+      userData,
+      source,
+      nextId,
+    );
 
     // Save a subscription
     await this.storage.addSubscription(
@@ -131,14 +149,18 @@ export class Subscriptions {
       topic,
       serviceAccount,
       frequency,
-      );
-      await this.storage.addContent(undefined, topic, content);
+    );
+    await this.storage.addContent(undefined, topic, content);
 
     // we've performed an initial sync; now lets sync more of the content
     // up to some limit
     for (let breaker = 0; breaker < 100; breaker++) {
       const nextId = await this.getNextId(topic);
-      const content = await this.fetchRemoteContent(userData, source, topic, nextId);
+      const content = await this.fetchRemoteContent(
+        userData,
+        source,
+        nextId,
+      );
 
       if (content.length === 0) {
         break;
@@ -160,7 +182,11 @@ export class Subscriptions {
         const topicData = await this.storage.getTopicStats(subsciption.target);
 
         if (!topicData) {
-          await this.storage.setSubscriptionState(subsciption.target, SUBSCRIPTION_FAILED, `Topic "${subsciption.target}" does not exist"`);
+          await this.storage.setSubscriptionState(
+            subsciption.target,
+            SUBSCRIPTION_FAILED,
+            `Topic "${subsciption.target}" does not exist"`,
+          );
           continue;
         }
 

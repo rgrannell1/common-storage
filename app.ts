@@ -65,7 +65,6 @@ export function csRouter(config: Config, services: Services) {
       adminMiddleware,
       postUser(config, services) as any,
     )
-
     // ++ ++ SUBSCRIPTION
     .post(
       "/subscription/:topic",
@@ -136,8 +135,7 @@ export function csRouter(config: Config, services: Services) {
       rateLimitMiddleware,
       roleMiddleware,
       deleteTopic(config, services) as any,
-    )
-
+    );
 
   return router;
 }
@@ -279,7 +277,7 @@ export async function csServices(cfg: Config): Promise<Services> {
     storage,
     logger,
     schema: validateSchema,
-    intertalk: IntertalkClient
+    intertalk: IntertalkClient,
   };
 }
 
@@ -296,7 +294,10 @@ export function csApp(config: Config, services: Services): Application {
   const app = new Application();
 
   // start a subscriptions client, so that we can poll
-  const subscriptionClient = new Subscriptions(services.storage, IntertalkClient);
+  const subscriptionClient = new Subscriptions(
+    services.storage,
+    IntertalkClient,
+  );
   subscriptionClient.startPoll();
 
   app
