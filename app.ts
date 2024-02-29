@@ -8,7 +8,7 @@ import { schema } from "./shared/schema.ts";
 
 import { InputValidationError, JSONError } from "./shared/errors.ts";
 
-import type { Config, Services } from "./types/index.ts";
+import type { AppData, Config, Services } from "./types/index.ts";
 import { RequestPart } from "./types/index.ts";
 import { StorageLogger } from "./services/storage-logger.ts";
 import { ConsoleLogger } from "./services/console-logger.ts";
@@ -289,7 +289,7 @@ export async function csServices(cfg: Config): Promise<Services> {
  *
  * @returns The application
  */
-export function csApp(config: Config, services: Services): Application {
+export function csApp(config: Config, services: Services): AppData {
   const router = csRouter(config, services);
   const app = new Application();
 
@@ -298,7 +298,7 @@ export function csApp(config: Config, services: Services): Application {
     services.storage,
     IntertalkClient,
   );
-  subscriptionClient.startPoll();
+  const subscriptionsPid = subscriptionClient.startPoll();
 
   app
     .use(errorHandler(config, services))
@@ -307,7 +307,7 @@ export function csApp(config: Config, services: Services): Application {
     .use(router.allowedMethods())
     .use(notFound(config, services));
 
-  return app;
+  return {app, subscriptionsPid};
 }
 
 /*
@@ -318,13 +318,19 @@ export function csApp(config: Config, services: Services): Application {
  *
  * @returns AbortController for the application
  */
-export function startApp(app: Application, config: Config) {
+export function startApp(appData: AppData, config: Config) {
   const controller = new AbortController();
+
+  const {app, subscriptionsPid} = appData;
 
   app.listen({
     port: config.port,
     signal: controller.signal,
   });
+
+  controller.signal.onabort = () => {
+    clearInterval(subscriptionsPid);
+  }
 
   return controller;
 }

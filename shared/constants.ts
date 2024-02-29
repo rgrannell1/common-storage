@@ -22,4 +22,4 @@ export const SUBSCRIPTION_FAILED = "failed";
 export const SUBSCRIPTION_OK = "ok";
 
 //
-export const SUBSCRIPTION_DELAY = 3_000;
+export const SUBSCRIPTION_DELAY = 1_500;

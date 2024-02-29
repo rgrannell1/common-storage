@@ -1,4 +1,5 @@
 import type { Request } from "https://deno.land/x/oak@v12.6.2/mod.ts";
+import { Application } from "https://deno.land/x/oak@v12.6.2/mod.ts";
 
 import type { Permission, Role, User } from "./auth.ts";
 
@@ -205,6 +206,11 @@ export abstract class AIntertalk {
     username: string,
     password: string,
   ): Promise<Response>;
+}
+
+export type AppData = {
+  app: Application,
+  subscriptionsPid: number
 }
 
 export interface IStorage
