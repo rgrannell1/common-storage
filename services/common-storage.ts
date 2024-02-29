@@ -338,11 +338,11 @@ export class CommonStorage implements IStorage {
 
       if (topic.startsWith(SUBSCRIPION_TOPIC_PREFIX)) {
         // increment the last-id (so subscription polling can pick up), and update the subscription ID
+        subscriptionLastId++;
         atomicDataUpdate.push([
           ["subscription-last-id", topic],
           subscriptionLastId,
         ]);
-        subscriptionLastId++;
       }
 
       await this.backend.setValues(atomicDataUpdate as any);

@@ -179,8 +179,8 @@ class LocalNoteServer extends TestServer {
         serviceAccount: "notes_read",
         frequency: 60,
       });
-    console.log(await subscriptionCreate.json());
-    assertEquals(subscriptionCreate.status, 200);
+
+      assertEquals(subscriptionCreate.status, 200);
   }
 }
 

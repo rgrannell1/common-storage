@@ -25,7 +25,7 @@
     {
       "label": "Remove Local Server",
       "type": "shell",
-      "command": "rm /tmp/local-server",
+      "command": "rm /tmp/local-server || true",
       "group": {
         "kind": "build",
         "isDefault": true
@@ -34,7 +34,7 @@
     {
       "label": "Remove Remote Server",
       "type": "shell",
-      "command": "rm /tmp/remote-server",
+      "command": "rm /tmp/remote-server || true",
       "group": {
         "kind": "build",
         "isDefault": true

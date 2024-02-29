@@ -65,6 +65,7 @@ export function postSubscription(
 
     const subscriptionClient = new Subscriptions(storage, IntertalkClient);
 
+    // TODO this should be async!
     // sync the subsciption data, which also stores a subscription
     try {
       await subscriptionClient.sync(source, topic, serviceAccount, frequency);
@@ -88,5 +89,10 @@ export function postSubscription(
       });
       return;
     }
+
+    ctx.response.status = Status.OK;
+    ctx.response.body = JSON.stringify({
+
+    });
   };
 }
