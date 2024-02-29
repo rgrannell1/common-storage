@@ -1,4 +1,5 @@
-import type { AIntertalk, SubscriptionStorage, User } from "../types/index.ts";
+import type { SubscriptionStorage, User } from "../types/index.ts";
+
 import {
   ContentInvalidError,
   JSONError,
@@ -11,9 +12,9 @@ import {
 } from "../shared/errors.ts";
 import {
   PERMISSIONLESS_ROLE,
+  SUBSCRIPTION_DELAY,
   SUBSCRIPTION_FAILED,
 } from "../shared/constants.ts";
-import { IntertalkClient } from "./intertalk.ts";
 
 /**
  * Represents a class that handles subscriptions.
@@ -29,6 +30,7 @@ export class Subscriptions {
 
   async fetchRemoteContent(
     user: User,
+    topic: string,
     source: string,
     nextId: number,
   ) {
@@ -44,16 +46,19 @@ export class Subscriptions {
         user.password,
       );
     } catch (err) {
-      if (err.message.includes('tcp connect error')) {
-        throw new NetworkError(`Failed to establish a TCP connection to${source}`);
+      if (err.message.includes("tcp connect error")) {
+        throw new NetworkError(
+          `Failed to establish a TCP connection to${source}`,
+        );
       }
 
       throw new NetworkError(`Failed to connect to the source server: ${err}`);
     }
 
     if (response.status === 401) {
+      console.log(await response.json());
       throw new SubscriptionAuthorisationError(
-        `The service-account "${user.name}" is not authorised to access /content/<your-topic>`,
+        `The service-account "${user.name}" is not authorised to access remote topic "${source}"`,
       );
     }
 
@@ -70,14 +75,14 @@ export class Subscriptions {
     // Validate "content" property exists
     if (!Object.prototype.hasOwnProperty.call(resBody, "content")) {
       throw new ContentInvalidError(
-        `The requested server returned a response to /content/<your-topic> without a "content" property`,
+        `The requested server returned a response to ${source} without a "content" property`,
       );
     }
 
     // Validate "content" property is an array
     if (!Array.isArray((resBody as { content: unknown }).content)) {
       throw new ContentInvalidError(
-        `The requested server returned a response to /content/<your-topic> with a non-array "content" property`,
+        `The requested server returned a response to ${source} with a non-array "content" property`,
       );
     }
 
@@ -139,6 +144,7 @@ export class Subscriptions {
     const nextId = await this.getNextId(topic);
     const content = await this.fetchRemoteContent(
       userData,
+      topic,
       source,
       nextId,
     );
@@ -155,9 +161,14 @@ export class Subscriptions {
     // we've performed an initial sync; now lets sync more of the content
     // up to some limit
     for (let breaker = 0; breaker < 100; breaker++) {
+      await new Promise(res => {
+        setTimeout(res, SUBSCRIPTION_DELAY);
+      });
+
       const nextId = await this.getNextId(topic);
       const content = await this.fetchRemoteContent(
         userData,
+        topic,
         source,
         nextId,
       );

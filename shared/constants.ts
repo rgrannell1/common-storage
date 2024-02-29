@@ -20,3 +20,6 @@ export const SUBSCRIPION_TOPIC_PREFIX = "subscription.";
 // Subscription Statuses
 export const SUBSCRIPTION_FAILED = "failed";
 export const SUBSCRIPTION_OK = "ok";
+
+//
+export const SUBSCRIPTION_DELAY = 3_000;

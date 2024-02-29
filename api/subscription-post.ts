@@ -83,7 +83,7 @@ export function postSubscription(
       // pass the message forward
       ctx.response.body = JSON.stringify({
         error: code === Status.InternalServerError
-          ? "Internal service error"
+          ? "Internal server error"
           : err.message,
       });
       return;

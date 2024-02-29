@@ -11,7 +11,7 @@ abstract class TestServer {
   abstract config(): any;
 
   constructor() {
-    this._config = this.config()
+    this._config = this.config();
   }
   async start() {
     this.services = await csServices(this._config);
@@ -37,13 +37,14 @@ class RemoteNoteServer extends TestServer {
       logger: "console",
       adminUsername: "admin",
       adminPassword: "admin",
-    }
+      kvPath: "/tmp/remote-server",
+    };
   }
 
   async createNotesReadWriteAccount() {
     const roleCreate = await this.client()
       .withCredentials(this._config.adminUsername, this._config.adminPassword)
-      .postRole('notes_read_write', {
+      .postRole("notes_read_write", {
         permissions: [{
           routes: ["POST /topic", "POST /content", "GET /content"],
           topics: ["notes"],
@@ -54,9 +55,9 @@ class RemoteNoteServer extends TestServer {
 
     const userCreate = await this.client()
       .withCredentials(this._config.adminUsername, this._config.adminPassword)
-      .postUser('notes_read_write', {
-        role: 'notes_read_write',
-        password: 'pwd_notes_read_write',
+      .postUser("notes_read_write", {
+        role: "notes_read_write",
+        password: "pwd_notes_read_write",
       });
 
     assertEquals(userCreate.status, 200);
@@ -65,28 +66,28 @@ class RemoteNoteServer extends TestServer {
   async createNotesReadAccount() {
     const roleCreate = await this.client()
       .withCredentials(this._config.adminUsername, this._config.adminPassword)
-      .postRole('notes_read', {
+      .postRole("notes_read", {
         permissions: [{
           routes: ["GET /content"],
           topics: ["notes"],
         }],
       });
 
-      assertEquals(roleCreate.status, 200);
+    assertEquals(roleCreate.status, 200);
 
-      const userCreate = await this.client()
-        .withCredentials(this._config.adminUsername, this._config.adminPassword)
-        .postUser('notes_read', {
-          role: 'notes_read',
-          password: 'pwd_notes_read',
-        });
+    const userCreate = await this.client()
+      .withCredentials(this._config.adminUsername, this._config.adminPassword)
+      .postUser("notes_read", {
+        role: "notes_read",
+        password: "pwd_notes_read",
+      });
 
-      assertEquals(userCreate.status, 200);
+    assertEquals(userCreate.status, 200);
   }
 
   async createNotesTopic() {
     const topicCreate = await this.client()
-      .withCredentials('notes_read_write', 'pwd_notes_read_write')
+      .withCredentials("notes_read_write", "pwd_notes_read_write")
       .postTopic("notes", {
         description: "These sure are some JSON-formatted notes!",
         schema: {
@@ -105,22 +106,25 @@ class RemoteNoteServer extends TestServer {
 
   async addNotes() {
     const postBadContent = await this.client()
-      .withCredentials('notes_read_write', 'pwd_notes_read_write')
+      .withCredentials("notes_read_write", "pwd_notes_read_write")
       .postContent("notes", {
         content: [{
-          title: "This is only a title"
-        }]
+          title: "This is only a title",
+        }],
       });
 
-      assertEquals(postBadContent.status, 422);
+    assertEquals(postBadContent.status, 422);
 
-      const postValidContent = await this.client()
-        .withCredentials('notes_read_write', 'pwd_notes_read_write')
-        .postContent("notes", {
-          content: Array(20).fill({title: "All work and no play", content: "Makes Jack a dull boy"})
-        });
+    const postValidContent = await this.client()
+      .withCredentials("notes_read_write", "pwd_notes_read_write")
+      .postContent("notes", {
+        content: Array(20).fill({
+          title: "All work and no play",
+          content: "Makes Jack a dull boy",
+        }),
+      });
 
-      assertEquals(postValidContent.status, 200);
+    assertEquals(postValidContent.status, 200);
   }
 }
 
@@ -133,34 +137,52 @@ class LocalNoteServer extends TestServer {
       logger: "console",
       adminUsername: "admin",
       adminPassword: "admin",
-    }
+      kvPath: "/tmp/local-server",
+    };
   }
 
   async createServiceAccount() {
-      const userCreate = await this.client()
-        .withCredentials(this._config.adminUsername, this._config.adminPassword)
-        .postUser('notes_read', {
-          role: 'PERMISSIONLESS',
-          password: 'pwd_notes_read',
-        });
+    const userCreate = await this.client()
+      .withCredentials(this._config.adminUsername, this._config.adminPassword)
+      .postUser("notes_read", {
+        role: "PERMISSIONLESS",
+        password: "pwd_notes_read",
+      });
 
-      assertEquals(userCreate.status, 200);
+    assertEquals(userCreate.status, 200);
+  }
+
+  async createSubscriptionTopic() {
+    const topicCreate = await this.client()
+      .withCredentials(this._config.adminUsername, this._config.adminPassword)
+      .postTopic("subscription.notes", {
+        description: "These are notes from a remote server",
+        schema: {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            content: { type: "string" },
+          },
+          required: ["title", "content"],
+        },
+      });
+
+    assertEquals(topicCreate.status, 200);
   }
 
   async subscribeToRemoteNotes(remotePort: number) {
     const subscriptionCreate = await this.client()
       .withCredentials(this._config.adminUsername, this._config.adminPassword)
-      .postSubscription('subscription.notes', {
-        source: `http://localhost:${remotePort}/topic/notes`,
-        serviceAccount: 'notes_read',
-        frequency: 60
+      .postSubscription("subscription.notes", {
+        source: `http://localhost:${remotePort}/content/notes`,
+        serviceAccount: "notes_read",
+        frequency: 60,
       });
-
+    console.log(await subscriptionCreate.json());
     assertEquals(subscriptionCreate.status, 200);
   }
 }
-
-
 
 const localServer = new LocalNoteServer();
 const remoteServer = new RemoteNoteServer();
@@ -168,13 +190,13 @@ const remoteServer = new RemoteNoteServer();
 await localServer.start();
 await remoteServer.start();
 
-
 await remoteServer.createNotesReadAccount();
 await remoteServer.createNotesReadWriteAccount();
 await remoteServer.createNotesTopic();
 await remoteServer.addNotes();
 
 await localServer.createServiceAccount();
+await localServer.createSubscriptionTopic();
 await localServer.subscribeToRemoteNotes(remoteServer.config().port);
 
 await localServer.stop();

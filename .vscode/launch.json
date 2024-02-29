@@ -17,6 +17,7 @@
         "--inspect-wait",
         "--allow-all"
       ],
+      "preLaunchTask": "Acceptance Test Build",
       "attachSimplePort": 9229
     }
   ]
