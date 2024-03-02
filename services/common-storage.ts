@@ -17,6 +17,7 @@ import { IStorageBackend } from "../types/storage.ts";
 import { Role, User } from "../types/auth.ts";
 import { Subscription, Topic } from "../types/storage.ts";
 import * as bcrypt from "https://deno.land/x/bcrypt/mod.ts";
+import { SubscriptionSyncProgress } from "../types/storage.ts";
 
 export class CommonStorage implements IStorage {
   backend: IStorageBackend;
@@ -459,6 +460,15 @@ export class CommonStorage implements IStorage {
     }
 
     return subscription;
+  }
+
+  async setSubscriptionProgress(
+    topic: string,
+    progress: SubscriptionSyncProgress,
+  ) {
+    await this.backend.setValues([
+      [["subscriptions-progress", topic], progress],
+    ]);
   }
 
   async getSubscriptionState(id: string) {

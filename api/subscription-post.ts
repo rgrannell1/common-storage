@@ -22,7 +22,7 @@ import { Subscriptions } from "../services/subscriptions.ts";
 import { JSONError } from "../shared/errors.ts";
 import {
   SubscriptionSyncProgress,
-  SubscriptionSyncState
+  SubscriptionSyncState,
 } from "../types/index.ts";
 
 type Services = {
@@ -77,17 +77,16 @@ export function postSubscription(
     );
 
     try {
-      await Iter.takeWhile(({state}: SubscriptionSyncProgress ) => {
+      await Iter.takeWhile(({ state }: SubscriptionSyncProgress) => {
         return state !== SubscriptionSyncState.FIRST_CONTENT_SAVED;
       }, syncGenerator);
 
       // this should be logged
       setTimeout(async () => {
         for await (const progress of syncGenerator) {
-          //console.log(progress)
+          await storage.setSubscriptionProgress(topic, progress);
         }
       });
-
     } catch (err) {
       let code = Status.InternalServerError;
 
@@ -111,5 +110,5 @@ export function postSubscription(
 
     ctx.response.status = Status.OK;
     ctx.response.body = JSON.stringify({});
-  }
+  };
 }

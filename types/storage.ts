@@ -182,6 +182,13 @@ export interface IGetSubscription {
   getSubscription(id: string): Promise<Subscription | null>;
 }
 
+export interface ISetSubscriptionProgress {
+  setSubscriptionProgress(
+    topic: string,
+    progress: SubscriptionSyncProgress,
+  ): Promise<void>;
+}
+
 export interface IGetSubscriptions {
   getSubscriptions(): AsyncGenerator<Subscription>;
 }
@@ -208,9 +215,9 @@ export enum SubscriptionSyncState {
 }
 
 export type SubscriptionSyncProgress = {
-  state: SubscriptionSyncState,
-  startId: number
-}
+  state: SubscriptionSyncState;
+  startId: number;
+};
 
 export abstract class AIntertalk {
   abstract contentGet(
@@ -248,6 +255,7 @@ export interface IStorage
     IValidateContent,
     ISetSubscriptionState,
     IGetSubscription,
+    ISetSubscriptionProgress,
     IGetSubscriptions,
     IGetSubscriptionState,
     IAddSubscription {}
@@ -258,6 +266,7 @@ export type SubscriptionStorage =
   & IGetTopic
   & IGetTopicStats
   & IGetSubscriptions
+  & ISetSubscriptionProgress
   & IGetSubscriptionState
   & ISetSubscriptionState
   & IAddContent

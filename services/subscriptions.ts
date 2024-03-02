@@ -154,7 +154,7 @@ export class Subscriptions {
 
     yield {
       state: SubscriptionSyncState.FIRST_CONTENT_FETCH_OK,
-      startId: nextId
+      startId: nextId,
     };
 
     // Save a subscription
@@ -167,14 +167,14 @@ export class Subscriptions {
 
     yield {
       state: SubscriptionSyncState.SUBSCRIPTION_SAVED,
-      startId: nextId
+      startId: nextId,
     };
 
     await this.storage.addContent(undefined, topic, content);
 
     yield {
       state: SubscriptionSyncState.FIRST_CONTENT_SAVED,
-      startId: nextId
+      startId: nextId,
     };
 
     // we've performed an initial sync; now lets sync more of the content
@@ -201,13 +201,13 @@ export class Subscriptions {
 
       yield {
         state: SubscriptionSyncState.CONTENT_SAVED,
-        startId: nextId
+        startId: nextId,
       };
     }
 
     yield {
       state: SubscriptionSyncState.SYNC_COMPLETED,
-      startId: nextId
+      startId: nextId,
     };
   }
 
