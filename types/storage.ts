@@ -199,6 +199,19 @@ export interface IAddSubscription {
   ): Promise<{ existed: boolean }>;
 }
 
+export enum SubscriptionSyncState {
+  FIRST_CONTENT_FETCH_OK = "first_content_fetch_ok",
+  SUBSCRIPTION_SAVED = "subscription_saved",
+  FIRST_CONTENT_SAVED = "first_content_saved",
+  CONTENT_SAVED = "content_saved",
+  SYNC_COMPLETED = "sync_completed",
+}
+
+export type SubscriptionSyncProgress = {
+  state: SubscriptionSyncState,
+  startId: number
+}
+
 export abstract class AIntertalk {
   abstract contentGet(
     topic: string,

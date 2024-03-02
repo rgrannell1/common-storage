@@ -17,8 +17,13 @@ import {
   UserHasPermissionsError,
   UserNotFound,
 } from "../shared/errors.ts";
+import * as Iter from "../shared/iter.ts";
 import { Subscriptions } from "../services/subscriptions.ts";
 import { JSONError } from "../shared/errors.ts";
+import {
+  SubscriptionSyncProgress,
+  SubscriptionSyncState
+} from "../types/index.ts";
 
 type Services = {
   storage: SubscriptionStorage;
@@ -64,11 +69,25 @@ export function postSubscription(
     const { source, serviceAccount, frequency } = body;
 
     const subscriptionClient = new Subscriptions(storage, IntertalkClient);
+    const syncGenerator = subscriptionClient.sync(
+      source,
+      topic,
+      serviceAccount,
+      frequency,
+    );
 
-    // TODO this should be async!
-    // sync the subsciption data, which also stores a subscription
     try {
-      await subscriptionClient.sync(source, topic, serviceAccount, frequency);
+      await Iter.takeWhile(({state}: SubscriptionSyncProgress ) => {
+        return state !== SubscriptionSyncState.FIRST_CONTENT_SAVED;
+      }, syncGenerator);
+
+      // this should be logged
+      setTimeout(async () => {
+        for await (const progress of syncGenerator) {
+          //console.log(progress)
+        }
+      });
+
     } catch (err) {
       let code = Status.InternalServerError;
 
@@ -92,5 +111,5 @@ export function postSubscription(
 
     ctx.response.status = Status.OK;
     ctx.response.body = JSON.stringify({});
-  };
+  }
 }

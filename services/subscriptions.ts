@@ -1,4 +1,4 @@
-import type { SubscriptionStorage, User } from "../types/index.ts";
+import type { AIntertalk, SubscriptionStorage, User } from "../types/index.ts";
 
 import {
   ContentInvalidError,
@@ -16,6 +16,9 @@ import {
   SUBSCRIPTION_FAILED,
 } from "../shared/constants.ts";
 
+import { SubscriptionSyncState } from "../types/storage.ts";
+import { SubscriptionSyncProgress } from "../types/storage.ts";
+
 /**
  * Represents a class that handles subscriptions.
  */
@@ -32,7 +35,7 @@ export class Subscriptions {
     user: User,
     topic: string,
     source: string,
-    nextId: number,
+    startId: number,
   ) {
     // Establish a connection to the second common-storage server
     let response: Response;
@@ -41,7 +44,7 @@ export class Subscriptions {
       const client = new this.intertalk();
       response = await client.contentGet(
         source,
-        nextId,
+        startId,
         user.name,
         user.password,
       );
@@ -105,12 +108,12 @@ export class Subscriptions {
    * Sync content from a source URL to a target topic. Store a subscription
    * if not already stored.
    */
-  async sync(
+  async *sync(
     source: string,
     topic: string,
     serviceAccount: string,
     frequency: number,
-  ) {
+  ): AsyncGenerator<SubscriptionSyncProgress> {
     const topicData = await this.storage.getTopic(topic);
 
     // check the target topic actually exists. JSON schema
@@ -141,13 +144,18 @@ export class Subscriptions {
       }
     }
 
-    const nextId = await this.getNextId(topic);
+    let nextId = await this.getNextId(topic);
     const content = await this.fetchRemoteContent(
       userData,
       topic,
       source,
       nextId,
     );
+
+    yield {
+      state: SubscriptionSyncState.FIRST_CONTENT_FETCH_OK,
+      startId: nextId
+    };
 
     // Save a subscription
     await this.storage.addSubscription(
@@ -156,7 +164,18 @@ export class Subscriptions {
       serviceAccount,
       frequency,
     );
+
+    yield {
+      state: SubscriptionSyncState.SUBSCRIPTION_SAVED,
+      startId: nextId
+    };
+
     await this.storage.addContent(undefined, topic, content);
+
+    yield {
+      state: SubscriptionSyncState.FIRST_CONTENT_SAVED,
+      startId: nextId
+    };
 
     // we've performed an initial sync; now lets sync more of the content
     // up to some limit
@@ -165,7 +184,8 @@ export class Subscriptions {
         setTimeout(res, SUBSCRIPTION_DELAY);
       });
 
-      const nextId = await this.getNextId(topic);
+      nextId = await this.getNextId(topic);
+
       const content = await this.fetchRemoteContent(
         userData,
         topic,
@@ -178,7 +198,17 @@ export class Subscriptions {
       }
 
       await this.storage.addContent(undefined, topic, content);
+
+      yield {
+        state: SubscriptionSyncState.CONTENT_SAVED,
+        startId: nextId
+      };
     }
+
+    yield {
+      state: SubscriptionSyncState.SYNC_COMPLETED,
+      startId: nextId
+    };
   }
 
   /*

@@ -93,11 +93,13 @@ Deno.test("Subscriptions.sync() | fails when topic is not present", async () => 
 
   await assertRejects(
     async () => {
-      await sub.sync(
-        "http://example.com/",
-        "subscription.example",
-        "service-account",
-        60,
+      for await (
+        const _ of sub.sync(
+          "http://example.com/",
+          "subscription.example",
+          "service-account",
+          60,
+        )
       );
     },
     TopicNotFoundError,
@@ -114,11 +116,13 @@ Deno.test("Subscriptions.sync() | fails when user is not present", async () => {
 
   await assertRejects(
     async () => {
-      await sub.sync(
-        "http://example.com/",
-        "subscription.example",
-        "service-account",
-        60,
+      for await (
+        const _ of sub.sync(
+          "http://example.com/",
+          "subscription.example",
+          "service-account",
+          60,
+        )
       );
     },
     UserNotFound,
@@ -136,11 +140,13 @@ Deno.test("Subscriptions.sync() | fails when user has permissions", async () => 
 
   await assertRejects(
     async () => {
-      await sub.sync(
-        "http://example.com/",
-        "subscription.example",
-        "service-account",
-        60,
+      for await (
+        const _ of sub.sync(
+          "http://example.com/",
+          "subscription.example",
+          "service-account",
+          60,
+        )
       );
     },
     UserHasPermissionsError,
@@ -166,11 +172,13 @@ Deno.test("Subscriptions.sync() | fails when subscription already present", asyn
 
   await assertRejects(
     async () => {
-      await sub.sync(
-        "http://example.com/",
-        "subscription.example",
-        "service-account",
-        60,
+      for await (
+        const _ of sub.sync(
+          "http://example.com/",
+          "subscription.example",
+          "service-account",
+          60,
+        )
       );
     },
     MultipleSubscriptionError,
@@ -192,15 +200,17 @@ Deno.test("Subscriptions.sync() | handles invalid content responses", async () =
 
   await assertRejects(
     async () => {
-      await sub.sync(
-        "http://example.com/",
-        "subscription.example",
-        "service-account",
-        60,
+      for await (
+        const _ of sub.sync(
+          "http://example.com/",
+          "subscription.example",
+          "service-account",
+          60,
+        )
       );
     },
     ContentInvalidError,
-    'The requested server returned a response to /content/<your-topic> without a "content" property',
+    'without a "content" property',
   );
 });
 

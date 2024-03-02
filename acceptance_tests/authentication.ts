@@ -265,6 +265,9 @@ await localServer.createReadAcount();
 await localServer.createServiceAccount();
 await localServer.createSubscriptionTopic();
 await localServer.subscribeToRemoteNotes(remoteServer.config().port);
+
+await new Promise((res) => setTimeout(res, 4_000));
+
 await localServer.getContent();
 
 await localServer.stop();
