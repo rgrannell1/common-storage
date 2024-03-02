@@ -161,7 +161,7 @@ export class Subscriptions {
     // we've performed an initial sync; now lets sync more of the content
     // up to some limit
     for (let breaker = 0; breaker < 100; breaker++) {
-      await new Promise(res => {
+      await new Promise((res) => {
         setTimeout(res, SUBSCRIPTION_DELAY);
       });
 

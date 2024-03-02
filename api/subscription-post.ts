@@ -91,8 +91,6 @@ export function postSubscription(
     }
 
     ctx.response.status = Status.OK;
-    ctx.response.body = JSON.stringify({
-
-    });
+    ctx.response.body = JSON.stringify({});
   };
 }

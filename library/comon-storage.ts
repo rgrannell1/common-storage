@@ -77,8 +77,12 @@ export class CommonStorageClient {
       JSON.stringify(opts),
     );
   }
-  getContent(topic: string) {
-    return this.#performApiCall("GET", `/content/${topic}`);
+  getContent(topic: string, startId?: number) {
+    const path = typeof startId !== "undefined"
+      ? `/content/${topic}?startId=${startId}`
+      : `/content/${topic}`;
+
+    return this.#performApiCall("GET", path);
   }
   postContent(topic: string, opts: PostContentOpts) {
     return this.#performApiCall(

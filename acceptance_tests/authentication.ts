@@ -1,3 +1,4 @@
+import { assert } from "https://deno.land/std@0.211.0/assert/assert.ts";
 import { csApp, csServices, startApp } from "../app.ts";
 import { CommonStorageClient } from "../library/comon-storage.ts";
 import { assertEquals } from "https://deno.land/std@0.202.0/assert/assert_equals.ts";
@@ -115,14 +116,18 @@ class RemoteNoteServer extends TestServer {
 
     assertEquals(postBadContent.status, 422);
 
+    const content: { title: string; content: string }[] = [];
+
+    for (let idx = 0; idx < 20; idx++) {
+      content.push({
+        title: `${idx}`,
+        content: "All work and no play makes Jack a dull boy",
+      });
+    }
+
     const postValidContent = await this.client()
       .withCredentials("notes_read_write", "pwd_notes_read_write")
-      .postContent("notes", {
-        content: Array(20).fill({
-          title: "All work and no play",
-          content: "Makes Jack a dull boy",
-        }),
-      });
+      .postContent("notes", { content });
 
     assertEquals(postValidContent.status, 200);
   }
@@ -139,6 +144,28 @@ class LocalNoteServer extends TestServer {
       adminPassword: "admin",
       kvPath: "/tmp/local-server",
     };
+  }
+
+  async createReadAcount() {
+    const roleCreate = await this.client()
+      .withCredentials(this._config.adminUsername, this._config.adminPassword)
+      .postRole("local_read", {
+        permissions: [{
+          routes: ["GET /content"],
+          topics: ["subscription.notes"],
+        }],
+      });
+
+    assertEquals(roleCreate.status, 200);
+
+    const userCreate = await this.client()
+      .withCredentials(this._config.adminUsername, this._config.adminPassword)
+      .postUser("local_notes_read", {
+        role: "local_read",
+        password: "pwd_local_notes_read",
+      });
+
+    assertEquals(userCreate.status, 200);
   }
 
   async createServiceAccount() {
@@ -180,7 +207,46 @@ class LocalNoteServer extends TestServer {
         frequency: 60,
       });
 
-      assertEquals(subscriptionCreate.status, 200);
+    assertEquals(subscriptionCreate.status, 200);
+  }
+
+  async getContent() {
+    const firstGet = await this.client()
+      .withCredentials("local_notes_read", "pwd_local_notes_read")
+      .getContent("subscription.notes", 0);
+    const firstBody = await firstGet.json();
+
+    assertEquals(firstBody.startId, 0);
+    assertEquals(firstBody.lastId, 9);
+    assertEquals(firstBody.nextId, 10);
+    assertEquals(firstBody.content.length, 10);
+
+    assertEquals(firstGet.status, 200);
+
+    const secondGet = await this.client()
+      .withCredentials("local_notes_read", "pwd_local_notes_read")
+      .getContent("subscription.notes", 10);
+
+    const secondBody = await secondGet.json();
+
+    assertEquals(secondBody.startId, 10);
+    assertEquals(secondBody.lastId, 19);
+    assertEquals(secondBody.nextId, 20);
+    assertEquals(secondBody.content.length, 10);
+
+    assertEquals(secondGet.status, 200);
+
+    const lastGet = await this.client()
+      .withCredentials("local_notes_read", "pwd_local_notes_read")
+      .getContent("subscription.notes", 20);
+
+    const lastBody = await lastGet.json();
+
+    assertEquals(lastBody.startId, 20);
+    assertEquals(lastBody.nextId, 20);
+    assertEquals(lastBody.content.length, 0);
+
+    assertEquals(lastGet.status, 200);
   }
 }
 
@@ -195,9 +261,11 @@ await remoteServer.createNotesReadWriteAccount();
 await remoteServer.createNotesTopic();
 await remoteServer.addNotes();
 
+await localServer.createReadAcount();
 await localServer.createServiceAccount();
 await localServer.createSubscriptionTopic();
 await localServer.subscribeToRemoteNotes(remoteServer.config().port);
+await localServer.getContent();
 
 await localServer.stop();
 await remoteServer.stop();

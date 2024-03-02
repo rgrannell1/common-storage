@@ -307,7 +307,7 @@ export function csApp(config: Config, services: Services): AppData {
     .use(router.allowedMethods())
     .use(notFound(config, services));
 
-  return {app, subscriptionsPid};
+  return { app, subscriptionsPid };
 }
 
 /*
@@ -321,7 +321,7 @@ export function csApp(config: Config, services: Services): AppData {
 export function startApp(appData: AppData, config: Config) {
   const controller = new AbortController();
 
-  const {app, subscriptionsPid} = appData;
+  const { app, subscriptionsPid } = appData;
 
   app.listen({
     port: config.port,
@@ -330,7 +330,7 @@ export function startApp(appData: AppData, config: Config) {
 
   controller.signal.onabort = () => {
     clearInterval(subscriptionsPid);
-  }
+  };
 
   return controller;
 }
