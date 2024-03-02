@@ -248,6 +248,16 @@ class LocalNoteServer extends TestServer {
 
     assertEquals(lastGet.status, 200);
   }
+
+  async getFeed() {
+    const feedRes = await this.client().getFeed();
+    const body = await feedRes.json();
+
+    assertEquals(
+      body.subscriptions["subscription.notes"],
+      "http://localhost:9000/content/notes",
+    );
+  }
 }
 
 const localServer = new LocalNoteServer();
@@ -269,6 +279,7 @@ await localServer.subscribeToRemoteNotes(remoteServer.config().port);
 await new Promise((res) => setTimeout(res, 4_000));
 
 await localServer.getContent();
+await localServer.getFeed();
 
 await localServer.stop();
 await remoteServer.stop();

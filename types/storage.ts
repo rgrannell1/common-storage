@@ -182,6 +182,14 @@ export interface IGetSubscription {
   getSubscription(id: string): Promise<Subscription | null>;
 }
 
+export interface IGetSubscriptionStats {
+  getSubscriptionStats(topic: string): Promise<
+    {
+      topic: string;
+    } | null
+  >;
+}
+
 export interface ISetSubscriptionProgress {
   setSubscriptionProgress(
     topic: string,

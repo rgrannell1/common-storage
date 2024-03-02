@@ -8,7 +8,7 @@
       "request": "launch",
       "name": "🖥️ Acceptance Tests",
       "type": "node",
-      "program": "${workspaceFolder}/acceptance_tests/authentication.ts",
+      "program": "${workspaceFolder}/integration-tests/standard-usage.ts",
       "cwd": "${workspaceFolder}",
       "runtimeExecutable": "/usr/bin/deno",
       "runtimeArgs": [

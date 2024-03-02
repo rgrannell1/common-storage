@@ -8,7 +8,7 @@ import {
   UserNotFound,
 } from "../shared/errors.ts";
 import { Type } from "https://esm.sh/v135/ajv@8.12.0/dist/compile/util.js";
-import { AIntertalk } from "../types/storage.ts";
+import { AIntertalk, SubscriptionSyncProgress } from "../types/storage.ts";
 
 const blankStorage = {
   async getTopic(_: string) {
@@ -28,6 +28,8 @@ const blankStorage = {
   },
   async getSubscriptionState(_: string) {
     return null;
+  },
+  async setSubscriptionProgress(_: string, __: SubscriptionSyncProgress) {
   },
   async addContent<T>(_: string | undefined, __: string, ___: T[]) {
     return { lastId: 0 };
