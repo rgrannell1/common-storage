@@ -205,7 +205,7 @@ server's topic to a local topic
 </details>
 
 <details>
-  <summary><code>POST /subscription/</code> </summary>
+  <summary><code>POST /subscription/:target_topic</code> </summary>
 
 **Parameters**
 

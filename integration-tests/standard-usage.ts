@@ -24,7 +24,7 @@ abstract class TestServer {
     return CommonStorageClient.new(`http://localhost:${this._config.port}`);
   }
 
-  async stop() {
+  stop() {
     this.appController.abort();
   }
 }
@@ -255,7 +255,7 @@ class LocalNoteServer extends TestServer {
 
     assertEquals(
       body.subscriptions["subscription.notes"],
-      "http://localhost:9000/content/notes",
+      { source: "http://localhost:9000/content/notes" },
     );
   }
 }

@@ -23,7 +23,7 @@ Deno.test({
           created: "test-name",
         };
       },
-      async* getSubscriptions() {},
+      async *getSubscriptions() {},
       getTopicStats(topic: string) {
         return {
           topic: topic,
@@ -59,7 +59,7 @@ Deno.test({
           { topic: "foo", stats: { count: 0, lastUpdated: 0 } },
           { topic: "bar", stats: { count: 0, lastUpdated: 0 } },
         ],
-        subscriptions: {}
+        subscriptions: {},
       }),
     );
   },

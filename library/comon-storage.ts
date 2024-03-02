@@ -1,15 +1,29 @@
+import { Permission } from "../types/auth.ts";
+
 export type PostUserOpts = {
   role: string;
   password: string;
 };
 
-export type PostRoleOpts = {};
+export type PostRoleOpts = {
+  permissions: Permission[]
+};
 
-export type PostSubscriptionOpts = {};
+export type PostSubscriptionOpts = {
+  source: string;
+  serviceAccount: string;
+  frequency: number;
+};
 
-export type PostContentOpts = {};
+export type PostContentOpts<T> = {
+  batchId: string;
+  content: T[];
+};
 
-export type PostTopicOpts = {};
+export type PostTopicOpts = {
+  description: string;
+  schema: object;
+};
 
 export class CommonStorageClient {
   endpoint: string;
@@ -84,7 +98,7 @@ export class CommonStorageClient {
 
     return this.#performApiCall("GET", path);
   }
-  postContent(topic: string, opts: PostContentOpts) {
+  postContent<T>(topic: string, opts: PostContentOpts<T>) {
     return this.#performApiCall(
       "POST",
       `/content/${topic}`,

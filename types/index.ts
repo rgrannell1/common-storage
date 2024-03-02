@@ -15,7 +15,7 @@ export type Topic = {
   title: string;
   description: string;
   created: string;
-  schema: any;
+  schema: object;
 };
 
 export enum RequestPart {
