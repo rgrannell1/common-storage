@@ -1,4 +1,4 @@
-import { IStorageBackend } from "../types/storage.ts";
+import { IStorageBackend } from "../../types/storage.ts";
 
 export class DenoKVBackend implements IStorageBackend {
   /*

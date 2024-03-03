@@ -13,7 +13,7 @@ import { RequestPart } from "./types/index.ts";
 import { StorageLogger } from "./services/storage-logger.ts";
 import { ConsoleLogger } from "./services/console-logger.ts";
 import { CommonStorage } from "./services/common-storage.ts";
-import { DenoKVBackend } from "./services/storage-backend.ts";
+import { DenoKVBackend } from "./services/backends/deno-kv.ts";
 
 import * as Authentication from "./api/authentication.ts";
 import * as RateLimiting from "./api/rate-limit.ts";

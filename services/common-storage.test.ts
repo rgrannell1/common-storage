@@ -4,7 +4,7 @@ import {
   assertRejects,
 } from "https://deno.land/std@0.198.0/assert/mod.ts";
 import { CommonStorage } from "./common-storage.ts";
-import { DenoKVBackend } from "./storage-backend.ts";
+import { DenoKVBackend } from "./backends/deno-kv.ts";
 
 // +++ ROLE +++ //
 

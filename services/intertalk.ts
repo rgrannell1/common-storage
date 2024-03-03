@@ -1,6 +1,5 @@
 // Enable common-storage servers to intercommunicate and share data
 
-import { InvalidUrlError } from "../shared/errors.ts";
 import { AIntertalk } from "../types/storage.ts";
 
 /**
@@ -11,7 +10,10 @@ export class IntertalkClient extends AIntertalk {
     super();
   }
 
-  /* */
+  /*
+   * Fetches content from a remote common-storage server.
+   *
+   */
   async contentGet(
     source: string,
     startId: number,

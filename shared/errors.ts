@@ -91,6 +91,16 @@ export class InvalidUrlError extends Error {}
  */
 export class BatchClosedError extends Error {}
 
+/**
+ * An error indicating that a subscription is already present
+ *
+ * @extends Error
+ */
 export class MultipleSubscriptionError extends Error {}
 
+/**
+ * An error indicating that a subscription is not authorised
+ *
+ * @extends Error
+ */
 export class SubscriptionAuthorisationError extends Error {}
