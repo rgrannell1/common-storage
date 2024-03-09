@@ -173,11 +173,11 @@ export function validateSchema<T>(
     const messages = (ajv.errors ?? []).map((err: any) => {
       return `- ${err.instancePath}: ${err.message}`;
     }).join("\n");
-    let prelude = "Object was invalid";
+    let prelude = `Object was invalid for schema "${name}"`;
     if (part === RequestPart.Params) {
       prelude = "Request query-params were invalid";
     } else if (part === RequestPart.Body) {
-      prelude = "Request-body was invalid";
+      prelude = `Request-body was invalid for schema "${name}"`;
     }
 
     throw new InputValidationError(`${prelude}:\n${messages}`);

@@ -260,3 +260,8 @@ schema.$defs.params.userGet = {
 };
 
 export type Schema = typeof schema;
+
+
+if ((import.meta as any).main) {
+  console.log(JSON.stringify(schema, null, 2));
+}
