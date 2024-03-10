@@ -98,6 +98,23 @@ export class CommonStorageClient {
 
     return this.#performApiCall("GET", path);
   }
+  async *getAllContent(topic: string, delay: number) {
+    for (let idx = 0; true; idx += 10) {
+
+      const response = await this.getContent(topic, idx);
+      const body = await response.json();
+
+      if (body.content.length === 0) {
+        break;
+      }
+
+      for (const content of body.content) {
+        yield content;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
   postContent<T>(topic: string, opts: PostContentOpts<T>) {
     return this.#performApiCall(
       "POST",

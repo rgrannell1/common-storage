@@ -9,6 +9,7 @@ Usage:
   common-storage <url> get-role <name>
   common-storage <url> get-topic <topic>
   common-storage <url> get-content <topic> [<start-id>]
+  common-storage <url> get-all-content <topic>
   common-storage <url> get-subscription <topic>
   common-storage (-h | --help)
 
@@ -68,5 +69,17 @@ function callApi() {
   }
 }
 
-const res = await callApi();
-console.log(await res?.text());
+if (args["get-all-content"]) {
+  checkCredentials();
+
+  const allContent = client
+    .withCredentials(username as string, password as string)
+    .getAllContent(args['<topic>'] as string, 1_000)
+
+  for await (const content of allContent) {
+    console.log(JSON.stringify(content));
+  }
+} else {
+  const res = await callApi();
+  console.log(await res?.text());
+}
