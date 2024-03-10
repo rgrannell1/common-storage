@@ -23,3 +23,6 @@ export const SUBSCRIPTION_OK = "ok";
 
 //
 export const SUBSCRIPTION_DELAY = 1_500;
+
+// How long will we wait for a content get to a remote common-storage server?
+export const CONTENT_GET_TIMEOUT = 10_000;

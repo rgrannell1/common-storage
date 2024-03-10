@@ -225,6 +225,15 @@ schema.$defs.params.userPost = {
   required: ["name"],
 };
 
+// ++++++ GET /subscription/:topic ++++++
+schema.$defs.params.subscriptionGet = {
+  type: "object",
+  properties: {
+    topic: parts.subscriptionTopic,
+  },
+  required: ["topic"],
+};
+
 // ++++++ POST /subscription/:topic ++++++
 schema.$defs.body.subscriptionPost = {
   type: "object",

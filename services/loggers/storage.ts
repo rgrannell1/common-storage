@@ -3,7 +3,7 @@ import type {
   IAddActivity,
   IAddException,
   ILogger,
-} from "../types/index.ts";
+} from "../../types/index.ts";
 
 export class StorageLogger implements ILogger {
   /*

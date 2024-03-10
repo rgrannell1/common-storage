@@ -2,16 +2,14 @@ import Ajv from "https://esm.sh/ajv@8.12.0";
 import { Status } from "./shared/status.ts";
 import { Application, Router } from "https://deno.land/x/oak@v12.6.2/mod.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
-
-//import schema from "./schema.json" with { type: "json" };//
 import { schema } from "./shared/schema.ts";
 
 import { InputValidationError, JSONError } from "./shared/errors.ts";
 
 import type { AppData, Config, Services } from "./types/index.ts";
 import { RequestPart } from "./types/index.ts";
-import { StorageLogger } from "./services/storage-logger.ts";
-import { ConsoleLogger } from "./services/console-logger.ts";
+import { StorageLogger } from "./services/loggers/storage.ts";
+import { ConsoleLogger } from "./services/loggers/console.ts";
 import { CommonStorage } from "./services/common-storage.ts";
 import { DenoKVBackend } from "./services/backends/deno-kv.ts";
 
