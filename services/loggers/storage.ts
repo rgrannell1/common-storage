@@ -1,8 +1,4 @@
-import type {
-  Activity,
-  ILogger,
-  Request
-} from "../../types/index.ts";
+import type { Activity, ILogger, Request } from "../../types/index.ts";
 
 export class StorageLogger implements ILogger {
   /*
@@ -14,11 +10,19 @@ export class StorageLogger implements ILogger {
     this.storage = storage;
   }
 
-  async info(message: string, request: Request | undefined, data: Record<string, any>) {
-   return;
+  async info(
+    message: string,
+    request: Request | undefined,
+    data: Record<string, any>,
+  ) {
+    return;
   }
 
-  async error(message: string, request: Request | undefined, data: Record<string, any>) {
-   return;
+  async error(
+    message: string,
+    request: Request | undefined,
+    data: Record<string, any>,
+  ) {
+    return;
   }
 }

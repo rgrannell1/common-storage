@@ -1,10 +1,10 @@
 import { Status } from "../shared/status.ts";
 
 import type {
-  IInfo,
-  IError,
   IAddRole,
+  IError,
   IGetRole,
+  IInfo,
   SchemaValidator,
 } from "../types/index.ts";
 import { RequestPart } from "../types/index.ts";

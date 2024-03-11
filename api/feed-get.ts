@@ -2,11 +2,11 @@ import { Status } from "../shared/status.ts";
 import type {
   Config,
   CSContext,
-  IInfo,
   IError,
   IGetSubscriptions,
   IGetTopicNames,
   IGetTopicStats,
+  IInfo,
   SchemaValidator,
 } from "../types/index.ts";
 

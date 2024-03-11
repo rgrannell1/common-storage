@@ -205,7 +205,7 @@ export function adminAccess(cfg: AdminConfig, services: Services) {
   const { adminUsername, adminPassword } = cfg;
 
   return async function (ctx: any, next: any) {
-    await logger.info("admin-authentication", ctx.request, {})
+    await logger.info("admin-authentication", ctx.request, {});
 
     const { authenticated, state } = await isAdminAuthenticated(
       adminUsername,
@@ -238,14 +238,14 @@ export function adminAccess(cfg: AdminConfig, services: Services) {
       };
 
       // allow access to subsequent routes
-      await logger.info("authenticated as admin user", ctx.request, {})
+      await logger.info("authenticated as admin user", ctx.request, {});
 
       return await next(ctx);
     } else {
       throw new Error(`unexpected authentication state ${state}`);
     }
 
-    await logger.error("not admin authenticated", ctx.request, {})
+    await logger.error("not admin authenticated", ctx.request, {});
   };
 }
 

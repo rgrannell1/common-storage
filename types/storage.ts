@@ -40,11 +40,19 @@ export type Topic = {
 };
 
 export interface IInfo {
-  info(message: string, request: Request | undefined, data: Record<string, any>): Promise<void>;
+  info(
+    message: string,
+    request: Request | undefined,
+    data: Record<string, any>,
+  ): Promise<void>;
 }
 
 export interface IError {
-  error(message: string, request: Request | undefined, data: Record<string, any>): Promise<void>;
+  error(
+    message: string,
+    request: Request | undefined,
+    data: Record<string, any>,
+  ): Promise<void>;
 }
 
 // Role
@@ -258,8 +266,8 @@ export interface IStorage
     IGetSubscriptions,
     IGetSubscriptionState,
     IAddSubscription {
-      close(): Promise<void>;
-    }
+  close(): Promise<void>;
+}
 
 export type SubscriptionStorage =
   & IGetUser

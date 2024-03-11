@@ -43,8 +43,8 @@ const blankStorage = {
 
 const stubLogger = {
   async info() {},
-  async error() {}
-}
+  async error() {},
+};
 
 function StubIntertalkClient<T>(content: T) {
   return class extends AIntertalk {
@@ -96,7 +96,11 @@ async function getSubscriptionState(id: string) {
 }
 
 Deno.test("Subscriptions.sync() | fails when topic is not present", async () => {
-  const sub = new Subscriptions({ ...blankStorage }, stubLogger, StubIntertalkClient(""));
+  const sub = new Subscriptions(
+    { ...blankStorage },
+    stubLogger,
+    StubIntertalkClient(""),
+  );
 
   await assertRejects(
     async () => {

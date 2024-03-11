@@ -17,7 +17,7 @@ export function notFound(cfg: NotFoundConfig, services: Services) {
   const { logger } = services;
 
   return async function (ctx: any) {
-    await logger.error("unknown route", ctx.request, { });
+    await logger.error("unknown route", ctx.request, {});
 
     ctx.response.status = Status.NotFound;
     ctx.response.body = JSON.stringify({

@@ -1,5 +1,5 @@
 import { Context } from "https://deno.land/x/oak@v12.6.2/mod.ts";
-import { IStorage, IInfo, IError } from "./storage.ts";
+import { IError, IInfo, IStorage } from "./storage.ts";
 
 import { IntertalkClient } from "../services/intertalk.ts";
 

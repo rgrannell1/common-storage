@@ -42,7 +42,7 @@ Deno.test({
         },
         error() {
           return Promise.resolve();
-        }
+        },
       },
       schema: validateSchema,
     })(ctx);
@@ -85,7 +85,7 @@ Deno.test({
           },
           error() {
             return Promise.resolve();
-          }
+          },
         },
         schema: validateSchema,
       })(ctx);

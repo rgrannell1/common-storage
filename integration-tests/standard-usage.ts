@@ -18,7 +18,11 @@ abstract class TestServer {
   async start() {
     this.services = await csServices(this._config);
     this.app = await csApp(this._config, this.services);
-    this.appController = await startApp(this.app, this.services.logger, this._config);
+    this.appController = await startApp(
+      this.app,
+      this.services.logger,
+      this._config,
+    );
   }
 
   client() {

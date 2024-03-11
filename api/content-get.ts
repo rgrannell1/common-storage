@@ -28,7 +28,7 @@ export function getContent(_: GetContentConfig, services: Services) {
     schema("contentGet", params, RequestPart.Params);
 
     const { startId, topic } = params;
-    await logger.info("getting content", ctx.request, {topic});
+    await logger.info("getting content", ctx.request, { topic });
 
     const content = await storage.getContent(
       topic,

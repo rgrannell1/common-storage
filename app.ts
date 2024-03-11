@@ -214,7 +214,7 @@ function errorHandler(_: Config, services: Services) {
 
       await logger.error("Error while processing request", ctx.request, {
         error: err.message,
-        stack: err.stack
+        stack: err.stack,
       });
 
       ctx.response.status = Status.InternalServerError;
@@ -238,7 +238,7 @@ function preprocessRequest(services: Services) {
       id: crypto.randomUUID(),
     };
 
-    await logger.info("Request received", request, {})
+    await logger.info("Request received", request, {});
 
     response.headers.set("X-Content-Type-Options", "nosniff");
     response.headers.set("Content-Type", "application/json; charset=utf-8");
@@ -262,10 +262,8 @@ function preprocessRequest(services: Services) {
  */
 export async function csServices(cfg: Config): Promise<Services> {
   console.error(
-    cfg.kvPath
-      ? `Persisting to ${cfg.kvPath}`
-      : `Persisting to memory`
-  )
+    cfg.kvPath ? `Persisting to ${cfg.kvPath}` : `Persisting to memory`,
+  );
 
   const backend = new DenoKVBackend(cfg.kvPath);
   const storage = new CommonStorage(backend);

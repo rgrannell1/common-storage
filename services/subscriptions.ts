@@ -151,7 +151,7 @@ export class Subscriptions {
 
     await this.logger.info("fetching remote content", undefined, {
       nextId,
-      topic
+      topic,
     });
 
     const content = await this.fetchRemoteContent(
@@ -177,7 +177,7 @@ export class Subscriptions {
     await this.logger.info("saving subscription", undefined, {
       source,
       nextId,
-      topic
+      topic,
     });
 
     yield {
@@ -188,7 +188,7 @@ export class Subscriptions {
     await this.storage.addContent(undefined, topic, content);
 
     await this.logger.info("saved first content batch", undefined, {
-      topic
+      topic,
     });
 
     yield {
@@ -206,7 +206,7 @@ export class Subscriptions {
       nextId = await this.getNextId(topic);
 
       await this.logger.info("fetching subscription content", undefined, {
-        nextId
+        nextId,
       });
 
       const content = await this.fetchRemoteContent(
@@ -230,7 +230,7 @@ export class Subscriptions {
 
     await this.logger.info("subscription sync completed", undefined, {
       nextId,
-      topic
+      topic,
     });
 
     yield {

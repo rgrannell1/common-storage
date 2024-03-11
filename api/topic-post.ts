@@ -34,7 +34,10 @@ export function postTopic(_: PostTopicConfig, services: Services) {
       try {
         ajv.compile(contentSchema);
       } catch (err) {
-        await logger.error("failed to compile schema", ctx.request, { topic, schema: contentSchema });
+        await logger.error("failed to compile schema", ctx.request, {
+          topic,
+          schema: contentSchema,
+        });
 
         ctx.response.status = Status.UnprocessableEntity;
         ctx.response.body = JSON.stringify({

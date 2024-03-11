@@ -43,7 +43,7 @@ export function postContent(_: PostContentConfig, services: Services) {
       return;
     }
 
-    await logger.info("checking topic exists", ctx.request, {topic});
+    await logger.info("checking topic exists", ctx.request, { topic });
 
     if (!await storage.getTopic(topic)) {
       ctx.response.status = Status.NotFound;
@@ -57,7 +57,7 @@ export function postContent(_: PostContentConfig, services: Services) {
       await storage.addContent(batchId, topic, content);
     } catch (err) {
       if (err instanceof TopicValidationError) {
-        await logger.info("content invalid", ctx.request, {topic});
+        await logger.info("content invalid", ctx.request, { topic });
 
         ctx.response.status = Status.UnprocessableEntity;
         ctx.response.body = JSON.stringify({
@@ -80,7 +80,7 @@ export function postContent(_: PostContentConfig, services: Services) {
     }
 
     await logger.info("getting topic stats", ctx.request, {
-      topic
+      topic,
     });
 
     const stats = await storage.getTopicStats(topic);

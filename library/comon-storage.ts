@@ -6,7 +6,7 @@ export type PostUserOpts = {
 };
 
 export type PostRoleOpts = {
-  permissions: Permission[]
+  permissions: Permission[];
 };
 
 export type PostSubscriptionOpts = {
@@ -100,7 +100,6 @@ export class CommonStorageClient {
   }
   async *getAllContent(topic: string, delay: number) {
     for (let idx = 0; true; idx += 10) {
-
       const response = await this.getContent(topic, idx);
       const body = await response.json();
 

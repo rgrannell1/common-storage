@@ -2,9 +2,9 @@ import { Status } from "../shared/status.ts";
 
 import type {
   IDeleteTopic,
-  SchemaValidator,
+  IError,
   IInfo,
-  IError
+  SchemaValidator,
 } from "../types/index.ts";
 import { RequestPart } from "../types/index.ts";
 
