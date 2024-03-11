@@ -1,4 +1,5 @@
 import type { Activity, ILogger, IStorage } from "../../types/index.ts";
+import type { Request } from "https://deno.land/x/oak@v12.6.2/mod.ts";
 
 /**
  * A logger that logs activities and exceptions to the console.
@@ -17,6 +18,27 @@ export class ConsoleLogger implements ILogger {
     this.storage = storage;
   }
 
+  async info(message, request: Request | undefined, data: Record<string, any>) {
+
+    if (request) {
+      const { method, url } = request;
+      console.info(`${method} ${url} | ${message} | data=${JSON.stringify(data)}`);
+    } else {
+      console.info(`${message} | data=${JSON.stringify(data)}`);
+    }
+  }
+
+  async error(message, request: Request | undefined, data: Record<string, any>) {
+
+    if (request) {
+      const { method, url } = request;
+      console.error(`${method} ${url} | ${message} | data=${JSON.stringify(data)}`);
+    } else {
+      console.error(`${message} | data=${JSON.stringify(data)}`);
+    }
+  }
+
+
   /**
    * Logs an activity to the console.
    * @param {Activity} activity - The activity to log.
@@ -24,9 +46,10 @@ export class ConsoleLogger implements ILogger {
   async addActivity(activity: Activity) {
     const { message, request, metadata } = activity;
     const { method, url } = request;
+    const id = request.state.id;
 
     console.info(
-      `${method} ${url} | ${message} | metadata=${JSON.stringify(metadata)}`,
+      `${method} ${url} | ${message} | metadata=${JSON.stringify({id, ...metadata})}`,
     );
   }
 

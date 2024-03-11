@@ -205,11 +205,7 @@ export function adminAccess(cfg: AdminConfig, services: Services) {
   const { adminUsername, adminPassword } = cfg;
 
   return async function (ctx: any, next: any) {
-    await logger.addActivity({
-      request: ctx.request,
-      message: "admin-authentication",
-      metadata: {},
-    });
+    await logger.info("admin-authentication", ctx.request, {})
 
     const { authenticated, state } = await isAdminAuthenticated(
       adminUsername,
@@ -242,10 +238,14 @@ export function adminAccess(cfg: AdminConfig, services: Services) {
       };
 
       // allow access to subsequent routes
+      await logger.info("authenticated as admin user", ctx.request, {})
+
       return await next(ctx);
     } else {
       throw new Error(`unexpected authentication state ${state}`);
     }
+
+    await logger.error("not admin authenticated", ctx.request, {})
   };
 }
 
@@ -334,11 +334,7 @@ export function roleAccess(cfg: AdminConfig, services: Services) {
         error: "Not authorised",
       });
     } else if (roleState === RoleAuthenticationState.Authenticated) {
-      await logger.addActivity({
-        request: ctx.request,
-        message: "authenticated with role",
-        metadata: {},
-      });
+      await logger.info("authenticated with role", ctx.request, {});
 
       return await next(ctx);
     } else {

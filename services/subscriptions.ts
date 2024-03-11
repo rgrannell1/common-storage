@@ -16,6 +16,7 @@ import {
   SUBSCRIPTION_FAILED,
 } from "../shared/constants.ts";
 
+import { ILogger } from "../types/index.ts";
 import { SubscriptionSyncState } from "../types/storage.ts";
 import { SubscriptionSyncProgress } from "../types/storage.ts";
 
@@ -24,10 +25,12 @@ import { SubscriptionSyncProgress } from "../types/storage.ts";
  */
 export class Subscriptions {
   storage: SubscriptionStorage;
+  logger: ILogger;
   intertalk: any;
 
-  constructor(storage: SubscriptionStorage, intertalk: any) {
+  constructor(storage: SubscriptionStorage, logger: any, intertalk: any) {
     this.storage = storage;
+    this.logger = logger;
     this.intertalk = intertalk;
   }
 
@@ -145,6 +148,12 @@ export class Subscriptions {
     }
 
     let nextId = await this.getNextId(topic);
+
+    await this.logger.info("fetching remote content", undefined, {
+      nextId,
+      topic
+    });
+
     const content = await this.fetchRemoteContent(
       userData,
       topic,
@@ -165,12 +174,22 @@ export class Subscriptions {
       frequency,
     );
 
+    await this.logger.info("saving subscription", undefined, {
+      source,
+      nextId,
+      topic
+    });
+
     yield {
       state: SubscriptionSyncState.SUBSCRIPTION_SAVED,
       startId: nextId,
     };
 
     await this.storage.addContent(undefined, topic, content);
+
+    await this.logger.info("saved first content batch", undefined, {
+      topic
+    });
 
     yield {
       state: SubscriptionSyncState.FIRST_CONTENT_SAVED,
@@ -179,12 +198,16 @@ export class Subscriptions {
 
     // we've performed an initial sync; now lets sync more of the content
     // up to some limit
-    for (let breaker = 0; breaker < 100; breaker++) {
+    while (true) {
       await new Promise((res) => {
         setTimeout(res, SUBSCRIPTION_DELAY);
       });
 
       nextId = await this.getNextId(topic);
+
+      await this.logger.info("fetching subscription content", undefined, {
+        nextId
+      });
 
       const content = await this.fetchRemoteContent(
         userData,
@@ -204,6 +227,11 @@ export class Subscriptions {
         startId: nextId,
       };
     }
+
+    await this.logger.info("subscription sync completed", undefined, {
+      nextId,
+      topic
+    });
 
     yield {
       state: SubscriptionSyncState.SYNC_COMPLETED,

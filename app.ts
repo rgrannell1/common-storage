@@ -212,12 +212,15 @@ function errorHandler(_: Config, services: Services) {
         return;
       }
 
+      await logger.error("Error while processing request", ctx.request, {
+        error: err.message,
+        stack: err.stack
+      });
+
       ctx.response.status = Status.InternalServerError;
       ctx.response.body = JSON.stringify({
         error: "Internal Server Error",
       });
-
-      await logger.addException(err);
     }
   };
 }
@@ -225,13 +228,17 @@ function errorHandler(_: Config, services: Services) {
 /*
  * Preprocess the request; set request headers
  */
-function preprocessRequest() {
+function preprocessRequest(services: Services) {
+  const { logger } = services;
+
   return async (ctx: any, next: any) => {
     const { request, response } = ctx;
 
     request.state = {
       id: crypto.randomUUID(),
     };
+
+    await logger.info("Request received", request, {})
 
     response.headers.set("X-Content-Type-Options", "nosniff");
     response.headers.set("Content-Type", "application/json; charset=utf-8");
@@ -254,6 +261,12 @@ function preprocessRequest() {
  * @param config Application configuration
  */
 export async function csServices(cfg: Config): Promise<Services> {
+  console.error(
+    cfg.kvPath
+      ? `Persisting to ${cfg.kvPath}`
+      : `Persisting to memory`
+  )
+
   const backend = new DenoKVBackend(cfg.kvPath);
   const storage = new CommonStorage(backend);
   await storage.init();
@@ -294,13 +307,14 @@ export function csApp(config: Config, services: Services): AppData {
   // start a subscriptions client, so that we can poll
   const subscriptionClient = new Subscriptions(
     services.storage,
+    services.logger,
     IntertalkClient,
   );
   const subscriptionsPid = subscriptionClient.startPoll();
 
   app
     .use(errorHandler(config, services))
-    .use(preprocessRequest())
+    .use(preprocessRequest(services))
     .use(router.routes())
     .use(router.allowedMethods())
     .use(notFound(config, services));
@@ -316,7 +330,7 @@ export function csApp(config: Config, services: Services): AppData {
  *
  * @returns AbortController for the application
  */
-export function startApp(appData: AppData, config: Config) {
+export function startApp(appData: AppData, services: Services, config: Config) {
   const controller = new AbortController();
 
   const { app, subscriptionsPid } = appData;
@@ -326,8 +340,10 @@ export function startApp(appData: AppData, config: Config) {
     signal: controller.signal,
   });
 
-  controller.signal.onabort = () => {
+  controller.signal.onabort = async () => {
     clearInterval(subscriptionsPid);
+    await services.storage.close();
+    await services.logger.info("Common-Storage shutting down", undefined, {});
   };
 
   return controller;

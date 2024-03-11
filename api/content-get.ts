@@ -21,12 +21,6 @@ export function getContent(_: GetContentConfig, services: Services) {
   const { storage, logger, schema } = services;
 
   return async function (ctx: any) {
-    await logger.addActivity({
-      request: ctx.request,
-      message: "starting request",
-      metadata: {},
-    });
-
     const params = {
       ...ctx.params,
       startId: ctx.request.url.searchParams.get("startId"),
@@ -34,14 +28,7 @@ export function getContent(_: GetContentConfig, services: Services) {
     schema("contentGet", params, RequestPart.Params);
 
     const { startId, topic } = params;
-
-    await logger.addActivity({
-      request: ctx.request,
-      message: "getting content",
-      metadata: {
-        topic,
-      },
-    });
+    await logger.info("getting content", ctx.request, {topic});
 
     const content = await storage.getContent(
       topic,

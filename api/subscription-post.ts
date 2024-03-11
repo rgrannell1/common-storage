@@ -68,7 +68,7 @@ export function postSubscription(
     const { topic } = ctx.params;
     const { source, serviceAccount, frequency } = body;
 
-    const subscriptionClient = new Subscriptions(storage, IntertalkClient);
+    const subscriptionClient = new Subscriptions(storage, logger, IntertalkClient);
     const syncGenerator = subscriptionClient.sync(
       source,
       topic,
@@ -97,6 +97,11 @@ export function postSubscription(
           break;
         }
       }
+
+      await logger.error("Error reading subscription", ctx.request, {
+        error: err.message,
+        stack: err.stack
+      });
 
       ctx.response.status = code;
       // pass the message forward

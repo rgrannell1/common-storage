@@ -24,12 +24,6 @@ export function postContent(_: PostContentConfig, services: Services) {
   const { storage, logger, schema } = services;
 
   return async function (ctx: any) {
-    await logger.addActivity({
-      request: ctx.request,
-      message: "starting request",
-      metadata: {},
-    });
-
     const body = await BodyParsers.json(ctx.request);
 
     schema("contentPost", body, RequestPart.Body);
@@ -49,13 +43,7 @@ export function postContent(_: PostContentConfig, services: Services) {
       return;
     }
 
-    await logger.addActivity({
-      request: ctx.request,
-      message: "checking for topic",
-      metadata: {
-        topic,
-      },
-    });
+    await logger.info("checking topic exists", ctx.request, {topic});
 
     if (!await storage.getTopic(topic)) {
       ctx.response.status = Status.NotFound;
@@ -69,11 +57,7 @@ export function postContent(_: PostContentConfig, services: Services) {
       await storage.addContent(batchId, topic, content);
     } catch (err) {
       if (err instanceof TopicValidationError) {
-        await logger.addActivity({
-          request: ctx.request,
-          message: "content invalid",
-          metadata: {},
-        });
+        await logger.info("content invalid", ctx.request, {topic});
 
         ctx.response.status = Status.UnprocessableEntity;
         ctx.response.body = JSON.stringify({
@@ -82,13 +66,10 @@ export function postContent(_: PostContentConfig, services: Services) {
         return;
       }
 
-      await logger.addActivity({
-        request: ctx.request,
-        message: `failed to add content to topic ${topic}`,
-        metadata: {
-          message: err.message,
-          stack: err.stack,
-        },
+      await logger.info("failed to add content", ctx.request, {
+        topic,
+        message: err.message,
+        stack: err.stack,
       });
 
       ctx.response.status = Status.InternalServerError;
@@ -98,10 +79,8 @@ export function postContent(_: PostContentConfig, services: Services) {
       return;
     }
 
-    await logger.addActivity({
-      request: ctx.request,
-      message: "getting topic statistics",
-      metadata: {},
+    await logger.info("getting topic stats", ctx.request, {
+      topic
     });
 
     const stats = await storage.getTopicStats(topic);
