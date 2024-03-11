@@ -28,7 +28,7 @@ export class Subscriptions {
   logger: ILogger;
   intertalk: any;
 
-  constructor(storage: SubscriptionStorage, logger: any, intertalk: any) {
+  constructor(storage: SubscriptionStorage, logger: ILogger, intertalk: any) {
     this.storage = storage;
     this.logger = logger;
     this.intertalk = intertalk;

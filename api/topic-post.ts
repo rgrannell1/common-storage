@@ -23,12 +23,6 @@ export function postTopic(_: PostTopicConfig, services: Services) {
   const { storage, logger, schema } = services;
 
   return async function (ctx: any) {
-    await logger.addActivity({
-      request: ctx.request,
-      message: "starting request",
-      metadata: {},
-    });
-
     const topic = ctx.params?.topic;
     const body = await BodyParsers.json(ctx.request);
     const { description, schema: contentSchema } = body;
@@ -40,14 +34,7 @@ export function postTopic(_: PostTopicConfig, services: Services) {
       try {
         ajv.compile(contentSchema);
       } catch (err) {
-        await logger.addActivity({
-          request: ctx.request,
-          message: "failed to compile schema",
-          metadata: {
-            topic,
-            schema: contentSchema,
-          },
-        });
+        await logger.error("failed to compile schema", ctx.request, { topic, schema: contentSchema });
 
         ctx.response.status = Status.UnprocessableEntity;
         ctx.response.body = JSON.stringify({
@@ -57,13 +44,7 @@ export function postTopic(_: PostTopicConfig, services: Services) {
       }
     }
 
-    await logger.addActivity({
-      request: ctx.request,
-      message: "adding topic",
-      metadata: {
-        topic,
-      },
-    });
+    await logger.error("added topic", ctx.request, { topic });
 
     const addRes = await storage.addTopic(
       topic,

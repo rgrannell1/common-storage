@@ -471,6 +471,7 @@ export class CommonStorage implements IStorage {
     ]);
   }
 
+  // TODO rename
   async getSubscriptionState(id: string) {
     const lastId = await this.backend.getValue<number>(
       ["subscription-last-id"],

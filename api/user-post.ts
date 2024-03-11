@@ -22,12 +22,6 @@ export function postUser(_: PostUserConfig, services: Services) {
   const { storage, logger, schema } = services;
 
   return async function (ctx: any) {
-    await logger.addActivity({
-      request: ctx.request,
-      message: "starting request",
-      metadata: {},
-    });
-
     const body = await BodyParsers.json(ctx.request);
 
     schema("userPost", ctx.params, RequestPart.Params);
@@ -36,14 +30,7 @@ export function postUser(_: PostUserConfig, services: Services) {
     const name = ctx.params.name;
     const { role, password } = body;
 
-    await logger.addActivity({
-      request: ctx.request,
-      message: "checking role status",
-      metadata: {
-        name,
-        role,
-      },
-    });
+    await logger.info("checking role status", ctx.request, { name, role });
 
     if (!await storage.getRole(role)) {
       ctx.response.status = Status.NotFound;
@@ -55,14 +42,7 @@ export function postUser(_: PostUserConfig, services: Services) {
 
     const addRes = await storage.addUser(name, role, password);
 
-    await logger.addActivity({
-      request: ctx.request,
-      message: "added user",
-      metadata: {
-        name,
-        role,
-      },
-    });
+    await logger.info("added user", ctx.request, { name, role });
 
     ctx.response.status = Status.OK;
     ctx.response.body = JSON.stringify(addRes);

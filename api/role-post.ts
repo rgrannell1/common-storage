@@ -1,7 +1,8 @@
 import { Status } from "../shared/status.ts";
 
 import type {
-  IAddActivity,
+  IInfo,
+  IError,
   IAddRole,
   IGetRole,
   SchemaValidator,
@@ -12,7 +13,7 @@ import { PERMISSIONLESS_ROLE } from "../shared/constants.ts";
 
 type Services = {
   storage: IGetRole & IAddRole;
-  logger: IAddActivity;
+  logger: IInfo & IError;
   schema: SchemaValidator;
 };
 
@@ -22,12 +23,6 @@ export function postRole(_: PostRoleConfig, services: Services) {
   const { storage, logger, schema } = services;
 
   return async function (ctx: any) {
-    logger.addActivity({
-      message: "starting request",
-      request: ctx.request,
-      metadata: {},
-    });
-
     const body = await BodyParsers.json(ctx.request);
 
     schema("rolePost", body, RequestPart.Body);
@@ -35,13 +30,7 @@ export function postRole(_: PostRoleConfig, services: Services) {
 
     const { permissions } = body;
 
-    await logger.addActivity({
-      request: ctx.request,
-      message: "adding role",
-      metadata: {
-        role: ctx.params.role,
-      },
-    });
+    await logger.info("adding role", ctx.request, { role: ctx.params.role });
 
     if (ctx.params.role === PERMISSIONLESS_ROLE) {
       ctx.response.status = Status.UnprocessableEntity;

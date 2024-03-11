@@ -254,11 +254,7 @@ export function roleAccess(cfg: AdminConfig, services: Services) {
   const { logger } = services;
 
   return async function (ctx: any, next: any) {
-    await logger.addActivity({
-      request: ctx.request,
-      message: "role-authentication",
-      metadata: {},
-    });
+    await logger.info("checking role authentication", ctx.request, {});
 
     const { authenticated, state } = await isAdminAuthenticated(
       adminUsername,
@@ -287,11 +283,7 @@ export function roleAccess(cfg: AdminConfig, services: Services) {
         authenticationMethod: "admin",
       };
 
-      await logger.addActivity({
-        request: ctx.request,
-        message: "authenticated as administrator",
-        metadata: {},
-      });
+      await logger.info("authenticated as administrator", ctx.request, {});
 
       // allow access to subsequent routes
       return await next(ctx);

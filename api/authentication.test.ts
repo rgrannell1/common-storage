@@ -7,14 +7,13 @@ Deno.test({
   name: "Authentication | administrator access fails when not provided",
   async fn() {
     const ctx = Context({});
-
     const route = adminAccess({} as any, {
       storage: {} as any,
       logger: {
-        addActivity() {
+        info() {
           return Promise.resolve();
         },
-        addException(err) {
+        error(err) {
           return Promise.resolve();
         },
       },
@@ -46,10 +45,10 @@ Deno.test({
     } as any, {
       storage: {} as any,
       logger: {
-        addActivity() {
+        info() {
           return Promise.resolve();
         },
-        addException(err) {
+        error(err) {
           return Promise.resolve();
         },
       },
@@ -82,10 +81,10 @@ Deno.test({
     } as any, {
       storage: {} as any,
       logger: {
-        addActivity() {
+        info() {
           return Promise.resolve();
         },
-        addException(err) {
+        error(err) {
           return Promise.resolve();
         },
       },
@@ -117,10 +116,10 @@ Deno.test({
     } as any, {
       storage: {} as any,
       logger: {
-        addActivity() {
+        info() {
           return Promise.resolve();
         },
-        addException(err) {
+        error(err) {
           return Promise.resolve();
         },
       },

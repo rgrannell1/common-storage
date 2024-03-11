@@ -33,10 +33,10 @@ Deno.test({
     await postUser(config, {
       storage: storage as any,
       logger: {
-        addActivity() {
+        info() {
           return Promise.resolve();
         },
-        addException(err) {
+        error() {
           return Promise.resolve();
         },
       },

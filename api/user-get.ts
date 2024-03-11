@@ -21,12 +21,6 @@ export function getUser(_: GetUserConfig, services: Services) {
   const { storage, logger, schema } = services;
 
   return async function (ctx: any) {
-    await logger.addActivity({
-      request: ctx.request,
-      message: "starting request",
-      metadata: {},
-    });
-
     schema("userGet", ctx.params, RequestPart.Params);
 
     const name = ctx.params.name;
@@ -47,15 +41,7 @@ export function getUser(_: GetUserConfig, services: Services) {
       });
       return;
     }
-
-    await logger.addActivity({
-      request: ctx.request,
-      message: "added user",
-      metadata: {
-        name,
-        role: userData.role,
-      },
-    });
+    await logger.info("added user", ctx.request, { name, role: userData.role });
 
     ctx.response.status = Status.OK;
     ctx.response.body = JSON.stringify({

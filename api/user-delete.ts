@@ -21,12 +21,6 @@ export function deleteUser(_: DeleteUserConfig, services: Services) {
   const { storage, logger, schema } = services;
 
   return async function (ctx: CSContext) {
-    logger.addActivity({
-      message: "starting request",
-      request: ctx.request,
-      metadata: {},
-    });
-
     schema("userDelete", ctx.params, RequestPart.Params);
 
     const topic = ctx.params.topic;
@@ -38,6 +32,8 @@ export function deleteUser(_: DeleteUserConfig, services: Services) {
         topic,
       },
     });
+
+    await logger.info("deleting topic", ctx.request, { topic });
 
     // TODO block deletion of subscription users
 

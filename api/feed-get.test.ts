@@ -42,9 +42,12 @@ Deno.test({
     await getFeed(config, {
       storage: storage as any,
       logger: {
-        addActivity() {
+        info() {
           return Promise.resolve();
         },
+        error() {
+          return Promise.resolve();
+        }
       },
       schema: validateSchema,
     })(ctx);

@@ -2,7 +2,8 @@ import { Status } from "../shared/status.ts";
 import type {
   Config,
   CSContext,
-  IAddActivity,
+  IInfo,
+  IError,
   IGetSubscriptions,
   IGetTopicNames,
   IGetTopicStats,
@@ -11,7 +12,7 @@ import type {
 
 type Services = {
   storage: IGetTopicNames & IGetTopicStats & IGetSubscriptions;
-  logger: IAddActivity;
+  logger: IInfo & IError;
   schema: SchemaValidator;
 };
 
@@ -24,12 +25,6 @@ export function getFeed(cfg: GetFeedConfig, services: Services) {
   const { storage, logger } = services;
 
   return async function (ctx: CSContext) {
-    await logger.addActivity({
-      request: ctx.request,
-      message: "starting request",
-      metadata: {},
-    });
-
     const topicNames = await storage.getTopicNames();
 
     const topicsPromises = Promise.all(

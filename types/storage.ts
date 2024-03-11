@@ -39,16 +39,6 @@ export type Topic = {
   schema: any;
 };
 
-// Exceptions
-export interface IAddException {
-  addException(err: Error): Promise<void>;
-}
-
-// Activity
-export interface IAddActivity {
-  addActivity(activity: Activity): Promise<void>;
-}
-
 export interface IInfo {
   info(message: string, request: Request | undefined, data: Record<string, any>): Promise<void>;
 }
@@ -246,8 +236,6 @@ export type AppData = {
 
 export interface IStorage
   extends
-    IAddActivity,
-    IAddException,
     IGetRole,
     IAddRole,
     IDeleteRole,
@@ -272,7 +260,7 @@ export interface IStorage
     IAddSubscription {
       close(): Promise<void>;
     }
-T
+
 export type SubscriptionStorage =
   & IGetUser
   & IGetRole

@@ -19,12 +19,6 @@ export function getRole(_: GetUserConfig, services: Services) {
   const { storage, logger, schema } = services;
 
   return async function (ctx: any) {
-    await logger.addActivity({
-      request: ctx.request,
-      message: "starting request",
-      metadata: {},
-    });
-
     schema("roleGet", ctx.params, RequestPart.Params);
 
     const role = ctx.params.role;

@@ -18,7 +18,7 @@ export class ConsoleLogger implements ILogger {
     this.storage = storage;
   }
 
-  async info(message, request: Request | undefined, data: Record<string, any>) {
+  async info(message: string, request: Request | undefined, data: Record<string, any>) {
 
     if (request) {
       const { method, url } = request;
@@ -28,8 +28,7 @@ export class ConsoleLogger implements ILogger {
     }
   }
 
-  async error(message, request: Request | undefined, data: Record<string, any>) {
-
+  async error(message: string, request: Request | undefined, data: Record<string, any>) {
     if (request) {
       const { method, url } = request;
       console.error(`${method} ${url} | ${message} | data=${JSON.stringify(data)}`);
@@ -46,7 +45,7 @@ export class ConsoleLogger implements ILogger {
   async addActivity(activity: Activity) {
     const { message, request, metadata } = activity;
     const { method, url } = request;
-    const id = request.state.id;
+    const id = (request as any)?.state?.id;
 
     console.info(
       `${method} ${url} | ${message} | metadata=${JSON.stringify({id, ...metadata})}`,

@@ -54,12 +54,6 @@ export function postSubscription(
   const { storage, logger, schema } = services;
 
   return async function (ctx: any) {
-    await logger.addActivity({
-      request: ctx.request,
-      message: "starting request",
-      metadata: {},
-    });
-
     const body = await BodyParsers.json(ctx.request);
 
     schema("subscriptionPost", ctx.params, RequestPart.Params);

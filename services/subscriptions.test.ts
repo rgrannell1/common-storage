@@ -41,6 +41,11 @@ const blankStorage = {
   async setSubscriptionState() {},
 };
 
+const stubLogger = {
+  async info() {},
+  async error() {}
+}
+
 function StubIntertalkClient<T>(content: T) {
   return class extends AIntertalk {
     constructor() {
@@ -91,7 +96,7 @@ async function getSubscriptionState(id: string) {
 }
 
 Deno.test("Subscriptions.sync() | fails when topic is not present", async () => {
-  const sub = new Subscriptions({ ...blankStorage }, StubIntertalkClient(""));
+  const sub = new Subscriptions({ ...blankStorage }, stubLogger, StubIntertalkClient(""));
 
   await assertRejects(
     async () => {
@@ -114,7 +119,8 @@ Deno.test("Subscriptions.sync() | fails when user is not present", async () => {
     ...blankStorage,
     getTopic,
   };
-  const sub = new Subscriptions(store, StubIntertalkClient(""));
+
+  const sub = new Subscriptions(store, stubLogger, StubIntertalkClient(""));
 
   await assertRejects(
     async () => {
@@ -138,7 +144,7 @@ Deno.test("Subscriptions.sync() | fails when user has permissions", async () => 
     getTopic,
     getUser,
   };
-  const sub = new Subscriptions(store, StubIntertalkClient(""));
+  const sub = new Subscriptions(store, stubLogger, StubIntertalkClient(""));
 
   await assertRejects(
     async () => {
@@ -170,7 +176,7 @@ Deno.test("Subscriptions.sync() | fails when subscription already present", asyn
       };
     },
   };
-  const sub = new Subscriptions(store, StubIntertalkClient(""));
+  const sub = new Subscriptions(store, stubLogger, StubIntertalkClient(""));
 
   await assertRejects(
     async () => {
@@ -198,7 +204,7 @@ Deno.test("Subscriptions.sync() | handles invalid content responses", async () =
     getUser: getUserValid,
     getSubscriptionState,
   };
-  const sub = new Subscriptions(store, StubIntertalkClient("{  }"));
+  const sub = new Subscriptions(store, stubLogger, StubIntertalkClient("{  }"));
 
   await assertRejects(
     async () => {

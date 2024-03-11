@@ -34,10 +34,10 @@ Deno.test({
       await getUser(config, {
         storage: storage as any,
         logger: {
-          addActivity() {
+          info() {
             return Promise.resolve();
           },
-          addException() {
+          error() {
             return Promise.resolve();
           },
         },
@@ -80,10 +80,10 @@ Deno.test({
     await getUser(config, {
       storage: storage as any,
       logger: {
-        addActivity() {
+        info() {
           return Promise.resolve();
         },
-        addException() {
+        error() {
           return Promise.resolve();
         },
       },

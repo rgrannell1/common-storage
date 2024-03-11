@@ -169,11 +169,7 @@ export function rateLimit(_: RateLimitConfig, services: Services) {
     const throttled = limiter.throttled(ctx.request);
 
     if (throttled) {
-      await logger.addActivity({
-        request: ctx.request,
-        message: "rate-limit-exceeded",
-        metadata: {},
-      });
+      await logger.info("rate limit exceeded", ctx.request, { });
 
       ctx.response.status = Status.TooManyRequests;
       ctx.response.body = JSON.stringify({

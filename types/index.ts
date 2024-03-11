@@ -1,5 +1,6 @@
 import { Context } from "https://deno.land/x/oak@v12.6.2/mod.ts";
-import { IAddActivity, IAddException, IStorage, IInfo, IError } from "./storage.ts";
+import { IStorage, IInfo, IError } from "./storage.ts";
+
 import { IntertalkClient } from "../services/intertalk.ts";
 
 export type { Request } from "https://deno.land/x/oak@v12.6.2/mod.ts";
@@ -29,7 +30,7 @@ export type SchemaValidator = <T>(
   part: RequestPart,
 ) => void;
 
-export interface ILogger extends IAddActivity, IAddException, IInfo, IError {}
+export interface ILogger extends IInfo, IError {}
 
 export type Services = {
   storage: IStorage;
