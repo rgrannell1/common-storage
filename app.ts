@@ -343,7 +343,7 @@ export function startApp(appData: AppData, services: Services, config: Config) {
   controller.signal.onabort = async () => {
     clearInterval(subscriptionsPid);
     await services.storage.close();
-    await services.logger.info("Common-Storage shutting down", undefined, {});
+    await services.logger?.info("Common-Storage shutting down", undefined, {});
   };
 
   return controller;
