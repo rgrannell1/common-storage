@@ -21,7 +21,5 @@ COPY app.ts      /app/app.ts
 COPY start.ts    /app/start.ts
 COPY deno.json   /app/deno.json
 
-RUN chown -R deno:deno /app
-USER deno
 
 CMD ["deno", "run", "-A", "--unstable-kv", "/app/start.ts"]
