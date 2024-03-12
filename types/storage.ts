@@ -191,6 +191,12 @@ export interface IGetSubscriptionStats {
   >;
 }
 
+export interface IGetSubscriptionProgress {
+  getSubscriptionProgress(
+    topic: string,
+  ): Promise<SubscriptionSyncProgress | null>;
+}
+
 export interface ISetSubscriptionProgress {
   setSubscriptionProgress(
     topic: string,
@@ -204,6 +210,18 @@ export interface IGetSubscriptions {
 
 export interface IGetSubscriptionState {
   getSubscriptionState(id: string): Promise<SubscriptionState | null>;
+}
+
+export interface ISetLock {
+  setLock(id: string): Promise<void>;
+}
+
+export interface IGetLock {
+  getLock(id: string): Promise<number | null>;
+}
+
+export interface IDeleteLock {
+  deleteLock(id: string): Promise<void>
 }
 
 export interface IAddSubscription {
@@ -262,6 +280,10 @@ export interface IStorage
     IValidateContent,
     ISetSubscriptionState,
     IGetSubscription,
+    ISetLock,
+    IGetLock,
+    IDeleteLock,
+    IGetSubscriptionProgress,
     ISetSubscriptionProgress,
     IGetSubscriptions,
     IGetSubscriptionState,
@@ -275,6 +297,10 @@ export type SubscriptionStorage =
   & IGetTopic
   & IGetTopicStats
   & IGetSubscriptions
+  & IGetLock
+  & ISetLock
+  & IDeleteLock
+  & IGetSubscriptionProgress
   & ISetSubscriptionProgress
   & IGetSubscriptionState
   & ISetSubscriptionState

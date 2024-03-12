@@ -18,18 +18,22 @@ export class ConsoleLogger implements ILogger {
     this.storage = storage;
   }
 
+  static CSS_INFO = "color: blue";
+  static CSS_ERROR = "color: red";
+
   async info(
     message: string,
     request: Request | undefined,
     data: Record<string, any>,
   ) {
+
     if (request) {
       const { method, url } = request;
       console.info(
-        `${method} ${url} | ${message} | data=${JSON.stringify(data)}`,
+        `%c${method} ${url} | ${message} | data=${JSON.stringify(data)}`,ConsoleLogger.CSS_INFO
       );
     } else {
-      console.info(`${message} | data=${JSON.stringify(data)}`);
+      console.info(`%c${message} | data=${JSON.stringify(data)}`, ConsoleLogger.CSS_INFO);
     }
   }
 
@@ -41,34 +45,10 @@ export class ConsoleLogger implements ILogger {
     if (request) {
       const { method, url } = request;
       console.error(
-        `${method} ${url} | ${message} | data=${JSON.stringify(data)}`,
+        `%c${method} ${url} | ${message} | data=${JSON.stringify(data)}`, ConsoleLogger.CSS_ERROR
       );
     } else {
-      console.error(`${message} | data=${JSON.stringify(data)}`);
+      console.error(`%c${message} | data=${JSON.stringify(data)}`, ConsoleLogger.CSS_ERROR);
     }
-  }
-
-  /**
-   * Logs an activity to the console.
-   * @param {Activity} activity - The activity to log.
-   */
-  async addActivity(activity: Activity) {
-    const { message, request, metadata } = activity;
-    const { method, url } = request;
-    const id = (request as any)?.state?.id;
-
-    console.info(
-      `${method} ${url} | ${message} | metadata=${
-        JSON.stringify({ id, ...metadata })
-      }`,
-    );
-  }
-
-  /**
-   * Logs an exception to the console.
-   * @param {Error} err - The exception to log.
-   */
-  async addException(err: Error): Promise<void> {
-    console.error(`an error occurred: ${err.message}\n${err.stack}`);
   }
 }

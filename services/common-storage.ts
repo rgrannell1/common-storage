@@ -6,6 +6,19 @@ import {
   BATCH_MISSING,
   BATCH_OPEN,
   SUBSCRIPION_TOPIC_PREFIX,
+  TABLE_ROLES,
+  TABLE_USERS,
+  TABLE_TOPICS,
+  TABLE_LOCKS,
+  TABLE_SUBSCRIPTIONS,
+  TABLE_TOPIC_LAST_UPDATED,
+  TABLE_TOPIC_COUNT,
+  TABLE_CONTENT_ID,
+  TABLE_SUBSCRIPTION_LAST_ID,
+  TABLE_SUBSCRIPTION_STATE,
+  TABLE_CONTENT,
+  TABLE_BATCHES,
+  TABLE_SUBSCRIPTIONS_PROGRESS
 } from "../shared/constants.ts";
 import {
   BatchClosedError,
@@ -30,20 +43,10 @@ export class CommonStorage implements IStorage {
     await this.backend.init();
   }
 
-  // +++ ACTIVITY +++ //
-
-  async addActivity(_: Activity): Promise<void> {
-  }
-
-  // +++ ERROR +++ //
-
-  async addException(_: Error): Promise<void> {
-  }
-
   // +++ ROLE +++ //
 
   async getRole(role: string) {
-    const roleData = await this.backend.getValue<Role>(["roles"], role);
+    const roleData = await this.backend.getValue<Role>([TABLE_ROLES], role);
     if (roleData === null) {
       return null;
     }
@@ -63,7 +66,7 @@ export class CommonStorage implements IStorage {
   async deleteRole(role: string) {
     // block deletion on user
 
-    for await (const entry of this.backend.listTable<string, User>(["users"])) {
+    for await (const entry of this.backend.listTable<string, User>([TABLE_USERS])) {
       const user = entry.value;
 
       if (user.role === role) {
@@ -72,9 +75,9 @@ export class CommonStorage implements IStorage {
         );
       }
     }
-    const current = await this.backend.getValue<Role>(["roles"], role);
+    const current = await this.backend.getValue<Role>([TABLE_ROLES], role);
 
-    await this.backend.deleteValue(["roles"], role);
+    await this.backend.deleteValue([TABLE_ROLES], role);
 
     return {
       existed: current !== null,
@@ -82,9 +85,9 @@ export class CommonStorage implements IStorage {
   }
 
   async addRole(role: string, permissions: Permission[]) {
-    const current = await this.backend.getValue(["roles"], role);
+    const current = await this.backend.getValue([TABLE_ROLES], role);
 
-    await this.backend.setValue(["roles"], role, {
+    await this.backend.setValue([TABLE_ROLES], role, {
       name: role,
       permissions,
       created: Date.now(),
@@ -98,7 +101,7 @@ export class CommonStorage implements IStorage {
   // +++ USER +++ //
 
   async getUser(user: string) {
-    const roleData = await this.backend.getValue<User>(["users"], user);
+    const roleData = await this.backend.getValue<User>([TABLE_USERS], user);
     if (roleData === null) {
       return null;
     }
@@ -119,8 +122,8 @@ export class CommonStorage implements IStorage {
   }
 
   async deleteUser(user: string) {
-    const current = await this.backend.getValue(["users"], user);
-    await this.backend.deleteValue(["users"], user);
+    const current = await this.backend.getValue([TABLE_USERS], user);
+    await this.backend.deleteValue([TABLE_USERS], user);
 
     return {
       existed: current !== null,
@@ -128,9 +131,9 @@ export class CommonStorage implements IStorage {
   }
 
   async addUser(user: string, role: string, password: string) {
-    const current = await this.backend.getValue(["users"], user);
+    const current = await this.backend.getValue([TABLE_USERS], user);
 
-    await this.backend.setValue(["users"], user, {
+    await this.backend.setValue([TABLE_USERS], user, {
       name: user,
       role,
       // TODO this is horrible. Only store this credential if we are creating a service-account
@@ -147,7 +150,7 @@ export class CommonStorage implements IStorage {
   // +++ TOPIC +++ //
 
   async getTopic(topic: string) {
-    const topicData = await this.backend.getValue<Topic>(["topics"], topic);
+    const topicData = await this.backend.getValue<Topic>([TABLE_TOPICS], topic);
     if (topicData === null) {
       return null;
     }
@@ -172,11 +175,11 @@ export class CommonStorage implements IStorage {
     topic: string,
     user: string,
     description: string,
-    schema: Record<string, any> | undefined,
+    schema: Record<string, unknown> | undefined,
   ) {
-    const current = await this.backend.getValue(["topics"], topic);
+    const current = await this.backend.getValue([TABLE_TOPICS], topic);
 
-    await this.backend.setValue(["topics"], topic, {
+    await this.backend.setValue([TABLE_TOPICS], topic, {
       description,
       user,
       schema,
@@ -191,7 +194,7 @@ export class CommonStorage implements IStorage {
   async getTopicNames(): Promise<string[]> {
     const names: string[] = [];
     for await (
-      const entry of this.backend.listTable<string[2], unknown>(["topics"])
+      const entry of this.backend.listTable<string[2], unknown>([TABLE_TOPICS])
     ) {
       names.push(entry.key[1]);
     }
@@ -200,15 +203,15 @@ export class CommonStorage implements IStorage {
   }
 
   async getTopicStats(topic: string) {
-    const topicData = await this.backend.getValue<Topic>(["topics"], topic);
+    const topicData = await this.backend.getValue<Topic>([TABLE_TOPICS], topic);
     if (topicData === null) {
       return null;
     }
 
     const lastUpdated = await this.backend.getValue<number>([
-      "topic-last-updated",
+      TABLE_TOPIC_LAST_UPDATED,
     ], topic);
-    const count = await this.backend.getValue<number>(["topic-count"], topic);
+    const count = await this.backend.getValue<number>([TABLE_TOPIC_COUNT], topic);
 
     // TODO bad
     return {
@@ -222,9 +225,9 @@ export class CommonStorage implements IStorage {
   }
 
   async deleteTopic(topic: string): Promise<{ existed: boolean }> {
-    const current = await this.backend.getValue(["topics"], topic);
+    const current = await this.backend.getValue([TABLE_TOPICS], topic);
 
-    await this.backend.deleteValue(["topics"], topic);
+    await this.backend.deleteValue([TABLE_TOPICS], topic);
 
     return {
       existed: current !== null,
@@ -279,13 +282,13 @@ export class CommonStorage implements IStorage {
 
   async #getTopicMetadata(topic: string) {
     // set each entry consequetively
-    let contentId = await this.backend.getValue<number>(["content-id"]);
+    let contentId = await this.backend.getValue<number>([TABLE_CONTENT_ID]);
     if (typeof contentId === "undefined" || contentId === null) {
       contentId = -1;
     }
 
     let topicCount = await this.backend.getValue<number>(
-      ["topic-count"],
+      [TABLE_TOPIC_COUNT],
       topic,
     );
     if (typeof topicCount === "undefined" || topicCount === null) {
@@ -293,7 +296,7 @@ export class CommonStorage implements IStorage {
     }
 
     let subscriptionLastId = await this.backend.getValue<number>(
-      ["subscription-last-id"],
+      [TABLE_SUBSCRIPTION_LAST_ID],
       topic,
     );
     if (
@@ -326,10 +329,10 @@ export class CommonStorage implements IStorage {
       const now = Date.now();
 
       const atomicDataUpdate = [
-        [["content-id"], contentId],
-        [["topic-count", topic], topicCount],
-        [["topic-last-updated", topic], now],
-        [["content", topic, contentId], {
+        [[TABLE_CONTENT_ID], contentId],
+        [[TABLE_TOPIC_COUNT, topic], topicCount],
+        [[TABLE_TOPIC_LAST_UPDATED, topic], now],
+        [[TABLE_CONTENT, topic, contentId], {
           batchId,
           topic,
           content: JSON.stringify(entry),
@@ -341,7 +344,7 @@ export class CommonStorage implements IStorage {
         // increment the last-id (so subscription polling can pick up), and update the subscription ID
         subscriptionLastId++;
         atomicDataUpdate.push([
-          ["subscription-last-id", topic],
+          [TABLE_SUBSCRIPTION_LAST_ID, topic],
           subscriptionLastId,
         ]);
       }
@@ -367,7 +370,7 @@ export class CommonStorage implements IStorage {
     let size = 0;
     for await (
       const entry of this.backend.listTable<number[], { content: string }>([
-        "content",
+        TABLE_CONTENT,
       ], 10)
     ) {
       const contentId = lastId = entry.key[2];
@@ -399,9 +402,9 @@ export class CommonStorage implements IStorage {
 
   // +++ CONTENT BATCHES +++ //
   async addBatch(batchId: string) {
-    const current = await this.backend.getValue(["batches"], batchId);
+    const current = await this.backend.getValue([TABLE_BATCHES], batchId);
 
-    await this.backend.setValue<Batch>(["batches"], batchId, {
+    await this.backend.setValue<Batch>([TABLE_BATCHES], batchId, {
       id: batchId,
       status: BATCH_OPEN,
       created: Date.now(),
@@ -420,7 +423,7 @@ export class CommonStorage implements IStorage {
       current = await this.getBatch(batchId);
     }
 
-    await this.backend.setValue(["batches"], batchId, {
+    await this.backend.setValue([TABLE_BATCHES], batchId, {
       id: batchId,
       status: BATCH_CLOSED,
       created: current.created,
@@ -429,7 +432,7 @@ export class CommonStorage implements IStorage {
 
   // TODO types may be broken here
   async getBatch(batchId: string): Promise<Batch> {
-    const batchData = await this.backend.getValue<Batch>(["batches"], batchId);
+    const batchData = await this.backend.getValue<Batch>([TABLE_BATCHES], batchId);
     if (batchData === null) {
       return {
         id: batchId,
@@ -453,7 +456,7 @@ export class CommonStorage implements IStorage {
   // +++ SUBSCRIPTION +++ //
   async getSubscription(id: string): Promise<Subscription | null> {
     const subscription = await this.backend.getValue<Subscription>([
-      "subscriptions",
+      TABLE_SUBSCRIPTIONS,
     ], id);
     if (subscription === null) {
       return null;
@@ -462,19 +465,38 @@ export class CommonStorage implements IStorage {
     return subscription;
   }
 
+  async setLock(id: string) {
+    await this.backend.setValue([TABLE_LOCKS], id, Date.now());
+  }
+
+  async getLock(id: string) {
+    return await this.backend.getValue<number>([TABLE_LOCKS], id);
+  }
+
+  async deleteLock(id: string) {
+    return await this.backend.deleteValue([TABLE_LOCKS], id);
+  }
+
   async setSubscriptionProgress(
     topic: string,
     progress: SubscriptionSyncProgress,
   ) {
     await this.backend.setValues([
-      [["subscriptions-progress", topic], progress],
+      [[TABLE_SUBSCRIPTIONS_PROGRESS, topic], progress],
     ]);
+  }
+
+  async getSubscriptionProgress(topic: string) {
+    return await this.backend.getValue<SubscriptionSyncProgress>(
+      [TABLE_SUBSCRIPTIONS_PROGRESS],
+      topic,
+    );
   }
 
   // TODO rename
   async getSubscriptionState(id: string) {
     const lastId = await this.backend.getValue<number>(
-      ["subscription-last-id"],
+      [TABLE_SUBSCRIPTION_LAST_ID],
       id,
     );
 
@@ -487,7 +509,7 @@ export class CommonStorage implements IStorage {
   async *getSubscriptions() {
     for await (
       const entry of this.backend.listTable<string, Subscription>([
-        "subscriptions",
+        TABLE_SUBSCRIPTIONS,
       ])
     ) {
       yield entry.value;
@@ -495,7 +517,7 @@ export class CommonStorage implements IStorage {
   }
 
   async setSubscriptionState(target: string, state: string, message: string) {
-    await this.backend.setValue(["subscription-state"], target, {
+    await this.backend.setValue([TABLE_SUBSCRIPTION_STATE], target, {
       state,
       message,
     });
@@ -507,7 +529,7 @@ export class CommonStorage implements IStorage {
     serviceAccount: string,
     frequency: number,
   ): Promise<{ existed: boolean }> {
-    const current = await this.backend.getValue(["subscriptions"], target);
+    const current = await this.backend.getValue([TABLE_SUBSCRIPTIONS], target);
 
     const subscription = {
       source,
@@ -518,8 +540,8 @@ export class CommonStorage implements IStorage {
     };
 
     await this.backend.setValues<any>([
-      [["subscriptions", target], subscription],
-      [["subscription-last-id", target], -1],
+      [[TABLE_SUBSCRIPTIONS, target], subscription],
+      [[TABLE_SUBSCRIPTION_LAST_ID, target], -1],
     ]);
 
     return { existed: current !== null };

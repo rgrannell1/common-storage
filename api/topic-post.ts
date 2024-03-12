@@ -37,6 +37,8 @@ export function postTopic(_: PostTopicConfig, services: Services) {
         await logger.error("failed to compile schema", ctx.request, {
           topic,
           schema: contentSchema,
+          message: err.message,
+          stack: err.stack
         });
 
         ctx.response.status = Status.UnprocessableEntity;

@@ -12,7 +12,7 @@ Deno.test({
   name: "POST /topic | valid requests return expected response body",
   async fn() {
     const storage = {
-      async addTopic(name: string, description: string) {
+      async addTopic(_name: string, _description: string) {
         return { existed: false };
       },
     };

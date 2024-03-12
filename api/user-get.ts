@@ -1,6 +1,5 @@
 import type {
   Config,
-  IAddUser,
   IGetRole,
   IGetUser,
   ILogger,

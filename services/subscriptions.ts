@@ -14,6 +14,7 @@ import {
   PERMISSIONLESS_ROLE,
   SUBSCRIPTION_DELAY,
   SUBSCRIPTION_FAILED,
+  MAX_SUBSCRIPTION_LOCK_DURATION
 } from "../shared/constants.ts";
 
 import { ILogger } from "../types/index.ts";
@@ -116,7 +117,15 @@ export class Subscriptions {
     topic: string,
     serviceAccount: string,
     frequency: number,
+    create: boolean = true,
   ): AsyncGenerator<SubscriptionSyncProgress> {
+
+    await this.logger.info("syncing subscription", undefined, {
+      source,
+      topic,
+      frequency
+    });
+
     const topicData = await this.storage.getTopic(topic);
 
     // check the target topic actually exists. JSON schema
@@ -139,11 +148,13 @@ export class Subscriptions {
     }
 
     // check no existing subscription
-    for await (const subscription of this.storage.getSubscriptions()) {
-      if (subscription?.target === topic) {
-        throw new MultipleSubscriptionError(
-          `Another subscription already syncs to ${topic}`,
-        );
+    if (create) {
+      for await (const subscription of this.storage.getSubscriptions()) {
+        if (subscription?.target === topic) {
+          throw new MultipleSubscriptionError(
+            `Another subscription already syncs to ${topic}`,
+          );
+        }
       }
     }
 
@@ -152,6 +163,7 @@ export class Subscriptions {
     await this.logger.info("fetching remote content", undefined, {
       nextId,
       topic,
+      source,
     });
 
     const content = await this.fetchRemoteContent(
@@ -167,76 +179,103 @@ export class Subscriptions {
     };
 
     // Save a subscription
-    await this.storage.addSubscription(
-      source,
-      topic,
-      serviceAccount,
-      frequency,
-    );
-
-    await this.logger.info("saving subscription", undefined, {
-      source,
-      nextId,
-      topic,
-    });
-
-    yield {
-      state: SubscriptionSyncState.SUBSCRIPTION_SAVED,
-      startId: nextId,
-    };
-
-    await this.storage.addContent(undefined, topic, content);
-
-    await this.logger.info("saved first content batch", undefined, {
-      topic,
-    });
-
-    yield {
-      state: SubscriptionSyncState.FIRST_CONTENT_SAVED,
-      startId: nextId,
-    };
-
-    // we've performed an initial sync; now lets sync more of the content
-    // up to some limit
-    while (true) {
-      await new Promise((res) => {
-        setTimeout(res, SUBSCRIPTION_DELAY);
-      });
-
-      nextId = await this.getNextId(topic);
-
-      await this.logger.info("fetching subscription content", undefined, {
-        nextId,
-      });
-
-      const content = await this.fetchRemoteContent(
-        userData,
-        topic,
+    if (create) {
+      await this.storage.addSubscription(
         source,
-        nextId,
+        topic,
+        serviceAccount,
+        frequency,
       );
 
-      if (content.length === 0) {
-        break;
-      }
-
-      await this.storage.addContent(undefined, topic, content);
+      await this.logger.info("saving subscription", undefined, {
+        source,
+        nextId,
+        topic,
+      });
 
       yield {
-        state: SubscriptionSyncState.CONTENT_SAVED,
+        state: SubscriptionSyncState.SUBSCRIPTION_SAVED,
         startId: nextId,
       };
     }
 
-    await this.logger.info("subscription sync completed", undefined, {
-      nextId,
-      topic,
-    });
+    await this.storage.setLock(topic);
+    try {
+      await this.storage.addContent(undefined, topic, content);
+
+      await this.logger.info("saved first content batch", undefined, {
+        topic,
+      });
+
+      yield {
+        state: SubscriptionSyncState.FIRST_CONTENT_SAVED,
+        startId: nextId,
+      };
+
+      // we've performed an initial sync; now lets sync more of the content
+      // up to some limit
+      while (true) {
+        await new Promise((res) => {
+          setTimeout(res, SUBSCRIPTION_DELAY);
+        });
+
+        nextId = await this.getNextId(topic);
+
+        await this.logger.info("fetching subscription content", undefined, {
+          nextId,
+        });
+
+        await this.storage.setLock(topic);
+        const content = await this.fetchRemoteContent(
+          userData,
+          topic,
+          source,
+          nextId,
+        );
+
+        if (content.length === 0) {
+          break;
+        }
+
+        await this.storage.addContent(undefined, topic, content);
+
+        yield {
+          state: SubscriptionSyncState.CONTENT_SAVED,
+          startId: nextId,
+        };
+      }
+
+      await this.logger.info("subscription sync completed", undefined, {
+        nextId,
+        topic,
+      });
+    } finally {
+      await this.storage.deleteLock(topic);
+    }
 
     yield {
       state: SubscriptionSyncState.SYNC_COMPLETED,
       startId: nextId,
     };
+  }
+
+  /*
+   * Check if a subscription is locked
+   *
+   *
+   */
+  async isLockActive(topic: string) {
+    const lockedAt = await this.storage.getLock(topic);
+    return lockedAt && (Date.now() - lockedAt) < MAX_SUBSCRIPTION_LOCK_DURATION
+  }
+
+  /*
+   * Check if a subscription is overdue
+   *
+   *
+   */
+  async isSubscriptionOverdue(topicData: any, subscription: any) {
+    return Date.now() > (topicData.stats.lastUpdated + (subscription.frequency * 1_000));
   }
 
   /*
@@ -247,10 +286,16 @@ export class Subscriptions {
       // enumerate through subscriptions, to find one that's overdue execution.
       // We can do this more efficiently.
 
+      this.logger.info("polling subscriptions", undefined, {});
+
       for await (const subsciption of this.storage.getSubscriptions()) {
         const topicData = await this.storage.getTopicStats(subsciption.target);
 
         if (!topicData) {
+          this.logger.info("subscription missing", undefined, {
+            target: subsciption.target,
+          });
+
           await this.storage.setSubscriptionState(
             subsciption.target,
             SUBSCRIPTION_FAILED,
@@ -259,23 +304,45 @@ export class Subscriptions {
           continue;
         }
 
-        const isOverdue = Date.now() >
-          (topicData.stats.lastUpdated + (subsciption.frequency * 1_000));
-        if (!isOverdue) {
+        if (await this.isLockActive(subsciption.target)) {
+          this.logger.info("subscription is locked (and probably already syncing)", undefined, {
+            source: subsciption.source,
+            topic: subsciption.target,
+            frequency: subsciption.frequency
+          });
           continue;
         }
 
+        // check we actually need to poll for the subscription again
+        const isOverdue = await this.isSubscriptionOverdue(topicData, subsciption);
+        if (!isOverdue) {
+          this.logger.info("subscription is not overdue", undefined, {
+            frequencey: subsciption.frequency,
+          });
+          continue;
+        }
+
+        this.logger.info("subscription is overdue", undefined, {
+          frequencey: subsciption.frequency,
+        });
+
         // sync the subscription
         try {
-          await this.sync(
-            subsciption.source,
-            subsciption.target,
-            subsciption.serviceAccount,
-            subsciption.frequency,
-          );
+          const { source, target, serviceAccount, frequency } = subsciption;
+          const subscriptionSync = this.sync(source, target, serviceAccount, frequency, false);
+
+          for await (const progress of subscriptionSync) {
+            await this.storage.setSubscriptionProgress(target, progress);
+          }
         } catch (err) {
-          // TODO set some complex state about subscription health, which we can check over REST
-          console.log(err);
+          await this.logger.error("subscription failed", undefined, {
+            message: err.message,
+            stack: err.stack,
+            source: subsciption.source,
+            topic: subsciption.target,
+            frequency: subsciption.frequency
+          });
+          await this.storage.setSubscriptionState(subsciption.target, SUBSCRIPTION_FAILED, err.message);
         }
       }
     }, 60_000);

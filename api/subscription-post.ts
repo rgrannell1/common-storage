@@ -10,6 +10,7 @@ import { BodyParsers } from "../services/parsers.ts";
 import { IntertalkClient } from "../services/intertalk.ts";
 import {
   ContentInvalidError,
+  MultipleSubscriptionError,
   NetworkError,
   SubscriptionAuthorisationError,
   TopicNotFoundError,
@@ -45,6 +46,7 @@ const errorMap = new Map<any, number>([
   [NetworkError, Status.BadGateway],
   [TopicValidationError, Status.UnprocessableEntity],
   [SubscriptionAuthorisationError, Status.Unauthorized],
+  [MultipleSubscriptionError, Status.UnprocessableEntity],
 ]);
 
 export function postSubscription(
