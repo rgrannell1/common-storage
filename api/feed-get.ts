@@ -30,11 +30,10 @@ export function getFeed(cfg: GetFeedConfig, services: Services) {
     const topicsPromises = Promise.all(
       topicNames.map((topicName: string) => storage.getTopicStats(topicName)),
     );
-    const subscriptionsPromises = Array.fromAsync(storage.getSubscriptions());
 
     const [topics, subscriptions] = await Promise.all([
       topicsPromises,
-      subscriptionsPromises,
+      storage.getSubscriptions(),
     ]);
 
     const subscriptionMap: Record<string, { source: string }> = {};

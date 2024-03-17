@@ -205,7 +205,7 @@ export interface ISetSubscriptionProgress {
 }
 
 export interface IGetSubscriptions {
-  getSubscriptions(): AsyncGenerator<Subscription>;
+  getSubscriptions(): Promise<Subscription[]>;
 }
 
 export interface IGetSubscriptionState {

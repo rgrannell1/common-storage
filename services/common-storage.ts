@@ -555,14 +555,22 @@ export class CommonStorage implements IStorage {
   }
 
   // List all the subscriptions
-  async *getSubscriptions() {
+  @cache({
+    store: storageCache,
+    id: () => 'subscriptions'
+  })
+  async getSubscriptions() {
+    const record: Subscription[] = [];
+
     for await (
       const entry of this.backend.listTable<string, Subscription>([
         TABLE_SUBSCRIPTIONS,
       ])
     ) {
-      yield entry.value;
+      record.push(entry.value);
     }
+
+    return record;
   }
 
   async setSubscriptionState(target: string, state: string, message: string) {
@@ -575,7 +583,7 @@ export class CommonStorage implements IStorage {
   @cache({
     store: storageCache,
     clears: (target: string) => (key: string) =>
-      key === `subscriptions/${target}`,
+      key === `subscriptions/${target}` || key === 'subscriptions',
   })
   async addSubscription(
     source: string,

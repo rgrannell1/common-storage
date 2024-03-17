@@ -153,7 +153,7 @@ export class Subscriptions {
 
     // check no existing subscription
     if (create) {
-      for await (const subscription of this.storage.getSubscriptions()) {
+      for (const subscription of await this.storage.getSubscriptions()) {
         if (subscription?.target === topic) {
           throw new MultipleSubscriptionError(
             `Another subscription already syncs to ${topic}`,
@@ -289,7 +289,7 @@ export class Subscriptions {
 
       this.logger.info("polling subscriptions", undefined, {});
 
-      for await (const subsciption of this.storage.getSubscriptions()) {
+      for (const subsciption of await this.storage.getSubscriptions()) {
         const topicData = await this.storage.getTopicStats(subsciption.target);
 
         if (!topicData) {

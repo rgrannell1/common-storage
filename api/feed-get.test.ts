@@ -23,7 +23,9 @@ Deno.test({
           created: "test-name",
         };
       },
-      async *getSubscriptions() {},
+      async getSubscriptions() {
+        return [];
+      },
       getTopicStats(topic: string) {
         return {
           topic: topic,

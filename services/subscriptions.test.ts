@@ -22,8 +22,8 @@ const blankStorage = {
   async getTopicStats(_: string) {
     return null;
   },
-  async *getSubscriptions(): AsyncGenerator<any> {
-    yield null;
+  async getSubscriptions() {
+    return [];
   },
   async getSubscriptionState(_: string) {
     return null;
@@ -180,13 +180,13 @@ Deno.test("Subscriptions.sync() | fails when subscription already present", asyn
     ...blankStorage,
     getTopic,
     getUser: getUserValid,
-    async *getSubscriptions() {
-      yield {
+    async getSubscriptions() {
+      return [{
         source: "example.com",
         target: "subscription.example",
         serviceAccount: "service-account",
         frequency: 60,
-      };
+      }];
     },
   };
   const sub = new Subscriptions(store, stubLogger, StubIntertalkClient(""));
