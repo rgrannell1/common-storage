@@ -221,7 +221,7 @@ export interface IGetLock {
 }
 
 export interface IDeleteLock {
-  deleteLock(id: string): Promise<void>
+  deleteLock(id: string): Promise<void>;
 }
 
 export interface IAddSubscription {

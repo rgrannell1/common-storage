@@ -6,19 +6,19 @@ import {
   BATCH_MISSING,
   BATCH_OPEN,
   SUBSCRIPION_TOPIC_PREFIX,
-  TABLE_ROLES,
-  TABLE_USERS,
-  TABLE_TOPICS,
-  TABLE_LOCKS,
-  TABLE_SUBSCRIPTIONS,
-  TABLE_TOPIC_LAST_UPDATED,
-  TABLE_TOPIC_COUNT,
+  TABLE_BATCHES,
+  TABLE_CONTENT,
   TABLE_CONTENT_ID,
+  TABLE_LOCKS,
+  TABLE_ROLES,
   TABLE_SUBSCRIPTION_LAST_ID,
   TABLE_SUBSCRIPTION_STATE,
-  TABLE_CONTENT,
-  TABLE_BATCHES,
-  TABLE_SUBSCRIPTIONS_PROGRESS
+  TABLE_SUBSCRIPTIONS,
+  TABLE_SUBSCRIPTIONS_PROGRESS,
+  TABLE_TOPIC_COUNT,
+  TABLE_TOPIC_LAST_UPDATED,
+  TABLE_TOPICS,
+  TABLE_USERS,
 } from "../shared/constants.ts";
 import {
   BatchClosedError,
@@ -31,6 +31,9 @@ import { Role, User } from "../types/auth.ts";
 import { Subscription, Topic } from "../types/storage.ts";
 import * as bcrypt from "https://deno.land/x/bcrypt/mod.ts";
 import { SubscriptionSyncProgress } from "../types/storage.ts";
+import { Cache, cache } from "./cache.ts";
+
+const storageCache = new Cache<any>();
 
 export class CommonStorage implements IStorage {
   backend: IStorageBackend;
@@ -44,7 +47,10 @@ export class CommonStorage implements IStorage {
   }
 
   // +++ ROLE +++ //
-
+  @cache({
+    store: storageCache,
+    id: (role: string) => `roles/${role}`,
+  })
   async getRole(role: string) {
     const roleData = await this.backend.getValue<Role>([TABLE_ROLES], role);
     if (roleData === null) {
@@ -63,10 +69,16 @@ export class CommonStorage implements IStorage {
     };
   }
 
+  @cache({
+    store: storageCache,
+    clears: (role: string) => (key: string) => key === `roles/${role}`,
+  })
   async deleteRole(role: string) {
     // block deletion on user
 
-    for await (const entry of this.backend.listTable<string, User>([TABLE_USERS])) {
+    for await (
+      const entry of this.backend.listTable<string, User>([TABLE_USERS])
+    ) {
       const user = entry.value;
 
       if (user.role === role) {
@@ -84,6 +96,10 @@ export class CommonStorage implements IStorage {
     };
   }
 
+  @cache({
+    store: storageCache,
+    clears: (role: string) => (key: string) => key === `roles/${role}`,
+  })
   async addRole(role: string, permissions: Permission[]) {
     const current = await this.backend.getValue([TABLE_ROLES], role);
 
@@ -100,6 +116,10 @@ export class CommonStorage implements IStorage {
 
   // +++ USER +++ //
 
+  @cache({
+    store: storageCache,
+    id: (user: string) => `users/${user}`,
+  })
   async getUser(user: string) {
     const roleData = await this.backend.getValue<User>([TABLE_USERS], user);
     if (roleData === null) {
@@ -121,6 +141,10 @@ export class CommonStorage implements IStorage {
     };
   }
 
+  @cache({
+    store: storageCache,
+    clears: (user: string) => (key: string) => key === `users/${user}`,
+  })
   async deleteUser(user: string) {
     const current = await this.backend.getValue([TABLE_USERS], user);
     await this.backend.deleteValue([TABLE_USERS], user);
@@ -130,6 +154,10 @@ export class CommonStorage implements IStorage {
     };
   }
 
+  @cache({
+    store: storageCache,
+    clears: (user: string) => (key: string) => key === `users/${user}`,
+  })
   async addUser(user: string, role: string, password: string) {
     const current = await this.backend.getValue([TABLE_USERS], user);
 
@@ -148,7 +176,10 @@ export class CommonStorage implements IStorage {
   }
 
   // +++ TOPIC +++ //
-
+  @cache({
+    store: storageCache,
+    id: (topic: string) => `topics/${topic}`,
+  })
   async getTopic(topic: string) {
     const topicData = await this.backend.getValue<Topic>([TABLE_TOPICS], topic);
     if (topicData === null) {
@@ -171,6 +202,10 @@ export class CommonStorage implements IStorage {
     };
   }
 
+  @cache({
+    store: storageCache,
+    clears: (topic: string) => (key: string) => key === `topics/${topic}`,
+  })
   async addTopic(
     topic: string,
     user: string,
@@ -211,7 +246,10 @@ export class CommonStorage implements IStorage {
     const lastUpdated = await this.backend.getValue<number>([
       TABLE_TOPIC_LAST_UPDATED,
     ], topic);
-    const count = await this.backend.getValue<number>([TABLE_TOPIC_COUNT], topic);
+    const count = await this.backend.getValue<number>(
+      [TABLE_TOPIC_COUNT],
+      topic,
+    );
 
     // TODO bad
     return {
@@ -224,6 +262,10 @@ export class CommonStorage implements IStorage {
     };
   }
 
+  @cache({
+    store: storageCache,
+    clears: (topic: string) => (key: string) => key === `topics/${topic}`,
+  })
   async deleteTopic(topic: string): Promise<{ existed: boolean }> {
     const current = await this.backend.getValue([TABLE_TOPICS], topic);
 
@@ -432,7 +474,10 @@ export class CommonStorage implements IStorage {
 
   // TODO types may be broken here
   async getBatch(batchId: string): Promise<Batch> {
-    const batchData = await this.backend.getValue<Batch>([TABLE_BATCHES], batchId);
+    const batchData = await this.backend.getValue<Batch>(
+      [TABLE_BATCHES],
+      batchId,
+    );
     if (batchData === null) {
       return {
         id: batchId,
@@ -454,6 +499,10 @@ export class CommonStorage implements IStorage {
   }
 
   // +++ SUBSCRIPTION +++ //
+  @cache({
+    store: storageCache,
+    id: (id: string) => `subscriptions/${id}`,
+  })
   async getSubscription(id: string): Promise<Subscription | null> {
     const subscription = await this.backend.getValue<Subscription>([
       TABLE_SUBSCRIPTIONS,
@@ -523,6 +572,11 @@ export class CommonStorage implements IStorage {
     });
   }
 
+  @cache({
+    store: storageCache,
+    clears: (target: string) => (key: string) =>
+      key === `subscriptions/${target}`,
+  })
   async addSubscription(
     source: string,
     target: string,

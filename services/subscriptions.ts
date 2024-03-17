@@ -1,4 +1,9 @@
-import type { AIntertalk, SubscriptionStorage, User } from "../types/index.ts";
+import type {
+  AIntertalk,
+  Subscription,
+  SubscriptionStorage,
+  User,
+} from "../types/index.ts";
 
 import {
   ContentInvalidError,
@@ -11,10 +16,10 @@ import {
   UserNotFound,
 } from "../shared/errors.ts";
 import {
+  MAX_SUBSCRIPTION_LOCK_DURATION,
   PERMISSIONLESS_ROLE,
   SUBSCRIPTION_DELAY,
   SUBSCRIPTION_FAILED,
-  MAX_SUBSCRIPTION_LOCK_DURATION
 } from "../shared/constants.ts";
 
 import { ILogger } from "../types/index.ts";
@@ -119,11 +124,10 @@ export class Subscriptions {
     frequency: number,
     create: boolean = true,
   ): AsyncGenerator<SubscriptionSyncProgress> {
-
     await this.logger.info("syncing subscription", undefined, {
       source,
       topic,
-      frequency
+      frequency,
     });
 
     const topicData = await this.storage.getTopic(topic);
@@ -261,21 +265,18 @@ export class Subscriptions {
 
   /*
    * Check if a subscription is locked
-   *
-   *
    */
   async isLockActive(topic: string) {
     const lockedAt = await this.storage.getLock(topic);
-    return lockedAt && (Date.now() - lockedAt) < MAX_SUBSCRIPTION_LOCK_DURATION
+    return lockedAt && (Date.now() - lockedAt) < MAX_SUBSCRIPTION_LOCK_DURATION;
   }
 
   /*
    * Check if a subscription is overdue
-   *
-   *
    */
   async isSubscriptionOverdue(topicData: any, subscription: any) {
-    return Date.now() > (topicData.stats.lastUpdated + (subscription.frequency * 1_000));
+    return Date.now() >
+      (topicData.stats.lastUpdated + (subscription.frequency * 1_000));
   }
 
   /*
@@ -305,16 +306,23 @@ export class Subscriptions {
         }
 
         if (await this.isLockActive(subsciption.target)) {
-          this.logger.info("subscription is locked (and probably already syncing)", undefined, {
-            source: subsciption.source,
-            topic: subsciption.target,
-            frequency: subsciption.frequency
-          });
+          this.logger.info(
+            "subscription is locked (and probably already syncing)",
+            undefined,
+            {
+              source: subsciption.source,
+              topic: subsciption.target,
+              frequency: subsciption.frequency,
+            },
+          );
           continue;
         }
 
         // check we actually need to poll for the subscription again
-        const isOverdue = await this.isSubscriptionOverdue(topicData, subsciption);
+        const isOverdue = await this.isSubscriptionOverdue(
+          topicData,
+          subsciption,
+        );
         if (!isOverdue) {
           this.logger.info("subscription is not overdue", undefined, {
             frequencey: subsciption.frequency,
@@ -329,7 +337,13 @@ export class Subscriptions {
         // sync the subscription
         try {
           const { source, target, serviceAccount, frequency } = subsciption;
-          const subscriptionSync = this.sync(source, target, serviceAccount, frequency, false);
+          const subscriptionSync = this.sync(
+            source,
+            target,
+            serviceAccount,
+            frequency,
+            false,
+          );
 
           for await (const progress of subscriptionSync) {
             await this.storage.setSubscriptionProgress(target, progress);
@@ -340,9 +354,13 @@ export class Subscriptions {
             stack: err.stack,
             source: subsciption.source,
             topic: subsciption.target,
-            frequency: subsciption.frequency
+            frequency: subsciption.frequency,
           });
-          await this.storage.setSubscriptionState(subsciption.target, SUBSCRIPTION_FAILED, err.message);
+          await this.storage.setSubscriptionState(
+            subsciption.target,
+            SUBSCRIPTION_FAILED,
+            err.message,
+          );
         }
       }
     }, 60_000);

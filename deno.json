@@ -8,5 +8,9 @@
     ],
     "include": [],
     "entrypoint": "start.ts"
+  },
+  "compilerOptions": {
+    "noImplicitThis": false,
+    "experimentalDecorators": true
   }
 }

@@ -26,14 +26,17 @@ export class ConsoleLogger implements ILogger {
     request: Request | undefined,
     data: Record<string, any>,
   ) {
-
     if (request) {
       const { method, url } = request;
       console.info(
-        `%c${method} ${url} | ${message} | data=${JSON.stringify(data)}`,ConsoleLogger.CSS_INFO
+        `%c${method} ${url} | ${message} | data=${JSON.stringify(data)}`,
+        ConsoleLogger.CSS_INFO,
       );
     } else {
-      console.info(`%c${message} | data=${JSON.stringify(data)}`, ConsoleLogger.CSS_INFO);
+      console.info(
+        `%c${message} | data=${JSON.stringify(data)}`,
+        ConsoleLogger.CSS_INFO,
+      );
     }
   }
 
@@ -45,10 +48,14 @@ export class ConsoleLogger implements ILogger {
     if (request) {
       const { method, url } = request;
       console.error(
-        `%c${method} ${url} | ${message} | data=${JSON.stringify(data)}`, ConsoleLogger.CSS_ERROR
+        `%c${method} ${url} | ${message} | data=${JSON.stringify(data)}`,
+        ConsoleLogger.CSS_ERROR,
       );
     } else {
-      console.error(`%c${message} | data=${JSON.stringify(data)}`, ConsoleLogger.CSS_ERROR);
+      console.error(
+        `%c${message} | data=${JSON.stringify(data)}`,
+        ConsoleLogger.CSS_ERROR,
+      );
     }
   }
 }

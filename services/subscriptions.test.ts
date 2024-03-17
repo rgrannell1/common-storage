@@ -7,7 +7,6 @@ import {
   UserHasPermissionsError,
   UserNotFound,
 } from "../shared/errors.ts";
-import { Type } from "https://esm.sh/v135/ajv@8.12.0/dist/compile/util.js";
 import { AIntertalk, SubscriptionSyncProgress } from "../types/storage.ts";
 
 const blankStorage = {
@@ -33,6 +32,16 @@ const blankStorage = {
   },
   async addContent<T>(_: string | undefined, __: string, ___: T[]) {
     return { lastId: 0 };
+  },
+  async getLock(_: string) {
+    return null;
+  },
+  async setLock(_: string) {
+  },
+  async deleteLock(_: string) {
+  },
+  async getSubscriptionProgress(_: string) {
+    return null;
   },
   async addSubscription(_: string, __: string, ___: string, ____: number) {
     return { existed: false };

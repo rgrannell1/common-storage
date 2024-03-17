@@ -38,7 +38,7 @@ export function postTopic(_: PostTopicConfig, services: Services) {
           topic,
           schema: contentSchema,
           message: err.message,
-          stack: err.stack
+          stack: err.stack,
         });
 
         ctx.response.status = Status.UnprocessableEntity;
