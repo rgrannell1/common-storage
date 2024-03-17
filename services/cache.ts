@@ -3,9 +3,17 @@
  */
 export class Cache<T> {
   store: Map<string, T>;
+  stats: {
+    reads: number;
+    writes: number;
+  }
 
   constructor() {
     this.store = new Map<string, T>();
+    this.stats = {
+      reads: 0,
+      writes: 0
+    }
   }
 
   has(key: string): boolean {
@@ -13,10 +21,14 @@ export class Cache<T> {
   }
 
   get(key: string): T | undefined {
+    this.stats.reads++;
+
     return this.store.get(key);
   }
 
   set(key: string, value: T): void {
+    this.stats.writes++;
+
     this.store.set(key, value);
   }
 
