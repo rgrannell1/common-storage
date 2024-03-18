@@ -40,14 +40,6 @@ An overview of the topics on the current data-server
 Returns a description provided by the server, and a list of topics & associated
 statistics
 
-**Parameters**
-
-None
-
-**Body**
-
-None
-
 **Response**
 
 ```json
@@ -80,12 +72,26 @@ Create & manage users, and grant them permissions by assigning roles
 
 **Parameters**
 
-**Body**
+- `name`: the account user-name
 
 </details>
 
 <details>
   <summary><code>POST /user/:name</code> </summary>
+
+**Parameters**
+
+- `name`: the account user-name
+
+**Body**
+
+```json
+{
+  "role": "my_user_role",
+  "password": "this-is-the-user-password"
+}
+```
+
 </details>
 
 ### `role`
@@ -95,12 +101,11 @@ Create & manage roles, which restrict access to endpoints and topics
 <details>
   <summary><code>GET /role/:name</code> </summary>
 
+Get details about & permissions associated with a role
+
 **Parameters**
 
-**Body**
-
-```json
-```
+- `name`: the role name
 
 </details>
 
@@ -109,9 +114,19 @@ Create & manage roles, which restrict access to endpoints and topics
 
 **Parameters**
 
+- `name`: the role name
+
 **Body**
 
 ```json
+{
+  "permissions": [
+    {
+      "routes": ["GET /content"],
+      "topics": ["notes"]
+    }
+  ]
+}
 ```
 
 </details>
@@ -195,6 +210,8 @@ server's topic to a local topic
 <details>
   <summary><code>GET /subscription/:topic</code> </summary>
 
+Get information about a subscription.
+
 **Parameters**
 
 - `topic`: the topic to which the subscriptions stores content
@@ -203,6 +220,8 @@ server's topic to a local topic
 
 <details>
   <summary><code>POST /subscription/:topic</code> </summary>
+
+Create a subscription to a remote server.
 
 **Parameters**
 
@@ -223,6 +242,8 @@ server's topic to a local topic
 
 <details>
   <summary><code>DELETE /subscription/:topic</code> </summary>
+
+Delete a subscription.
 
 **Parameters**
 
