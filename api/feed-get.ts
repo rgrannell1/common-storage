@@ -22,7 +22,7 @@ type GetFeedConfig = Partial<Config> & {
 };
 
 export function getFeed(cfg: GetFeedConfig, services: Services) {
-  const { storage, logger } = services;
+  const { storage } = services;
 
   return async function (ctx: CSContext) {
     const topicNames = await storage.getTopicNames();

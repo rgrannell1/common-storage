@@ -1,5 +1,6 @@
 /*
- * A cache for reducing reads from Deno KV's aggressively billed APIs.
+ * A cache for reducing reads from Deno KV's aggressively billed APIs. How in god's name
+   is this tiny app burning 10k reads a minute
  */
 export class Cache<T> {
   store: Map<string, T>;
@@ -8,7 +9,7 @@ export class Cache<T> {
     readMisses: number;
     writes: number;
     clears: number;
-  }
+  };
 
   constructor() {
     this.store = new Map<string, T>();
@@ -16,8 +17,8 @@ export class Cache<T> {
       reads: 0,
       readMisses: 0,
       writes: 0,
-      clears: 0
-    }
+      clears: 0,
+    };
   }
 
   has(key: string): boolean {
@@ -48,7 +49,6 @@ export class Cache<T> {
 
 /*
  * Configuration describing how to cache a function
- *
  */
 export type CacheOpts<T> = {
   id?(...args: any[]): string;
@@ -59,11 +59,9 @@ export type CacheOpts<T> = {
 /*
  * Wrap a function with a cache; cache and clear the cache based on
  * the configuration in `CachedOpts`
- *
  */
 export function cached<T>(opts: CacheOpts<T>, fn: Function): Function {
-  return function(...args: any[]) {
-
+  return function (...args: any[]) {
     if (opts.id) {
       const cacheId = opts.id(...args);
 
@@ -86,5 +84,5 @@ export function cached<T>(opts: CacheOpts<T>, fn: Function): Function {
 
     opts.store.stats.readMisses++;
     return fn.apply(this, args);
-  }
+  };
 }

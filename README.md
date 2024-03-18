@@ -193,37 +193,40 @@ Create & manage subscriptions, which sync content from a remote common-storage
 server's topic to a local topic
 
 <details>
-  <summary><code>GET /subscription/:target_topic</code> </summary>
+  <summary><code>GET /subscription/:topic</code> </summary>
 
 **Parameters**
+
+- `topic`: the topic to which the subscriptions stores content
+
+</details>
+
+<details>
+  <summary><code>POST /subscription/:topic</code> </summary>
+
+**Parameters**
+
+- `topic`: the topic to which the subscriptions stores content
 
 **Body**
 
 ```json
+{
+    source: "https://remote-server/content/notes",
+    topic: "subscription.notes",
+    serviceAccount: "remote_server_read_notes",
+    frequency: 300,
+}
 ```
 
 </details>
 
 <details>
-  <summary><code>POST /subscription/:target_topic</code> </summary>
+  <summary><code>DELETE /subscription/:topic</code> </summary>
 
 **Parameters**
 
-**Body**
+- `topic`: the topic to which the subscriptions stores content
 
-```json
-```
-
-</details>
-
-<details>
-  <summary><code>DELETE /subscription/:target_topic</code> </summary>
-
-**Parameters**
-
-**Body**
-
-```json
-```
 
 </details>

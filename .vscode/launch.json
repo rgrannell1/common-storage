@@ -35,6 +35,6 @@
       ],
       "preLaunchTask": "Acceptance Test Build",
       "attachSimplePort": 9229
-    },
+    }
   ]
 }
