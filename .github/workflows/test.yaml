@@ -24,5 +24,4 @@ jobs:
           deno-version: ${{ matrix.deno-version }}
 
       - name: Test Deno Module
-        working-directory: common-storage
-        run: deno test --unstable-kv --allow-all
+        run: ls && deno test --unstable-kv --allow-all
