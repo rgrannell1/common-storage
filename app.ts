@@ -10,7 +10,7 @@ import type { AppData, Config, Services } from "./types/index.ts";
 import { RequestPart } from "./types/index.ts";
 import { StorageLogger } from "./services/loggers/storage.ts";
 import { ConsoleLogger } from "./services/loggers/console.ts";
-import { CommonStorage } from "./services/common-storage.ts";
+import { CachedCommonStorage } from "./services/common-storage/cached.ts"
 import { DenoKVBackend } from "./services/backends/deno-kv.ts";
 
 import * as Authentication from "./api/authentication.ts";
@@ -266,7 +266,7 @@ export async function csServices(cfg: Config): Promise<Services> {
   );
 
   const backend = new DenoKVBackend(cfg.kvPath);
-  const storage = new CommonStorage(backend);
+  const storage = new CachedCommonStorage(backend);
   await storage.init();
 
   // a special service-account role, for subscriptions.

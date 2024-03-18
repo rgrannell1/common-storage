@@ -19,6 +19,22 @@
       ],
       "preLaunchTask": "Acceptance Test Build",
       "attachSimplePort": 9229
-    }
+    },
+    {
+      "request": "launch",
+      "name": "🖥️ Run",
+      "type": "node",
+      "program": "${workspaceFolder}/start.ts",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "/usr/bin/deno",
+      "runtimeArgs": [
+        "run",
+        "--unstable",
+        "--inspect-wait",
+        "--allow-all"
+      ],
+      "preLaunchTask": "Acceptance Test Build",
+      "attachSimplePort": 9229
+    },
   ]
 }
