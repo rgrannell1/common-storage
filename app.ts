@@ -1,7 +1,6 @@
 import Ajv from "https://esm.sh/ajv@8.12.0";
 import { Status } from "./shared/status.ts";
-import { Application, Router } from "https://deno.land/x/oak@v12.6.2/mod.ts";
-import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
+import { Application, Router, oakCors } from "./deps.ts";
 import { schema } from "./shared/schema.ts";
 
 import { InputValidationError, JSONError } from "./shared/errors.ts";
@@ -340,8 +339,10 @@ export function startApp(appData: AppData, services: Services, config: Config) {
 
   controller.signal.onabort = async () => {
     clearInterval(subscriptionsPid);
-    await services.storage.close();
-    await services.logger?.info("Common-Storage shutting down", undefined, {});
+    await Promise.all([
+      services.storage.close(),
+      services.logger?.info("Common-Storage shutting down", undefined, {})
+    ]);
   };
 
   return controller;

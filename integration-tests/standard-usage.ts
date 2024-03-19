@@ -1,6 +1,6 @@
 import { csApp, csServices, startApp } from "../app.ts";
 import { CommonStorageClient } from "../library/comon-storage.ts";
-import { assertEquals } from "https://deno.land/std@0.202.0/assert/assert_equals.ts";
+import { assertEquals } from "../dev_deps.ts";
 
 abstract class TestServer {
   _config: any;

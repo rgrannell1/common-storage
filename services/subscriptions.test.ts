@@ -1,4 +1,4 @@
-import { assertRejects } from "https://deno.land/std/assert/assert_rejects.ts";
+import { assertRejects } from "../dev_deps.ts";
 import { Subscriptions } from "./subscriptions.ts";
 import {
   ContentInvalidError,

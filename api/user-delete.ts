@@ -2,8 +2,8 @@ import { Status } from "../shared/status.ts";
 
 import type {
   CSContext,
-  IAddActivity,
   IDeleteUser,
+  IInfo,
   SchemaValidator,
 } from "../types/index.ts";
 import { RequestPart } from "../types/index.ts";
@@ -11,7 +11,7 @@ import { RoleInUseError } from "../shared/errors.ts";
 
 type Services = {
   storage: IDeleteUser;
-  logger: IAddActivity;
+  logger: IInfo;
   schema: SchemaValidator;
 };
 
@@ -23,15 +23,7 @@ export function deleteUser(_: DeleteUserConfig, services: Services) {
   return async function (ctx: CSContext) {
     schema("userDelete", ctx.params, RequestPart.Params);
 
-    const topic = ctx.params.topic;
-
-    await logger.addActivity({
-      request: ctx.request,
-      message: "deleting topic",
-      metadata: {
-        topic,
-      },
-    });
+    const { topic } = ctx.params;
 
     await logger.info("deleting topic", ctx.request, { topic });
 

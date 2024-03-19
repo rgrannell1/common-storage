@@ -1,9 +1,19 @@
+
+/*
+ * Roles associate permissions in a named-group.
+ *
+ */
 export type Role = {
   name: string;
   created: string;
   permissions: Permission[];
 };
 
+/*
+ * User can authenticate and are granted permissions
+ * defined by a role
+ *
+ */
 export type User = {
   name: string;
   role: string;
@@ -12,11 +22,20 @@ export type User = {
   created: string;
 };
 
+/*
+ * Permissions are defined for particular combinations of
+ * route and topic
+ *
+ */
 export type Permission = {
   routes: string | string[];
   topics: string | string[];
 };
 
+/*
+ * Admin authentication can be in one of the following states
+ *
+ */
 export enum AdminAuthenticationState {
   MissingConfiguration,
   InvalidHeader,
@@ -24,6 +43,10 @@ export enum AdminAuthenticationState {
   Authenticated,
 }
 
+/*
+ * Role authentication can be in one of the following states
+ *
+ */
 export enum RoleAuthenticationState {
   AdminUser,
   MissingConfiguration,

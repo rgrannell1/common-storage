@@ -1,4 +1,4 @@
-import { assert } from "https://deno.land/std@0.198.0/assert/mod.ts";
+import { assert } from "../dev_deps.ts";
 
 import { Context, validateSchema } from "../shared/test-utils.ts";
 

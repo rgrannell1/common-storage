@@ -1,5 +1,5 @@
-import type { Activity, ILogger, IStorage } from "../../types/index.ts";
-import type { Request } from "https://deno.land/x/oak@v12.6.2/mod.ts";
+import type { ILogger, IStorage } from "../../types/index.ts";
+import type { Request } from "../../deps.ts";
 
 /**
  * A logger that logs activities and exceptions to the console.

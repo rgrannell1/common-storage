@@ -1,9 +1,8 @@
 import type {
-  AIntertalk,
-  Subscription,
   SubscriptionStorage,
   User,
 } from "../types/index.ts";
+import { setImmediateInterval } from "../shared/time.ts";
 
 import {
   ContentInvalidError,
@@ -122,7 +121,7 @@ export class Subscriptions {
     topic: string,
     serviceAccount: string,
     frequency: number,
-    create: boolean = true,
+    create = true,
   ): AsyncGenerator<SubscriptionSyncProgress> {
     await this.logger.info("syncing subscription", undefined, {
       source,
@@ -283,7 +282,7 @@ export class Subscriptions {
    * Start checking subscriptions
    */
   startPoll() {
-    return setInterval(async () => {
+    return setImmediateInterval(async () => {
       // enumerate through subscriptions, to find one that's overdue execution.
       // We can do this more efficiently.
 

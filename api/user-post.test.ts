@@ -1,5 +1,4 @@
-import { assert } from "https://deno.land/std@0.198.0/assert/mod.ts";
-
+import { assert } from "../dev_deps.ts";
 import { Context, validateSchema } from "../shared/test-utils.ts";
 
 import { postUser } from "./user-post.ts";
@@ -12,10 +11,10 @@ Deno.test({
   name: "POST /user | valid requests return expected response body",
   async fn() {
     const storage = {
-      async addUser(name: string, role: string) {
+      async addUser(_name: string, _role: string) {
         return { existed: false };
       },
-      async getRole(role: string) {
+      async getRole(_role: string) {
         return { name: "test-role", created: new Date(), permissions: [] };
       },
     };
