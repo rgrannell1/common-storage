@@ -10,7 +10,8 @@
     "entrypoint": "start.ts"
   },
   "compilerOptions": {
-    "noImplicitThis": false,
-    "experimentalDecorators": true
+    // this makes it harder to implement the `cached` combinator, since
+    // JS methods need `this` passed through when applying a method
+    "noImplicitThis": false
   }
 }

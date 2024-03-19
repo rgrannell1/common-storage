@@ -37,6 +37,10 @@ export class Cache<T> {
     this.store.set(key, value);
   }
 
+  /*
+   * Clear the cache based on a predicate
+   *
+   */
   clear(predicate: (key: string) => boolean) {
     for (const key of this.store.keys()) {
       if (predicate(key)) {
@@ -49,6 +53,7 @@ export class Cache<T> {
 
 /*
  * Configuration describing how to cache a function
+ *
  */
 export type CacheOpts<T> = {
   id?(...args: any[]): string;
@@ -59,6 +64,7 @@ export type CacheOpts<T> = {
 /*
  * Wrap a function with a cache; cache and clear the cache based on
  * the configuration in `CachedOpts`
+ *
  */
 export function cached<T>(opts: CacheOpts<T>, fn: Function): Function {
   return function (...args: any[]) {

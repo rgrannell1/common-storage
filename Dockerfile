@@ -19,7 +19,7 @@ COPY shared        /app/shared
 COPY types         /app/types
 COPY app.ts        /app/app.ts
 COPY start.ts      /app/start.ts
-COPY deno.json     /app/deno.json
+COPY deno.jsonc     /app/deno.jsonc
 COPY deps.ts       /app/deps.ts
 COPY dev_deps.ts   /app/dev_deps.ts
 

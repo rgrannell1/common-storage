@@ -1,6 +1,6 @@
 /*
  * Retrive elements from an async generator, until a predicate is met. This
- * is a way of working around break seemingly stopping a generator
+ * is a way of working around `break` stopping a generator
  *
  * @param pred a predicate function
  * @param elems an sync generator

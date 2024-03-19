@@ -1,0 +1,6 @@
+# flyctl launch added from .gitignore
+**/cov_profile
+**/cov_profile.lcov
+**/coverage
+**/.env
+fly.toml
