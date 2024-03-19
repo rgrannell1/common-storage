@@ -1,16 +1,7 @@
 import { csApp, csServices, startApp } from "./app.ts";
+import { CommonStorageConfig } from "./services/config.ts";
 
-const port = parseInt(Deno.env.get("CS_PORT") ?? "8080", 10);
-
-const config = {
-  port,
-  title: Deno.env.get("CS_TITLE")!,
-  description: Deno.env.get("CS_DESCRIPTION")!,
-  logger: Deno.env.get("CS_LOGGER")!,
-  adminUsername: Deno.env.get("CS_ADMIN_USERNAME")!,
-  adminPassword: Deno.env.get("CS_ADMIN_PASSWORD")!,
-  kvPath: Deno.env.get("CS_KV_PATH")!,
-};
+const config = CommonStorageConfig.read();
 
 const services = await csServices(config);
 const appData = await csApp(config, services);

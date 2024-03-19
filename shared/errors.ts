@@ -104,3 +104,10 @@ export class MultipleSubscriptionError extends Error {}
  * @extends Error
  */
 export class SubscriptionAuthorisationError extends Error {}
+
+/**
+ * An environmental variable is missing
+ *
+ * @extends Error
+ */
+export class EnvironmentVariableMissingError extends Error {}
