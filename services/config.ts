@@ -9,6 +9,7 @@ export class CommonStorageConfig {
     "CS_ADMIN_USERNAME",
     "CS_ADMIN_PASSWORD",
     "CS_KV_PATH",
+    "CS_CAN_SUBSCRIBE"
   ]);
 
   static read(): Config {
