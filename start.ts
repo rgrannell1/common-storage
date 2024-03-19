@@ -10,6 +10,6 @@ console.error(`Starting common-storage on port ${config.port}...`);
 
 const controller = await startApp(appData, services, config);
 
-Deno.addSignalListener("SIGINT", async () => {
+Deno.addSignalListener("SIGINT", () => {
   controller.abort();
 });

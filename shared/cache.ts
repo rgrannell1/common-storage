@@ -1,6 +1,6 @@
 /*
  * A cache for reducing reads from Deno KV's aggressively billed APIs. How in god's name
-   is this tiny app burning 10k reads a minute
+   is this tiny app burning 10k reads a minute?
  */
 export class Cache<T> {
   store: Map<string, T>;
