@@ -19,7 +19,8 @@ export class CommonStorageConfig {
       adminUsername: Deno.env.get("CS_ADMIN_USERNAME"),
       adminPassword: Deno.env.get("CS_ADMIN_PASSWORD"),
       kvPath: Deno.env.get("CS_KV_PATH"),
-      port: parseInt(Deno.env.get("CS_PORT") ?? "8080", 10)
+      port: parseInt(Deno.env.get("CS_PORT") ?? "8080", 10),
+      canSubscribe: Deno.env.get("CS_CAN_SUBSCRIBE") === "true",
     }
 
     const missingKeys: Set<string> = new Set();

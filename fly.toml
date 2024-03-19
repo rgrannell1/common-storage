@@ -21,6 +21,9 @@ primary_region = 'ams'
   destination="/app/database"
 
 [[services]]
+  port = 443
+  handlers = ["tls", "http"]
+  force_https = true
   internal_port = 80
   protocol = "tcp"
 

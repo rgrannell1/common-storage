@@ -301,14 +301,6 @@ export function csApp(config: Config, services: Services): AppData {
   const router = csRouter(config, services);
   const app = new Application();
 
-  // start a subscriptions client, so that we can poll
-  const subscriptionClient = new Subscriptions(
-    services.storage,
-    services.logger,
-    IntertalkClient,
-  );
-  const subscriptionsPid = subscriptionClient.startPoll();
-
   app
     .use(errorHandler(config, services))
     .use(preprocessRequest(services))
@@ -316,7 +308,18 @@ export function csApp(config: Config, services: Services): AppData {
     .use(router.allowedMethods())
     .use(notFound(config, services));
 
-  return { app, subscriptionsPid };
+    if (config.canSubscribe) {
+      // start a subscriptions client, so that we can poll
+      const subscriptionClient = new Subscriptions(
+        services.storage,
+        services.logger,
+        IntertalkClient,
+      );
+      const subscriptionsPid = subscriptionClient.startPoll();
+      return { app, subscriptionsPid };
+    } else {
+      return { app };
+    }
 }
 
 /*
@@ -338,7 +341,10 @@ export function startApp(appData: AppData, services: Services, config: Config) {
   });
 
   controller.signal.onabort = async () => {
-    clearInterval(subscriptionsPid);
+    if (subscriptionsPid) {
+      clearInterval(subscriptionsPid);
+    }
+
     await Promise.all([
       services.storage.close(),
       services.logger?.info("Common-Storage shutting down", undefined, {})

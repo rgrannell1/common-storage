@@ -257,7 +257,7 @@ export abstract class AIntertalk {
 
 export type AppData = {
   app: Application;
-  subscriptionsPid: number;
+  subscriptionsPid?: number;
 };
 
 export interface IStorage

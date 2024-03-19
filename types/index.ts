@@ -45,4 +45,5 @@ export type Config = {
   description: string;
   adminUsername: string;
   adminPassword: string;
+  canSubscribe: boolean;
 };
