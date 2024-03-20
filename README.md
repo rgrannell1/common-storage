@@ -32,6 +32,7 @@ other data can be added.
 
 ### `feed`
 
+
 An overview of the topics on the current data-server
 
 <details>
@@ -65,6 +66,7 @@ statistics
 
 ### `user`
 
+
 Create & manage users, and grant them permissions by assigning roles
 
 <details>
@@ -95,6 +97,7 @@ Create & manage users, and grant them permissions by assigning roles
 </details>
 
 ### `role`
+
 
 Create & manage roles, which restrict access to endpoints and topics
 
@@ -132,6 +135,7 @@ Get details about & permissions associated with a role
 </details>
 
 ### `topic`
+
 
 Create & manage topics, which logically groups related data & constrains its
 members to matching [JSON Schema](https://json-schema.org/)
@@ -174,6 +178,7 @@ members to matching [JSON Schema](https://json-schema.org/)
 
 ### `content`
 
+
 Append & retrieve "content" (json entries) to a topic
 
 <details>
@@ -203,6 +208,7 @@ Append & retrieve "content" (json entries) to a topic
 Append & retrieve "content" (json entries) to a topic
 
 ### `subscription`
+
 
 Create & manage subscriptions, which sync content from a remote common-storage
 server's topic to a local topic

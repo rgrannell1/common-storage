@@ -20,7 +20,7 @@ export class IntertalkClient extends AIntertalk {
     username: string,
     password: string,
   ) {
-    const res = await fetch(
+    return await fetch(
       `${source}?startId=${startId}`,
       {
         method: "GET",
@@ -32,7 +32,5 @@ export class IntertalkClient extends AIntertalk {
         referrerPolicy: "no-referrer",
       },
     );
-
-    return res;
   }
 }
