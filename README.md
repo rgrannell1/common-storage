@@ -115,6 +115,8 @@ Get details about & permissions associated with a role
 <details>
   <summary><code>POST /role/:name</code> </summary>
 
+Post a named permission-set (a role) to the server
+
 **Parameters**
 
 - `name`: the role name
@@ -143,6 +145,8 @@ members to matching [JSON Schema](https://json-schema.org/)
 <details>
   <summary><code>GET /topic/:name</code> </summary>
 
+Get details about a topic, like the description and creation-date
+
 **Parameters**
 
 **Body**
@@ -155,6 +159,8 @@ members to matching [JSON Schema](https://json-schema.org/)
 <details>
   <summary><code>POST /topic/:name</code> </summary>
 
+Add a named, validated container for data to the server
+
 **Parameters**
 
 **Body**
@@ -166,6 +172,8 @@ members to matching [JSON Schema](https://json-schema.org/)
 
 <details>
   <summary><code>DELETE /topic/:name</code> </summary>
+
+Delete a topic **and all associated data** from the server
 
 **Parameters**
 
@@ -184,6 +192,8 @@ Append & retrieve "content" (json entries) to a topic
 <details>
   <summary><code>GET /content/:name</code> </summary>
 
+Retrieve an array of user-submitted content from the server, from a specified start-id
+
 **Parameters**
 
 **Body**
@@ -195,6 +205,8 @@ Append & retrieve "content" (json entries) to a topic
 
 <details>
   <summary><code>POST /content/:name</code> </summary>
+
+Post user-content to a topic
 
 **Parameters**
 
