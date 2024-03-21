@@ -257,6 +257,12 @@ schema.$defs.params.subscriptionPost = {
 // ++++++ GET /feed ++++++
 schema.$defs.params.feedGet = {
   type: "object",
+  properties: {
+    human: {
+      type: "string",
+      enum: ["true", "false"],
+    },
+  }
 };
 
 // ++++++ GET /user/:name ++++++

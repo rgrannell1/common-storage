@@ -39,6 +39,15 @@ export type Topic = {
   schema: any;
 };
 
+export type TopicStats = {
+  topic: string;
+  description: string;
+  stats: {
+    count: number;
+    lastUpdated: number;
+  };
+}
+
 export interface IInfo {
   info(
     message: string,
@@ -118,16 +127,7 @@ export interface IGetTopicNames {
 }
 
 export interface IGetTopicStats {
-  getTopicStats(topic: string): Promise<
-    {
-      topic: string;
-      description: string;
-      stats: {
-        count: number;
-        lastUpdated: number;
-      };
-    } | null
-  >;
+  getTopicStats(topic: string): Promise<TopicStats | null>;
 }
 
 export interface IDeleteTopic {

@@ -1,13 +1,16 @@
+import { COMMON_STORAGE_VERSION } from "../shared/constants.ts";
 import { Status } from "../shared/status.ts";
-import type {
-  Config,
-  CSContext,
-  IError,
-  IGetSubscriptions,
-  IGetTopicNames,
-  IGetTopicStats,
-  IInfo,
-  SchemaValidator,
+import {
+RequestPart,
+  type Config,
+  type CSContext,
+  type IError,
+  type IGetSubscriptions,
+  type IGetTopicNames,
+  type IGetTopicStats,
+  type IInfo,
+  type SchemaValidator,
+  type TopicStats,
 } from "../types/index.ts";
 
 type Services = {
@@ -21,10 +24,28 @@ type GetFeedConfig = Partial<Config> & {
   title: string;
 };
 
+function formatTopicDates(topic: TopicStats | null) {
+  if (!topic) {
+    return topic;
+  }
+
+  const data: any = topic;
+
+  data.stats.lastUpdated = new Date(data.stats.lastUpdated).toISOString();
+
+  return data;
+}
+
 export function getFeed(cfg: GetFeedConfig, services: Services) {
-  const { storage } = services;
+  const { storage, schema } = services;
 
   return async function (ctx: CSContext) {
+    const params = {
+      ...ctx.params,
+      human: ctx.request.url.searchParams.get("human")
+    };
+    schema("feedGet", params, RequestPart.Params);
+
     const topicNames = await storage.getTopicNames();
 
     const topicsPromises = Promise.all(
@@ -43,12 +64,14 @@ export function getFeed(cfg: GetFeedConfig, services: Services) {
       };
     }
 
+    const human = params.human === "true";
+
     ctx.response.status = Status.OK;
     ctx.response.body = JSON.stringify({
       description: cfg.description,
       title: cfg.title,
-      version: "v0.1",
-      topics,
+      version: COMMON_STORAGE_VERSION,
+      topics: human ? topics.map(formatTopicDates) : topics,
       subscriptions: subscriptionMap,
     });
   };
