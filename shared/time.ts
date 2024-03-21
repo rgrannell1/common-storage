@@ -1,4 +1,3 @@
-
 /*
  * Start an callback interval, but also just call the thing now.
  */

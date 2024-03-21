@@ -32,7 +32,6 @@ other data can be added.
 
 ### `feed`
 
-
 An overview of the topics on the current data-server
 
 <details>
@@ -66,7 +65,6 @@ statistics
 
 ### `user`
 
-
 Create & manage users, and grant them permissions by assigning roles
 
 <details>
@@ -97,7 +95,6 @@ Create & manage users, and grant them permissions by assigning roles
 </details>
 
 ### `role`
-
 
 Create & manage roles, which restrict access to endpoints and topics
 
@@ -137,7 +134,6 @@ Post a named permission-set (a role) to the server
 </details>
 
 ### `topic`
-
 
 Create & manage topics, which logically groups related data & constrains its
 members to matching [JSON Schema](https://json-schema.org/)
@@ -186,13 +182,13 @@ Delete a topic **and all associated data** from the server
 
 ### `content`
 
-
 Append & retrieve "content" (json entries) to a topic
 
 <details>
   <summary><code>GET /content/:name</code> </summary>
 
-Retrieve an array of user-submitted content from the server, from a specified start-id
+Retrieve an array of user-submitted content from the server, from a specified
+start-id
 
 **Parameters**
 
@@ -221,7 +217,6 @@ Append & retrieve "content" (json entries) to a topic
 
 ### `subscription`
 
-
 Create & manage subscriptions, which sync content from a remote common-storage
 server's topic to a local topic
 
@@ -249,10 +244,10 @@ Create a subscription to a remote server.
 
 ```json
 {
-    source: "https://remote-server/content/notes",
-    topic: "subscription.notes",
-    serviceAccount: "remote_server_read_notes",
-    frequency: 300,
+  "source": "https://remote-server/content/notes",
+  "topic": "subscription.notes",
+  "serviceAccount": "remote_server_read_notes",
+  "frequency": 300
 }
 ```
 
@@ -266,6 +261,5 @@ Delete a subscription.
 **Parameters**
 
 - `topic`: the topic to which the subscriptions stores content
-
 
 </details>

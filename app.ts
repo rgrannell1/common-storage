@@ -1,6 +1,6 @@
 import Ajv from "https://esm.sh/ajv@8.12.0";
 import { Status } from "./shared/status.ts";
-import { Application, Router, oakCors } from "./deps.ts";
+import { Application, oakCors, Router } from "./deps.ts";
 import { schema } from "./shared/schema.ts";
 
 import { InputValidationError, JSONError } from "./shared/errors.ts";
@@ -308,18 +308,18 @@ export function csApp(config: Config, services: Services): AppData {
     .use(router.allowedMethods())
     .use(notFound(config, services));
 
-    if (config.canSubscribe) {
-      // start a subscriptions client, so that we can poll
-      const subscriptionClient = new Subscriptions(
-        services.storage,
-        services.logger,
-        IntertalkClient,
-      );
-      const subscriptionsPid = subscriptionClient.startPoll();
-      return { app, subscriptionsPid };
-    } else {
-      return { app };
-    }
+  if (config.canSubscribe) {
+    // start a subscriptions client, so that we can poll
+    const subscriptionClient = new Subscriptions(
+      services.storage,
+      services.logger,
+      IntertalkClient,
+    );
+    const subscriptionsPid = subscriptionClient.startPoll();
+    return { app, subscriptionsPid };
+  } else {
+    return { app };
+  }
 }
 
 /*
@@ -347,7 +347,7 @@ export function startApp(appData: AppData, services: Services, config: Config) {
 
     await Promise.all([
       services.storage.close(),
-      services.logger?.info("Common-Storage shutting down", undefined, {})
+      services.logger?.info("Common-Storage shutting down", undefined, {}),
     ]);
   };
 

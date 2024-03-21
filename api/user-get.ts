@@ -20,9 +20,13 @@ export function getUser(_: GetUserConfig, services: Services) {
   const { storage, logger, schema } = services;
 
   return async function (ctx: any) {
-    schema("userGet", ctx.params, RequestPart.Params);
+    const params = {
+      ...ctx.params,
+      human: ctx?.request?.url?.searchParams?.has("human"),
+    };
+    schema("userGet", params, RequestPart.Params);
 
-    const name = ctx.params.name;
+    const { name, human } = ctx.params;
 
     const userData = await storage.getUser(name);
     if (!userData) {
@@ -46,7 +50,7 @@ export function getUser(_: GetUserConfig, services: Services) {
     ctx.response.body = JSON.stringify({
       name,
       role: userData.role,
-      created: userData.created,
+      created: human ? new Date(userData.created).toISOString() : userData.created
     });
   };
 }

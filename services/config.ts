@@ -9,7 +9,7 @@ export class CommonStorageConfig {
     "CS_ADMIN_USERNAME",
     "CS_ADMIN_PASSWORD",
     "CS_KV_PATH",
-    "CS_CAN_SUBSCRIBE"
+    "CS_CAN_SUBSCRIBE",
   ]);
 
   static read(): Config {
@@ -22,7 +22,7 @@ export class CommonStorageConfig {
       kvPath: Deno.env.get("CS_KV_PATH"),
       port: parseInt(Deno.env.get("CS_PORT") ?? "8080", 10),
       canSubscribe: Deno.env.get("CS_CAN_SUBSCRIBE") === "true",
-    }
+    };
 
     const missingKeys: Set<string> = new Set();
 
@@ -37,7 +37,8 @@ export class CommonStorageConfig {
     }
 
     if (missingKeys.size > 0) {
-      const message = 'Required Common-Storage configuration missing! Please configure the following keys:\n${missingKeys.join(", ")}'
+      const message =
+        'Required Common-Storage configuration missing! Please configure the following keys:\n${missingKeys.join(", ")}';
       throw new EnvironmentVariableMissingError(message);
     }
 

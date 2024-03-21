@@ -1,7 +1,4 @@
-import type {
-  SubscriptionStorage,
-  User,
-} from "../types/index.ts";
+import type { SubscriptionStorage, User } from "../types/index.ts";
 import { setImmediateInterval } from "../shared/time.ts";
 
 import {

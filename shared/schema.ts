@@ -18,6 +18,10 @@ const parts = {
     minLength: 1,
     maxLength: 128,
   },
+  human: {
+    type: "boolean",
+    description: "Should we display data in a more human-readable format?"
+  },
   role: {
     type: "string",
     minLength: 1,
@@ -181,6 +185,7 @@ schema.$defs.params.roleGet = {
   type: "object",
   properties: {
     role: parts.role,
+    human: parts.human,
   },
   required: ["role"],
 };
@@ -230,6 +235,7 @@ schema.$defs.params.subscriptionGet = {
   type: "object",
   properties: {
     topic: parts.subscriptionTopic,
+    human: parts.human,
   },
   required: ["topic"],
 };
@@ -259,10 +265,9 @@ schema.$defs.params.feedGet = {
   type: "object",
   properties: {
     human: {
-      type: "string",
-      enum: ["true", "false"],
+      type: "boolean",
     },
-  }
+  },
 };
 
 // ++++++ GET /user/:name ++++++
@@ -270,6 +275,7 @@ schema.$defs.params.userGet = {
   type: "object",
   properties: {
     name: parts.username,
+    human: parts.human,
   },
   required: ["name"],
 };

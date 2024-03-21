@@ -69,4 +69,5 @@ export const TABLE_TOPIC_COUNT = "topic-count";
 // The last id retrieved for a subscription
 export const TABLE_SUBSCRIPTION_LAST_ID = "subscription-last-id";
 
+// The common-storage feed version
 export const COMMON_STORAGE_VERSION = "v0.1";

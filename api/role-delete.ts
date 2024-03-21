@@ -2,7 +2,6 @@ import { Status } from "../shared/status.ts";
 
 import type {
   CSContext,
-  IAddActivity,
   IDeleteRole,
   SchemaValidator,
 } from "../types/index.ts";
@@ -10,28 +9,19 @@ import { RequestPart } from "../types/index.ts";
 
 type Services = {
   storage: IDeleteRole;
-  logger: IAddActivity;
+  logger: {};
   schema: SchemaValidator;
 };
 
 type DeleteRoleConfig = {};
 
 export function deleteRole(_: DeleteRoleConfig, services: Services) {
-  const { storage, logger, schema } = services;
+  const { storage, schema } = services;
 
   return async function (ctx: CSContext) {
     schema("roleDelete", ctx.params, RequestPart.Params);
 
-    const role = ctx.params.role;
-
-    await logger.addActivity({
-      request: ctx.request,
-      message: "deleting role",
-      metadata: {
-        role,
-      },
-    });
-
+    const { role } = ctx.params;
     const response = await storage.deleteRole(role);
 
     ctx.response.status = Status.OK;

@@ -16,12 +16,16 @@ type Services = {
 type GetUserConfig = Partial<Config>;
 
 export function getRole(_: GetUserConfig, services: Services) {
-  const { storage, logger, schema } = services;
+  const { storage, schema } = services;
 
   return async function (ctx: any) {
-    schema("roleGet", ctx.params, RequestPart.Params);
+    const params = {
+      ...ctx.params,
+      human: ctx?.request?.url?.searchParams?.has("human"),
+    };
+    schema("roleGet", params, RequestPart.Params);
 
-    const role = ctx.params.role;
+    const { role, human } = params;
     const roleData = await storage.getRole(role);
 
     if (!roleData) {
@@ -37,7 +41,7 @@ export function getRole(_: GetUserConfig, services: Services) {
     ctx.response.status = Status.OK;
     ctx.response.body = JSON.stringify({
       name: role,
-      created,
+      created: human ? new Date(created).toISOString() : created,
       permissions,
     });
   };

@@ -231,6 +231,8 @@ export class CommonStorage implements IStorage {
 
     await this.backend.deleteValue([TABLE_TOPICS], topic);
 
+    // TODO lets tidy up properly; wipe all content too, and batches, etc
+
     return {
       existed: current !== null,
     };

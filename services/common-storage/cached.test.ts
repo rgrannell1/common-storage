@@ -1,8 +1,4 @@
-import {
-  assert,
-  assertEquals,
-  assertRejects,
-} from "../../dev_deps.ts";
+import { assert, assertEquals, assertRejects } from "../../dev_deps.ts";
 import { CachedCommonStorage } from "./cached.ts";
 import { DenoKVBackend } from "../backends/deno-kv.ts";
 

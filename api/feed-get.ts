@@ -1,7 +1,6 @@
 import { COMMON_STORAGE_VERSION } from "../shared/constants.ts";
 import { Status } from "../shared/status.ts";
 import {
-RequestPart,
   type Config,
   type CSContext,
   type IError,
@@ -9,6 +8,7 @@ RequestPart,
   type IGetTopicNames,
   type IGetTopicStats,
   type IInfo,
+  RequestPart,
   type SchemaValidator,
   type TopicStats,
 } from "../types/index.ts";
@@ -42,7 +42,7 @@ export function getFeed(cfg: GetFeedConfig, services: Services) {
   return async function (ctx: CSContext) {
     const params = {
       ...ctx.params,
-      human: ctx.request.url.searchParams.get("human")
+      human: ctx?.request?.url?.searchParams?.has("human"),
     };
     schema("feedGet", params, RequestPart.Params);
 
@@ -64,14 +64,12 @@ export function getFeed(cfg: GetFeedConfig, services: Services) {
       };
     }
 
-    const human = params.human === "true";
-
     ctx.response.status = Status.OK;
     ctx.response.body = JSON.stringify({
       description: cfg.description,
       title: cfg.title,
       version: COMMON_STORAGE_VERSION,
-      topics: human ? topics.map(formatTopicDates) : topics,
+      topics: params.human ? topics.map(formatTopicDates) : topics,
       subscriptions: subscriptionMap,
     });
   };

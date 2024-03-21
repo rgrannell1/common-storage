@@ -26,6 +26,7 @@ export type Subscription = {
   target: string;
   serviceAccount: string;
   frequency: number;
+  created: number;
 };
 
 export type SubscriptionState = {
@@ -46,7 +47,7 @@ export type TopicStats = {
     count: number;
     lastUpdated: number;
   };
-}
+};
 
 export interface IInfo {
   info(
@@ -63,6 +64,8 @@ export interface IError {
     data: Record<string, any>,
   ): Promise<void>;
 }
+
+export interface ILogger extends IInfo, IError {};
 
 // Role
 
