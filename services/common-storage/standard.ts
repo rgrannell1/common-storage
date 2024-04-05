@@ -417,6 +417,24 @@ export class CommonStorage implements IStorage {
     return response;
   }
 
+  async* getAllContent<T>(topic: string, startId?: number) {
+    let from = startId;
+
+    while(true) {
+      const response = await this.getContent<T>(topic, from, DEFAULT_PAGE_SIZE);
+
+      if (response.content.length === 0) {
+        break;
+      }
+
+      for (const content of response.content) {
+        yield content;
+      }
+
+      from = response.nextId;
+    }
+  }
+
   // +++ CONTENT BATCHES +++ //
   async addBatch(batchId: string) {
     const current = await this.backend.getValue([TABLE_BATCHES], batchId);

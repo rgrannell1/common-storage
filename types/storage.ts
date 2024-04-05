@@ -149,6 +149,15 @@ export interface IGetContent {
   }>;
 }
 
+export interface IGetAllContent {
+  getAllContent<T>(topic: string, startId?: number): AsyncGenerator<{
+    topic: string;
+    startId: number | undefined;
+    nextId: number | undefined;
+    content: T[];
+  }>;
+}
+
 export interface IAddContent {
   addContent<T>(
     batchId: string | undefined,
