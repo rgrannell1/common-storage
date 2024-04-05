@@ -5,6 +5,7 @@ import {
   BATCH_CLOSED,
   BATCH_MISSING,
   BATCH_OPEN,
+  DEFAULT_PAGE_SIZE,
   SUBSCRIPION_TOPIC_PREFIX,
   TABLE_BATCHES,
   TABLE_CONTENT,
@@ -23,6 +24,7 @@ import {
 import {
   BatchClosedError,
   RoleInUseError,
+  SubscriptionPresentError,
   TopicNotFoundError,
   TopicValidationError,
 } from "../../shared/errors.ts";
@@ -229,9 +231,20 @@ export class CommonStorage implements IStorage {
   async deleteTopic(topic: string): Promise<{ existed: boolean }> {
     const current = await this.backend.getValue([TABLE_TOPICS], topic);
 
-    await this.backend.deleteValue([TABLE_TOPICS], topic);
+    const subscription = await this.getSubscription(topic);
+    if (subscription) {
+      throw new SubscriptionPresentError(
+        `topic "${topic}" is in use by subscription "${subscription.target}"`,
+      );
+    }
 
-    // TODO lets tidy up properly; wipe all content too, and batches, etc
+    await this.backend.deleteValues([
+      [[TABLE_TOPICS], topic],
+      [[TABLE_TOPIC_COUNT], topic],
+      [[TABLE_TOPIC_LAST_UPDATED], topic],
+    ]);
+
+    // TODO lets tidy up properly; wipe all [TABLE_CONTENT, topic]
 
     return {
       existed: current !== null,
@@ -359,7 +372,7 @@ export class CommonStorage implements IStorage {
     return { lastId: contentId! };
   }
 
-  async getContent<T>(topic: string, startId?: number): Promise<{
+  async getContent<T>(topic: string, startId?: number, size?: number): Promise<{
     topic: string;
     startId: number | undefined;
     lastId: number | undefined;
@@ -371,11 +384,11 @@ export class CommonStorage implements IStorage {
 
     const content: T[] = [];
 
-    let size = 0;
+    let idx = 0;
     for await (
       const entry of this.backend.listTable<number[], { content: string }>([
         TABLE_CONTENT,
-      ], 10)
+      ], size ?? DEFAULT_PAGE_SIZE)
     ) {
       const contentId = lastId = entry.key[2];
 
@@ -386,9 +399,9 @@ export class CommonStorage implements IStorage {
       }
 
       content.push(JSON.parse(entry.value.content)); // TODO this looks far too specific
-      size++;
+      idx++;
 
-      if (size >= 10) {
+      if (idx >= DEFAULT_PAGE_SIZE) {
         break;
       }
     }

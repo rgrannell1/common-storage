@@ -40,6 +40,12 @@ const parts = {
       },
     ],
   },
+  size: {
+    description: "the number of entries to read",
+    type: "number",
+    minimum: 1,
+    maximum: 500,
+  },
   batchId: {
     type: "string",
     minLength: 1,
@@ -138,6 +144,8 @@ schema.$defs.params.contentGet = {
   type: "object",
   properties: {
     topic: parts.topic,
+    size: parts.size,
+    startId: parts.startId,
   },
   required: ["topic"],
 };

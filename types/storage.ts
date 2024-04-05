@@ -140,7 +140,7 @@ export interface IDeleteTopic {
 // Content
 
 export interface IGetContent {
-  getContent<T>(topic: string, startId?: number): Promise<{
+  getContent<T>(topic: string, startId?: number, size?: number): Promise<{
     topic: string;
     startId: number | undefined;
     lastId: number | undefined;

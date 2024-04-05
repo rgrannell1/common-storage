@@ -91,16 +91,20 @@ export class CommonStorageClient {
       JSON.stringify(opts),
     );
   }
-  getContent(topic: string, startId?: number) {
+  getContent(topic: string, startId?: number, size?: number) {
+    const PAGE_SIZE = 10;
+
     const path = typeof startId !== "undefined"
-      ? `/content/${topic}?startId=${startId}`
-      : `/content/${topic}`;
+      ? `/content/${topic}?startId=${startId}&size=${size ?? PAGE_SIZE}`
+      : `/content/${topic}?size=${size ?? PAGE_SIZE}`;
 
     return this.#performApiCall("GET", path);
   }
   async *getAllContent(topic: string, delay: number) {
-    for (let idx = 0; true; idx += 10) {
-      const response = await this.getContent(topic, idx);
+    const PAGE_SIZE = 10;
+
+    for (let idx = 0; true; idx += PAGE_SIZE) {
+      const response = await this.getContent(topic, idx, PAGE_SIZE);
       const body = await response.json();
 
       if (body.content.length === 0) {

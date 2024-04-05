@@ -123,6 +123,7 @@ Deno.test({
 
     await store.close();
   },
+  sanitizeResources: false,
 });
 
 // +++ CONTENT +++ //

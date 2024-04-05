@@ -21,7 +21,7 @@ export function deleteRole(_: DeleteRoleConfig, services: Services) {
   return async function (ctx: CSContext) {
     schema("roleDelete", ctx.params, RequestPart.Params);
 
-    const { role } = ctx.params;
+    const { role } = ctx.params as { role: string };
     const response = await storage.deleteRole(role);
 
     ctx.response.status = Status.OK;

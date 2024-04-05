@@ -111,3 +111,10 @@ export class SubscriptionAuthorisationError extends Error {}
  * @extends Error
  */
 export class EnvironmentVariableMissingError extends Error {}
+
+/**
+ * A subscription is present
+ *
+ * @extends Error
+ */
+export class SubscriptionPresentError extends Error {}

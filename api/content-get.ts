@@ -24,15 +24,17 @@ export function getContent(_: GetContentConfig, services: Services) {
     const params = {
       ...ctx.params,
       startId: ctx.request.url.searchParams.get("startId"),
+      size: ctx.request.url.searchParams.get("size"),
     };
     schema("contentGet", params, RequestPart.Params);
 
-    const { startId, topic } = params;
+    const { startId, size, topic } = params;
     await logger.info("getting content", ctx.request, { topic });
 
     const content = await storage.getContent(
       topic,
       ParamsParsers.startId(startId),
+      size
     );
 
     ctx.response.status = Status.OK;
