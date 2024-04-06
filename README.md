@@ -188,7 +188,8 @@ Append & retrieve "content" (json entries) to a topic
   <summary><code>GET /content/:name</code> </summary>
 
 Retrieve an array of user-submitted content from the server, from a specified
-start-id
+start-id. By sending the content-type `application/x-ndjson`, retrieve an unbounded JSON stream
+of content instead
 
 **Parameters**
 
