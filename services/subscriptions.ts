@@ -311,7 +311,7 @@ export class Subscriptions {
 
         if (await this.isLockActive(subsciption.target)) {
           this.logger.info(
-            "subscription is locked (and probably already syncing)",
+            "subscription is temporarily locked (and probably already syncing)",
             undefined,
             {
               source: subsciption.source,
@@ -329,13 +329,13 @@ export class Subscriptions {
         );
         if (!isOverdue) {
           this.logger.info("subscription is not overdue", undefined, {
-            frequencey: subsciption.frequency,
+            frequency: subsciption.frequency,
           });
           continue;
         }
 
         this.logger.info("subscription is overdue", undefined, {
-          frequencey: subsciption.frequency,
+          frequency: subsciption.frequency,
         });
 
         // sync the subscription
