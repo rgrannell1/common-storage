@@ -33,7 +33,8 @@
     "https://deno.land/std/assert/assert_throws.ts": "https://deno.land/std@0.217.0/assert/assert_throws.ts",
     "https://deno.land/std/testing/asserts.ts": "https://deno.land/std@0.217.0/testing/asserts.ts",
     "https://deno.land/x/bcrypt/mod.ts": "https://deno.land/x/bcrypt@v0.4.1/mod.ts",
-    "https://deno.land/x/docopt/mod.ts": "https://deno.land/x/docopt@v1.0.7/mod.ts"
+    "https://deno.land/x/docopt/mod.ts": "https://deno.land/x/docopt@v1.0.7/mod.ts",
+    "https://deno.land/x/oak/mod.ts": "https://deno.land/x/oak@v12.6.2/mod.ts"
   },
   "remote": {
     "https://deno.land/std@0.198.0/_util/diff.ts": "1a3c044aedf77647d6cac86b798c6417603361b66b54c53331b312caeb447aea",
@@ -297,6 +298,7 @@
     "https://deno.land/std@0.220.0/assert/equal.ts": "fae5e8a52a11d3ac694bbe1a53e13a7969e3f60791262312e91a3e741ae519e2",
     "https://deno.land/std@0.220.0/fmt/colors.ts": "d239d84620b921ea520125d778947881f62c50e78deef2657073840b8af9559a",
     "https://deno.land/std@0.220.0/testing/mock.ts": "a963181c2860b6ba3eb60e08b62c164d33cf5da7cd445893499b2efda20074db",
+    "https://deno.land/std@0.81.0/io/streams.ts": "2b354ad6edf22b287ea8cb28737ab2769797d3fa7cc84664137b9cacd5929607",
     "https://deno.land/x/bcrypt@v0.4.1/mod.ts": "ff09bdae282583cf5f7d87efe37ddcecef7f14f6d12e8b8066a3058db8c6c2f7",
     "https://deno.land/x/bcrypt@v0.4.1/src/bcrypt/base64.ts": "b8266450a4f1eb6960f60f2f7986afc4dde6b45bd2d7ee7ba10789e67e17b9f7",
     "https://deno.land/x/bcrypt@v0.4.1/src/bcrypt/bcrypt.ts": "ec221648cc6453ea5e3803bc817c01157dada06aa6f7a0ba6b9f87aae32b21e2",
@@ -325,6 +327,7 @@
     "https://deno.land/x/docopt@v1.0.7/src/pattern.ts": "281be05c8613b3c4015c50e638c3502e311949a3e88d94d78cacda6b175f52f6",
     "https://deno.land/x/docopt@v1.0.7/src/token.ts": "fd680a204af72e99361598bdb36ba78cad1f5ac3e9acf70ff13f883c19ad97b7",
     "https://deno.land/x/docopt@v1.0.7/src/utils.ts": "52c2a03c68a0ecfe70146e1183ae55bac632dbaf094cf13efdcf2deb178c507d",
+    "https://deno.land/x/jsonlines@v1.2.1/js/mod.js": "beb03013177bdf589c08c344ab82f2248dcf853ccae00f945b5398323c26aba4",
     "https://deno.land/x/oak@v12.6.2/application.ts": "3028d3f6fa5ee743de013881550d054372c11d83c45099c2d794033786d27008",
     "https://deno.land/x/oak@v12.6.2/body.ts": "1899761b97fc9d776f3710b2637fb047ba29b968609afc6c0e5219b1108e703c",
     "https://deno.land/x/oak@v12.6.2/buf_reader.ts": "26640736541598dbd9f2b84a9d0595756afff03c9ca55b66eef1911f7798b56d",
@@ -363,6 +366,18 @@
     "https://esm.sh/v135/ajv@8.12.0/dist/compile/util.js": "95f519431c22db9f2b85c9eef33d70691ea588c115e45e4ef99f9eabeb8f61df",
     "https://esm.sh/v135/fast-deep-equal@3.1.3/denonext/fast-deep-equal.mjs": "6313b3e05436550e1c0aeb2a282206b9b8d9213b4c6f247964dd7bb4835fb9e5",
     "https://esm.sh/v135/json-schema-traverse@1.0.0/denonext/json-schema-traverse.mjs": "c5da8353bc014e49ebbb1a2c0162d29969a14c325da19644e511f96ba670cc45",
-    "https://esm.sh/v135/uri-js@4.4.1/denonext/uri-js.mjs": "901d462f9db207376b39ec603d841d87e6b9e9568ce97dfaab12aa77d0f99f74"
+    "https://esm.sh/v135/uri-js@4.4.1/denonext/uri-js.mjs": "901d462f9db207376b39ec603d841d87e6b9e9568ce97dfaab12aa77d0f99f74",
+    "https://raw.githubusercontent.com/rgrannell1/peach.ts/main/data/unicode_ranges.json": "9f64f22e008c8faa80d06b17a8774844b3575d7ef2a1092de999f3847b5ed2e3",
+    "https://raw.githubusercontent.com/rgrannell1/peach.ts/main/src/array/array.ts": "ade065141b9c4ca0b8dcae814951e0d6496c9282509c1d8c8a5d06ba7e99687b",
+    "https://raw.githubusercontent.com/rgrannell1/peach.ts/main/src/bigint/bigint.ts": "498e3679dcfb2c4cd6117bb7bdb9acf8621cb62e5a2ff260c0741283d055fda2",
+    "https://raw.githubusercontent.com/rgrannell1/peach.ts/main/src/boolean/boolean.ts": "b5994e369b44d9a5b6ad1581356709ec613d2a57fbb4689b1f6fc89e6c173d37",
+    "https://raw.githubusercontent.com/rgrannell1/peach.ts/main/src/constants.ts": "5dbb308eb16980b34ac3c83c1cb4e2b96f50d5baec7c53de170a4db7d36d49c7",
+    "https://raw.githubusercontent.com/rgrannell1/peach.ts/main/src/logic/logic.ts": "52709501bf53b8f5d57718adb510eb1122c8c8e96cd04f41a0043a2b152f974b",
+    "https://raw.githubusercontent.com/rgrannell1/peach.ts/main/src/mod.ts": "c73c14ac063fc524e5f94679d76afccba8a909c40946fe59ade04cbae45327d6",
+    "https://raw.githubusercontent.com/rgrannell1/peach.ts/main/src/number/number.ts": "133391e94ce17c52fbc7ba090796aff3693a4befe181a07f328942bccd6f0f62",
+    "https://raw.githubusercontent.com/rgrannell1/peach.ts/main/src/object/object.ts": "d349697009d43e49df55ec68643252b04f020342eba4a4be820881dd81d4e1fe",
+    "https://raw.githubusercontent.com/rgrannell1/peach.ts/main/src/set/set.ts": "c77e41fb27406a70998423f988d2d457f03755372ce41d1b6b8f4dae63010496",
+    "https://raw.githubusercontent.com/rgrannell1/peach.ts/main/src/string/string.ts": "40d034ae73b61ef190ed2be4c4950419933021441bb78601a026708c654b8136",
+    "https://raw.githubusercontent.com/rgrannell1/peach.ts/main/src/types.ts": "693deb500bb03eb74d8d9d05583d81b0d4de3573fcd0a4869b5805fdf691e18d"
   }
 }

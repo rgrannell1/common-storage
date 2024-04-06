@@ -114,13 +114,16 @@ export class CommonStorageClient {
             btoa(`${this.credentials.username}:${this.credentials.password}`)
           }`
           : "",
-        "Content-Type": "application/x-ndjson",
-        "Accept-Encoding": "gzip",
+        "Content-Type": "application/x-ndjson"
       },
     });
 
+    if (res.status !== 200) {
+      console.error(JSON.stringify(await res.json()));
+      Deno.exit(1);
+    }
+
     const contentStream = res.body!
-      .pipeThrough(new DecompressionStream("gzip"))
       .pipeThrough(new TextDecoderStream())
       .pipeThrough(new JSONLinesParseStream());
 

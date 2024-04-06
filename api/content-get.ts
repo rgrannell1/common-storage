@@ -1,7 +1,7 @@
 import { readableStreamFromAsyncIterator } from "https://deno.land/std@0.81.0/io/streams.ts";
 import {
   JSONLinesStringifyStream,
-} from "https://deno.land/x/jsonlines@v1.2.1/js/mod.js";
+} from "../deps.ts";
 
 import { Status } from "../shared/status.ts";
 import type {
@@ -38,18 +38,15 @@ async function getContentStream(
   )
     .pipeThrough(new JSONLinesStringifyStream())
     .pipeThrough(new TextEncoderStream())
-    .pipeThrough(new CompressionStream("gzip"));
 
-  ctx.response.body = contentStream;
-
-  ctx.response.headers.set("Content-Encoding", "gzip");
   ctx.response.headers.set("Content-Type", "application/x-ndjson");
+  ctx.response.body = contentStream;
 }
 
 async function getContentList(
   ctx: any,
   storage: Services["storage"],
-  params: any,
+  params: { topic: string; startId: number, size: number },
 ) {
   // normal `application/json` handling
   const content = await storage.getContent(
@@ -80,18 +77,9 @@ export function getContent(_: GetContentConfig, services: Services) {
       !ctx.request.accepts("application/x-ndjson")
     ) {
       ctx.response.status = Status.UnsupportedMediaType;
-      ctx.response.body =
-        "Only content-type 'application/json' (data list) or 'application/x-ndjson' (data stream) are supported";
-      return;
-    }
-
-    if (
-      ctx.request.accepts("application/x-ndjson") &&
-      !ctx.request.accepts("gzip")
-    ) {
-      ctx.response.status = Status.UnsupportedMediaType;
-      ctx.response.body =
-        "Only content-encoding 'gzip' is supported for 'application/x-ndjson'";
+      ctx.response.body = JSON.stringify({
+        error: "Only content-type 'application/json' or 'application/x-ndjson' are supported",
+      })
       return;
     }
 
