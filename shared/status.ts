@@ -10,6 +10,7 @@ export const Status = {
   NotFound: 404,
   OK: 200,
   Unauthorized: 401,
+  UnsupportedMediaType: 415,
   UnprocessableEntity: 422,
   TooManyRequests: 429,
 };

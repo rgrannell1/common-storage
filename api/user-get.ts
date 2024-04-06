@@ -50,7 +50,9 @@ export function getUser(_: GetUserConfig, services: Services) {
     ctx.response.body = JSON.stringify({
       name,
       role: userData.role,
-      created: human ? new Date(userData.created).toISOString() : userData.created
+      created: human
+        ? new Date(userData.created).toISOString()
+        : userData.created,
     });
   };
 }

@@ -1,5 +1,5 @@
 import docopt from "https://deno.land/x/docopt@v1.0.5/mod.ts";
-import { CommonStorageClient } from "./comon-storage.ts";
+import { CommonStorageClient } from "./common-storage.ts";
 
 const doc = `
 Usage:

@@ -1,3 +1,7 @@
+import {
+  JSONLinesParseStream,
+} from "https://deno.land/x/jsonlines@v1.2.1/js/mod.js";
+
 import { Permission } from "../types/auth.ts";
 
 export type PostUserOpts = {
@@ -100,24 +104,31 @@ export class CommonStorageClient {
 
     return this.#performApiCall("GET", path);
   }
-  async *getAllContent(topic: string, delay: number) {
-    const PAGE_SIZE = 10;
+  async *getAllContent<T>(topic: string, startId?: number) {
+    const route = `/content/${topic}?startId=${startId ?? 0}`;
+    const res = await fetch(`${this.endpoint}${route}`, {
+      method: "GET",
+      headers: {
+        "Authorization": this.credentials
+          ? `Basic ${
+            btoa(`${this.credentials.username}:${this.credentials.password}`)
+          }`
+          : "",
+        "Content-Type": "application/x-ndjson",
+        "Accept-Encoding": "gzip",
+      },
+    });
 
-    for (let idx = 0; true; idx += PAGE_SIZE) {
-      const response = await this.getContent(topic, idx, PAGE_SIZE);
-      const body = await response.json();
+    const contentStream = res.body!
+      .pipeThrough(new DecompressionStream("gzip"))
+      .pipeThrough(new TextDecoderStream())
+      .pipeThrough(new JSONLinesParseStream());
 
-      if (body.content.length === 0) {
-        break;
-      }
-
-      for (const content of body.content) {
-        yield content;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, delay));
+    for await (const elem of contentStream) {
+      yield elem;
     }
   }
+
   postContent<T>(topic: string, opts: PostContentOpts<T>) {
     return this.#performApiCall(
       "POST",

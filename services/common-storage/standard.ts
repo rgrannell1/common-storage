@@ -417,10 +417,10 @@ export class CommonStorage implements IStorage {
     return response;
   }
 
-  async* getAllContent<T>(topic: string, startId?: number) {
+  async *getAllContent<T>(topic: string, startId?: number) {
     let from = startId;
 
-    while(true) {
+    while (true) {
       const response = await this.getContent<T>(topic, from, DEFAULT_PAGE_SIZE);
 
       if (response.content.length === 0) {

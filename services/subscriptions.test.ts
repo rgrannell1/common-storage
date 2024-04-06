@@ -186,7 +186,7 @@ Deno.test("Subscriptions.sync() | fails when subscription already present", asyn
         target: "subscription.example",
         serviceAccount: "service-account",
         frequency: 60,
-        created: 1234
+        created: 1234,
       }];
     },
   };

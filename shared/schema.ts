@@ -20,7 +20,7 @@ const parts = {
   },
   human: {
     type: "boolean",
-    description: "Should we display data in a more human-readable format?"
+    description: "Should we display data in a more human-readable format?",
   },
   role: {
     type: "string",

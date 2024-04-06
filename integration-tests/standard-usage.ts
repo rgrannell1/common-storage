@@ -1,5 +1,5 @@
 import { csApp, csServices, startApp } from "../app.ts";
-import { CommonStorageClient } from "../library/comon-storage.ts";
+import { CommonStorageClient } from "../library/common-storage.ts";
 import { assertEquals } from "../dev_deps.ts";
 
 abstract class TestServer {
@@ -261,6 +261,16 @@ class LocalNoteServer extends TestServer {
       { source: "http://localhost:9000/content/notes" },
     );
   }
+
+  async enumerate() {
+    const results = await this.client()
+      .withCredentials(this._config.adminUsername, this._config.adminPassword)
+      .getAllContent("subscription.notes");
+
+    for await (const content of results) {
+      console.log(content);
+    }
+  }
 }
 
 const localServer = new LocalNoteServer();
@@ -286,3 +296,5 @@ await localServer.getFeed();
 
 await localServer.stop();
 await remoteServer.stop();
+
+await localServer.enumerate();

@@ -49,7 +49,7 @@ export function postTopic(_: PostTopicConfig, services: Services) {
       }
     }
 
-    await logger.error("added topic", ctx.request, { topic });
+    await logger.info("added topic", ctx.request, { topic });
 
     const addRes = await storage.addTopic(
       topic,

@@ -72,6 +72,5 @@ export const TABLE_SUBSCRIPTION_LAST_ID = "subscription-last-id";
 // The common-storage feed version
 export const COMMON_STORAGE_VERSION = "v0.1";
 
-
 // How many records can be retrieved at once?
 export const DEFAULT_PAGE_SIZE = 10;

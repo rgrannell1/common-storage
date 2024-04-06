@@ -53,7 +53,9 @@ export function getSubscription(_: GetSubscriptionConfig, services: Services) {
     ctx.response.body = JSON.stringify({
       subscription: {
         ...subscription,
-        created: params.human ? new Date(subscription.created) : subscription.created,
+        created: params.human
+          ? new Date(subscription.created)
+          : subscription.created,
       },
       stats: topic.stats,
     });

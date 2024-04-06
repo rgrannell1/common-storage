@@ -80,6 +80,14 @@ export class Subscriptions {
       );
     }
 
+    if (Object.prototype.hasOwnProperty.call(resBody, "error")) {
+      throw new ContentInvalidError(
+        `The requested server returned a response with an error\n\n${
+          (resBody as { error: string }).error
+        }`,
+      );
+    }
+
     // Validate "content" property exists
     if (!Object.prototype.hasOwnProperty.call(resBody, "content")) {
       throw new ContentInvalidError(

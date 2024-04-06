@@ -65,7 +65,7 @@ export interface IError {
   ): Promise<void>;
 }
 
-export interface ILogger extends IInfo, IError {};
+export interface ILogger extends IInfo, IError {}
 
 // Role
 
@@ -286,6 +286,7 @@ export interface IStorage
     IGetTopicStats,
     IDeleteTopic,
     IGetContent,
+    getAllContent,
     IAddContent,
     IGetBatch,
     IAddBatch,
@@ -327,6 +328,7 @@ export interface IStorageBackend {
   close(): Promise<void>;
   getValue<T>(table: string[], id?: string): Promise<T | null>;
   deleteValue(table: string[], id: string): Promise<void>;
+  deleteValues<T>(rows: Row<T>[]): Promise<void>;
   listTable<K, T>(
     table: string[],
     limit?: number,
