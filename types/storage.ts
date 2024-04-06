@@ -286,7 +286,7 @@ export interface IStorage
     IGetTopicStats,
     IDeleteTopic,
     IGetContent,
-    getAllContent,
+    IGetAllContent,
     IAddContent,
     IGetBatch,
     IAddBatch,
