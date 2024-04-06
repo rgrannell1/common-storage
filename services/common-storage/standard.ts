@@ -385,16 +385,15 @@ export class CommonStorage implements IStorage {
     const content: T[] = [];
 
     let idx = 0;
+    const limit = size ?? DEFAULT_PAGE_SIZE;
     for await (
       const entry of this.backend.listTable<number[], { content: string }>([
-        TABLE_CONTENT,
-      ], size ?? DEFAULT_PAGE_SIZE)
+        TABLE_CONTENT, topic,
+      ], limit, from)
     ) {
       const contentId = lastId = entry.key[2];
 
-      if (from && contentId < from) {
-        continue;
-      } else if (typeof from === "undefined") {
+      if (typeof from === "undefined") {
         from = contentId;
       }
 
@@ -418,20 +417,13 @@ export class CommonStorage implements IStorage {
   }
 
   async *getAllContent<T>(topic: string, startId?: number) {
-    let from = startId;
-
-    while (true) {
-      const response = await this.getContent<T>(topic, from, DEFAULT_PAGE_SIZE);
-
-      if (response.content.length === 0) {
-        break;
-      }
-
-      for (const content of response.content) {
-        yield content;
-      }
-
-      from = response.nextId;
+    const limit = 100_000_000;
+    for await (
+      const entry of this.backend.listTable<number[], { content: string }>([
+        TABLE_CONTENT, topic,
+      ], limit, startId)
+    ) {
+      yield JSON.parse(entry.value.content)
     }
   }
 

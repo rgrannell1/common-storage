@@ -18,6 +18,16 @@ export class ParamsParsers {
 
     return parsedStartId;
   }
+
+  static size(size: string | number) {
+    const parsedSize = typeof size === "string" ? parseInt(size, 10) : size;
+
+    if (isNaN(parsedSize)) {
+      throw new InputValidationError("Failed to parse size");
+    }
+
+    return parsedSize;
+  }
 }
 
 export class BodyParsers {

@@ -56,14 +56,27 @@ export class DenoKVBackend implements IStorageBackend {
    */
   async *listTable<K, T>(
     table: string[],
-    limit?: number,
+    limit: number | undefined = undefined,
+    offset: number | undefined = undefined
     /* */
   ): AsyncGenerator<{ key: K; value: T }> {
     this.#assertInitialised();
 
-    const options = limit ? { prefix: table, limit } : { prefix: table };
+    // select keys from the topic in a specific numeric range
+    const selector: Deno.KvListSelector = typeof offset !== 'undefined'
+      ? {
+        prefix: table,
+        start: [...table, offset]
+      }
+      : { prefix: table };
 
-    for await (const entry of this.kv!.list(options)) {
+    // optionally, limit the number of entries yielded.
+    const options: Deno.KvListOptions = { }
+    if (typeof limit !== 'undefined') {
+      options.limit = limit;
+    }
+
+    for await (const entry of this.kv!.list(selector, options)) {
       yield {
         key: entry.key as K,
         value: entry.value as T,
@@ -90,6 +103,23 @@ export class DenoKVBackend implements IStorageBackend {
    * @param rows - The rows to set, as pairs of id and value
    */
   async setValues<T>(rows: [string[], T][]): Promise<void> {
+    this.#assertInitialised();
+
+    const atom = this.kv!.atomic();
+
+    for (const [id, value] of rows) {
+      atom.set(id, value);
+    }
+
+    await atom.commit();
+  }
+
+  /*
+   * Delete multiple values in the database
+   *
+   * @param rows - The rows to set, as pairs of id and value
+   */
+  async deleteValues<T>(rows: [string[], T][]): Promise<void> {
     this.#assertInitialised();
 
     const atom = this.kv!.atomic();

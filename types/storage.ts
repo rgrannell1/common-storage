@@ -332,6 +332,7 @@ export interface IStorageBackend {
   listTable<K, T>(
     table: string[],
     limit?: number,
+    offset?: number,
   ): AsyncGenerator<{ key: K; value: T }>;
   setValue<T>(table: string[], id: string, value: T): Promise<void>;
   setValues<T>(rows: Row<T>[]): Promise<void>;

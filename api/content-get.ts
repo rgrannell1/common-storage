@@ -65,9 +65,11 @@ export function getContent(_: GetContentConfig, services: Services) {
   return async function (ctx: any) {
     const params = {
       ...ctx.params,
-      startId: ctx.request.url.searchParams.get("startId"),
-      size: ctx.request.url.searchParams.get("size") ?? DEFAULT_PAGE_SIZE,
+      // TODO this is horrid!
+      startId: ParamsParsers.startId(ctx.request.url.searchParams.get("startId")),
+      size: ParamsParsers.size(ctx.request.url.searchParams.get("size")) ?? DEFAULT_PAGE_SIZE,
     };
+
     schema("contentGet", params, RequestPart.Params);
 
     const { topic } = params;
@@ -83,7 +85,7 @@ export function getContent(_: GetContentConfig, services: Services) {
       return;
     }
 
-    if (ctx.request.accepts("application/x-ndjson")) {
+    if (ctx.request.headers.get("content-type") === "application/x-ndjson") {
       await logger.info("getting content stream", ctx.request, { topic });
       return await getContentStream(ctx, storage, params);
     } else {
