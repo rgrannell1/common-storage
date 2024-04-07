@@ -2,3 +2,4 @@ cov_profile/
 cov_profile.lcov
 coverage/
 .env
+common-storage

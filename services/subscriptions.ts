@@ -36,7 +36,7 @@ export class Subscriptions {
     this.intertalk = intertalk;
   }
 
-  async fetchRemoteContent(
+  async *fetchRemoteContent(
     user: User,
     topic: string,
     source: string,
@@ -108,7 +108,9 @@ export class Subscriptions {
     // Validate the content before attempting to save the subscription
     await this.storage.validateContent(topic, content);
 
-    return content;
+    for (const elem of content) {
+      yield elem;
+    }
   }
 
   async getNextId(topic: string) {
@@ -174,12 +176,10 @@ export class Subscriptions {
       source,
     });
 
-    const content = await this.fetchRemoteContent(
-      userData,
-      topic,
-      source,
-      nextId,
-    );
+    const content: unknown[] = [];
+    for await (const elem of this.fetchRemoteContent(userData, topic, source, nextId)) {
+      content.push(elem);
+    }
 
     yield {
       state: SubscriptionSyncState.FIRST_CONTENT_FETCH_OK,
@@ -234,12 +234,10 @@ export class Subscriptions {
         });
 
         await this.storage.setLock(topic);
-        const content = await this.fetchRemoteContent(
-          userData,
-          topic,
-          source,
-          nextId,
-        );
+        const content: unknown[] = [];
+        for await (const elem of this.fetchRemoteContent(userData, topic, source, nextId)) {
+          content.push(elem);
+        }
 
         if (content.length === 0) {
           break;
