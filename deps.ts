@@ -21,4 +21,5 @@ export * as docopt from "https://deno.land/x/docopt@v1.0.5/mod.ts";
 // for streaming json content from the server
 export {
   JSONLinesStringifyStream,
+  JSONLinesParseStream
 } from "https://deno.land/x/jsonlines@v1.2.1/js/mod.js";

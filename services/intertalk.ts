@@ -26,8 +26,8 @@ export class IntertalkClient extends AIntertalk {
         method: "GET",
         signal: AbortSignal.timeout(CONTENT_GET_TIMEOUT),
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Basic " + btoa(`${username}:${password}`),
+          "Content-Type": "application/x-ndjson",
+          "Authorization": "Basic " + btoa(`${username}:${password}`)
         },
         referrerPolicy: "no-referrer",
       },

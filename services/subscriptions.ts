@@ -18,6 +18,8 @@ import {
   SUBSCRIPTION_FAILED,
 } from "../shared/constants.ts";
 
+import { JSONLinesParseStream } from "../deps.ts";
+
 import { ILogger } from "../types/index.ts";
 import { SubscriptionSyncState } from "../types/storage.ts";
 import { SubscriptionSyncProgress } from "../types/storage.ts";
@@ -63,6 +65,13 @@ export class Subscriptions {
       throw new NetworkError(`Failed to connect to the source server: ${err}`);
     }
 
+    // check there's a body defined
+    if (!response.body) {
+      throw new NetworkError(
+        `No response body returned by the source server: ${response.status} ${response.statusText}`,
+      );
+    }
+
     if (response.status === 401) {
       console.log(await response.json());
       throw new SubscriptionAuthorisationError(
@@ -70,17 +79,8 @@ export class Subscriptions {
       );
     }
 
-    // check the response is even JSON
-    let resBody: unknown;
-    try {
-      resBody = await response.json();
-    } catch (err) {
-      throw new JSONError(
-        `Could not parse response from requested server as JSON`,
-      );
-    }
-
-    if (Object.prototype.hasOwnProperty.call(resBody, "error")) {
+    if (response.status !== 200) {
+      const resBody = await response.json();
       throw new ContentInvalidError(
         `The requested server returned a response with an error\n\n${
           (resBody as { error: string }).error
@@ -88,27 +88,14 @@ export class Subscriptions {
       );
     }
 
-    // Validate "content" property exists
-    if (!Object.prototype.hasOwnProperty.call(resBody, "content")) {
-      throw new ContentInvalidError(
-        `The requested server returned a response to ${source} without a "content" property`,
-      );
-    }
 
-    // Validate "content" property is an array
-    if (!Array.isArray((resBody as { content: unknown }).content)) {
-      throw new ContentInvalidError(
-        `The requested server returned a response to ${source} with a non-array "content" property`,
-      );
-    }
+    // TODO: error-handling
+    const contentStream = response.body!
+      .pipeThrough(new TextDecoderStream())
+      .pipeThrough(new JSONLinesParseStream());
 
-    // Add the content to the server
-    const content = (resBody as { content: unknown[] }).content;
-
-    // Validate the content before attempting to save the subscription
-    await this.storage.validateContent(topic, content);
-
-    for (const elem of content) {
+    // TODO validate elements
+    for await (const elem of contentStream) {
       yield elem;
     }
   }
