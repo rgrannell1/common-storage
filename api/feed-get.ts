@@ -36,6 +36,34 @@ function formatTopicDates(topic: TopicStats | null) {
   return data;
 }
 
+function getApiSummary() {
+  return {
+    "users": {
+      "GET /user/:name": "Get user information",
+      "POST /user/:name": "Add a user",
+    },
+    "subscriptions": {
+      "POST /subscription/:topic": "Subscribe to a common-storage topic",
+    },
+    "role": {
+      "GET /role/:role": "Get permission details about a role",
+      "POST /role/:role": "Create a new permissions role"
+    },
+    "feed": {
+      "GET /feed": "Retrieve general information about this server"
+    },
+    "content": {
+      "GET /content/:topic": "Retrieve a collection of content from a topic",
+      "POST /content/:topic": "Add content to a topic"
+    },
+    "topic": {
+      "GET /topic/:topic": "Get metadata about a topic",
+      "POST /topic/:topic": "Add a topic to the server",
+      "DELETE /topic/:topic": "Delete a topic from the server"
+    }
+  }
+}
+
 export function getFeed(cfg: GetFeedConfig, services: Services) {
   const { storage, schema } = services;
 
@@ -71,6 +99,7 @@ export function getFeed(cfg: GetFeedConfig, services: Services) {
       version: COMMON_STORAGE_VERSION,
       topics: params.human ? topics.map(formatTopicDates) : topics,
       subscriptions: subscriptionMap,
+      apiOverview: getApiSummary()
     });
   };
 }
