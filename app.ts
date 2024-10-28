@@ -16,6 +16,7 @@ import * as Authentication from "./api/authentication.ts";
 import * as RateLimiting from "./api/rate-limit.ts";
 import { getFeed } from "./api/feed-get.ts";
 import { getUser } from "./api/user-get.ts";
+import { getUsers } from "./api/users-get.ts";
 import { postUser } from "./api/user-post.ts";
 import { postRole } from "./api/role-post.ts";
 import { getRole } from "./api/role-get.ts";
@@ -50,6 +51,12 @@ export function csRouter(config: Config, services: Services) {
     // ++ require admin auth for user management routes
     //
     // ++ ++ USER
+    .get(
+      "/user",
+      rateLimitMiddleware,
+      adminMiddleware,
+      getUsers(config, services) as any,
+    )
     .get(
       "/user/:name",
       rateLimitMiddleware,

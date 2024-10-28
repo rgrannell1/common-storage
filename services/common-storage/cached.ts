@@ -39,17 +39,26 @@ export class CachedCommonStorage extends CommonStorage {
     }, super.getUser.bind(this))(user);
   }
 
+  async getUsers() {
+    return await cached({
+      store: this.cache,
+      id: () => `users`,
+    }, super.getUsers.bind(this))();
+  }
+
   async deleteUser(user: string) {
     return await cached({
       store: this.cache,
-      clears: (user: string) => (key: string) => key === `users/${user}`,
+      clears: (user: string) => (key: string) =>
+        key === `users/${user}` || key === "users",
     }, super.deleteUser.bind(this))(user);
   }
 
   async addUser(user: string, role: string, password: string) {
     return await cached({
       store: this.cache,
-      clears: (user: string) => (key: string) => key === `users/${user}`,
+      clears: (user: string) => (key: string) =>
+        key === `users/${user}` || key === "users",
     }, super.addUser.bind(this))(user, role, password);
   }
 

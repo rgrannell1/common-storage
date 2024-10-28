@@ -288,6 +288,15 @@ schema.$defs.params.userGet = {
   required: ["name"],
 };
 
+// ++++++ GET /user ++++++
+schema.$defs.params.usersGet = {
+  type: "object",
+  properties: {
+    human: parts.human,
+  },
+  required: [],
+};
+
 export type Schema = typeof schema;
 
 if ((import.meta as any).main) {

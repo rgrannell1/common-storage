@@ -90,6 +90,10 @@ export interface IGetUser {
   getUser(name: string): Promise<User | null>;
 }
 
+export interface IGetUsers {
+  getUsers(): Promise<User[]>;
+}
+
 export interface IDeleteUser {
   deleteUser(name: string): Promise<{ existed: boolean }>;
 }
@@ -258,8 +262,8 @@ export type SubscriptionSyncProgress = {
   startId: number;
 };
 
-export abstract class AIntertalk {
-  abstract contentGet(
+export interface IIntertalk {
+  contentGet(
     topic: string,
     startId: number,
     username: string,
@@ -279,6 +283,7 @@ export interface IStorage
     IDeleteRole,
     IAddUser,
     IGetUser,
+    IGetUsers,
     IDeleteUser,
     IAddTopic,
     IGetTopic,

@@ -123,6 +123,17 @@ export class CommonStorage implements IStorage {
     };
   }
 
+  async getUsers(): Promise<User[]> {
+    const users: User[] = [];
+    for await (
+      const entry of this.backend.listTable<string, User>([TABLE_USERS])
+    ) {
+      users.push(entry.value);
+    }
+
+    return users;
+  }
+
   async deleteUser(user: string) {
     const current = await this.backend.getValue([TABLE_USERS], user);
     await this.backend.deleteValue([TABLE_USERS], user);
@@ -387,9 +398,14 @@ export class CommonStorage implements IStorage {
     let idx = 0;
     const limit = size ?? DEFAULT_PAGE_SIZE;
     for await (
-      const entry of this.backend.listTable<number[], { content: string }>([
-        TABLE_CONTENT, topic,
-      ], limit, from)
+      const entry of this.backend.listTable<number[], { content: string }>(
+        [
+          TABLE_CONTENT,
+          topic,
+        ],
+        limit,
+        from,
+      )
     ) {
       const contentId = lastId = entry.key[2];
 
@@ -419,11 +435,16 @@ export class CommonStorage implements IStorage {
   async *getAllContent<T>(topic: string, startId?: number) {
     const limit = 100_000_000;
     for await (
-      const entry of this.backend.listTable<number[], { content: string }>([
-        TABLE_CONTENT, topic,
-      ], limit, startId)
+      const entry of this.backend.listTable<number[], { content: string }>(
+        [
+          TABLE_CONTENT,
+          topic,
+        ],
+        limit,
+        startId,
+      )
     ) {
-      yield JSON.parse(entry.value.content)
+      yield JSON.parse(entry.value.content);
     }
   }
 
