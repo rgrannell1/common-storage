@@ -7,7 +7,7 @@ import {
   UserHasPermissionsError,
   UserNotFound,
 } from "../shared/errors.ts";
-import { AIntertalk, SubscriptionSyncProgress } from "../types/storage.ts";
+import { IIntertalk, SubscriptionSyncProgress } from "../types/storage.ts";
 
 const blankStorage = {
   async getTopic(_: string) {
@@ -56,11 +56,7 @@ const stubLogger = {
 };
 
 function StubIntertalkClient<T>(content: T) {
-  return class extends AIntertalk {
-    constructor() {
-      super();
-    }
-
+  return class implements IIntertalk {
     contentGet(
       _: string,
       __: number,

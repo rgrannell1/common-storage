@@ -3,18 +3,19 @@ import { CommonStorageClient } from "./common-storage.ts";
 
 const doc = `
 Usage:
-  common-storage <url> get-feed
-  common-storage <url> get-user <name>
-  common-storage <url> get-role <name>
-  common-storage <url> get-topic <topic>
-  common-storage <url> get-content <topic> [<start-id>]
-  common-storage <url> get-all-content <topic>
-  common-storage <url> get-subscription <topic>
+  common-storage <url> get-feed                         [--user=<cred>]
+  common-storage <url> get-user <name>                  [--user=<cred>]
+  common-storage <url> get-role <name>                  [--user=<cred>]
+  common-storage <url> get-topic <topic>                [--user=<cred>]
+  common-storage <url> get-content <topic> [<start-id>] [--user=<cred>]
+  common-storage <url> get-all-content <topic>          [--user=<cred>]
+  common-storage <url> get-subscription <topic>         [--user=<cred>]
   common-storage (-h | --help)
 
 Options:
-  -h --help     Show this screen
-  --version     Show version
+  --user=<cred>    User credentials
+  -h, --help       Show this screen
+  --version        Show version
 `;
 
 const args = docopt(doc);
@@ -22,10 +23,21 @@ const url = args["<url>"];
 
 const client = CommonStorageClient.new(url as string);
 
-const username = Deno.env.get("CS_USERNAME");
-const password = Deno.env.get("CS_PASSWORD");
+function getCredential() {
+  if (args["--user"]) {
+    const [username, password] = (args["--user"] as string).split(":", 1);
+    return { username, password };
+  }
+
+  const username = Deno.env.get("CS_USERNAME");
+  const password = Deno.env.get("CS_PASSWORD");
+
+  return { username, password };
+}
 
 function checkCredentials() {
+  const { username, password } = getCredential();
+
   if (!username || !password) {
     console.error(
       "Please set CS_USERNAME and CS_PASSWORD environment variables",
@@ -35,6 +47,8 @@ function checkCredentials() {
 }
 
 function callApi() {
+  const { username, password } = getCredential();
+
   if (args["get-feed"]) {
     return client.getFeed();
   } else if (args["get-user"]) {
@@ -71,6 +85,7 @@ function callApi() {
 }
 
 if (args["get-all-content"]) {
+  const { username, password } = getCredential();
   checkCredentials();
 
   const allContent = client

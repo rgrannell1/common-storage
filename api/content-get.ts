@@ -1,7 +1,5 @@
 import { readableStreamFromAsyncIterator } from "https://deno.land/std@0.81.0/io/streams.ts";
-import {
-  JSONLinesStringifyStream,
-} from "../deps.ts";
+import { JSONLinesStringifyStream } from "../deps.ts";
 
 import { Status } from "../shared/status.ts";
 import type {
@@ -37,7 +35,7 @@ async function getContentStream(
     storage.getAllContent(params.topic, params.startId),
   )
     .pipeThrough(new JSONLinesStringifyStream())
-    .pipeThrough(new TextEncoderStream())
+    .pipeThrough(new TextEncoderStream());
 
   ctx.response.headers.set("Content-Type", "application/x-ndjson");
   ctx.response.body = contentStream;
@@ -46,7 +44,7 @@ async function getContentStream(
 async function getContentList(
   ctx: any,
   storage: Services["storage"],
-  params: { topic: string; startId: number, size: number },
+  params: { topic: string; startId: number; size: number },
 ) {
   // normal `application/json` handling
   const content = await storage.getContent(
@@ -66,8 +64,11 @@ export function getContent(_: GetContentConfig, services: Services) {
     const params = {
       ...ctx.params,
       // TODO this is horrid!
-      startId: ParamsParsers.startId(ctx.request.url.searchParams.get("startId")),
-      size: ParamsParsers.size(ctx.request.url.searchParams.get("size")) ?? DEFAULT_PAGE_SIZE,
+      startId: ParamsParsers.startId(
+        ctx.request.url.searchParams.get("startId"),
+      ),
+      size: ParamsParsers.size(ctx.request.url.searchParams.get("size")) ??
+        DEFAULT_PAGE_SIZE,
     };
 
     schema("contentGet", params, RequestPart.Params);
@@ -80,8 +81,9 @@ export function getContent(_: GetContentConfig, services: Services) {
     ) {
       ctx.response.status = Status.UnsupportedMediaType;
       ctx.response.body = JSON.stringify({
-        error: "Only content-type 'application/json' or 'application/x-ndjson' are supported",
-      })
+        error:
+          "Only content-type 'application/json' or 'application/x-ndjson' are supported",
+      });
       return;
     }
 

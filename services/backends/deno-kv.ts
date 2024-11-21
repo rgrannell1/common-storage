@@ -57,22 +57,22 @@ export class DenoKVBackend implements IStorageBackend {
   async *listTable<K, T>(
     table: string[],
     limit: number | undefined = undefined,
-    offset: number | undefined = undefined
+    offset: number | undefined = undefined,
     /* */
   ): AsyncGenerator<{ key: K; value: T }> {
     this.#assertInitialised();
 
     // select keys from the topic in a specific numeric range
-    const selector: Deno.KvListSelector = typeof offset !== 'undefined'
+    const selector: Deno.KvListSelector = typeof offset !== "undefined"
       ? {
         prefix: table,
-        start: [...table, offset]
+        start: [...table, offset],
       }
       : { prefix: table };
 
     // optionally, limit the number of entries yielded.
-    const options: Deno.KvListOptions = { }
-    if (typeof limit !== 'undefined') {
+    const options: Deno.KvListOptions = {};
+    if (typeof limit !== "undefined") {
       options.limit = limit;
     }
 

@@ -3,7 +3,6 @@ import { setImmediateInterval } from "../shared/time.ts";
 
 import {
   ContentInvalidError,
-  JSONError,
   MultipleSubscriptionError,
   NetworkError,
   SubscriptionAuthorisationError,
@@ -40,7 +39,7 @@ export class Subscriptions {
 
   async *fetchRemoteContent(
     user: User,
-    topic: string,
+    _: string,
     source: string,
     startId: number,
   ) {
@@ -87,7 +86,6 @@ export class Subscriptions {
         }`,
       );
     }
-
 
     // TODO: error-handling
     const contentStream = response.body!
@@ -164,7 +162,9 @@ export class Subscriptions {
     });
 
     const content: unknown[] = [];
-    for await (const elem of this.fetchRemoteContent(userData, topic, source, nextId)) {
+    for await (
+      const elem of this.fetchRemoteContent(userData, topic, source, nextId)
+    ) {
       content.push(elem);
     }
 
@@ -222,7 +222,9 @@ export class Subscriptions {
 
         await this.storage.setLock(topic);
         const content: unknown[] = [];
-        for await (const elem of this.fetchRemoteContent(userData, topic, source, nextId)) {
+        for await (
+          const elem of this.fetchRemoteContent(userData, topic, source, nextId)
+        ) {
           content.push(elem);
         }
 

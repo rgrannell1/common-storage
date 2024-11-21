@@ -114,7 +114,7 @@ export class CommonStorageClient {
             btoa(`${this.credentials.username}:${this.credentials.password}`)
           }`
           : "",
-        "Content-Type": "application/x-ndjson"
+        "Content-Type": "application/x-ndjson",
       },
     });
 
