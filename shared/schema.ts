@@ -169,6 +169,15 @@ schema.$defs.params.contentPost = {
   required: ["topic"],
 };
 
+// ++++++ GET /topic/:topic ++++++
+schema.$defs.params.topicGet = {
+  type: "object",
+  properties: {
+    topic: parts.topic,
+  },
+  required: ["topic"],
+};
+
 // ++++++ POST /topic/:topic ++++++
 schema.$defs.body.topicPost = {
   type: "object",

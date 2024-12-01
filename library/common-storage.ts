@@ -73,6 +73,9 @@ export class CommonStorageClient {
   getUser(name: string) {
     return this.#performApiCall("GET", `/user/${name}`);
   }
+  getUsers() {
+    return this.#performApiCall("GET", `/user`);
+  }
   postUser(name: string, opts: PostUserOpts) {
     return this.#performApiCall("POST", `/user/${name}`, JSON.stringify(opts));
   }

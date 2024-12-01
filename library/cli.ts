@@ -5,6 +5,7 @@ const doc = `
 Usage:
   common-storage <url> get-feed                         [--user=<cred>]
   common-storage <url> get-user <name>                  [--user=<cred>]
+  common-storage <url> get-users                        [--user=<cred>]
   common-storage <url> get-role <name>                  [--user=<cred>]
   common-storage <url> get-topic <topic>                [--user=<cred>]
   common-storage <url> get-content <topic> [<start-id>] [--user=<cred>]
@@ -63,6 +64,13 @@ function callApi() {
     return client
       .withCredentials(username as string, password as string)
       .getRole(args["<name>"] as string);
+  } else if (args["get-users"]) {
+    checkCredentials();
+
+    return client
+      .withCredentials(username as string, password as string)
+      .getUsers();
+
   } else if (args["get-topic"]) {
     checkCredentials();
 

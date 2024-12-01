@@ -1,7 +1,6 @@
 import type {
   Config,
-  IGetRole,
-  IGetUser,
+  IGetUsers,
   ILogger,
   SchemaValidator,
 } from "../types/index.ts";
@@ -9,7 +8,7 @@ import { RequestPart } from "../types/index.ts";
 import { Status } from "../shared/status.ts";
 
 type Services = {
-  storage: IGetUser & IGetRole;
+  storage: IGetUsers;
   logger: ILogger;
   schema: SchemaValidator;
 };
@@ -17,7 +16,7 @@ type Services = {
 type GetUserConfig = Partial<Config>;
 
 export function getUsers(_: GetUserConfig, services: Services) {
-  const { storage, logger, schema } = services;
+  const { storage, schema } = services;
 
   return async function (ctx: any) {
     const params = {
