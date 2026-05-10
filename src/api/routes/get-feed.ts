@@ -7,7 +7,7 @@ import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
 import { queryParser, responseParser } from "../parsers/combinators.ts";
 import { HumanFlagSchema, TopicSummarySchema, SubscriptionSummarySchema } from "../parsers/schemas.ts";
-import type { IGetSubscriptions, IGetTopicNames, IGetTopicStats } from "../storage/backend.ts";
+import type { IGetSubscriptions, IGetTopicNames, IGetTopicStats } from "../storage/capabilities.ts";
 
 const FeedRequestSchema = z.object({
   human: HumanFlagSchema,
