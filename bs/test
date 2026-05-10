@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+deno test --import-map=deno.dev.json --allow-net --allow-env --allow-read tests/

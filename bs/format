@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+deno fmt src/ tests/ main.ts

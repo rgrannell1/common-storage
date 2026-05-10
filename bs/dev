@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+deno run --allow-net --allow-env --allow-read --watch main.ts

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+deno check --import-map=deno.dev.json src/**/*.ts tests/**/*.ts main.ts
