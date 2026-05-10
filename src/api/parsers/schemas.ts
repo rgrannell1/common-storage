@@ -1,0 +1,71 @@
+// Shared Zod field schemas and composed object schemas assembled by route files
+
+import { z } from "zod";
+
+// -- Scalar fields --
+
+// Name of a topic; used as a path parameter and in response bodies
+export const TopicNameSchema = z.string().min(1).max(128);
+
+// Human-readable name of this server instance
+export const TitleSchema = z.string().min(1);
+
+// Human-readable description of this server instance
+export const DescriptionSchema = z.string();
+
+// Semantic version string of the running server
+export const VersionSchema = z.string();
+
+// Unix epoch milliseconds; used for createdAt, updatedAt, lastUpdated
+export const TimestampSchema = z.number().int().nonnegative();
+
+// Number of entries in a topic
+export const CountSchema = z.number().int().nonnegative();
+
+// Subscription poll interval in seconds
+export const FrequencySchema = z.number().int().positive();
+
+// URL of a remote common-storage content endpoint
+export const SourceUrlSchema = z.string().url();
+
+// Whether the response should be formatted for human reading
+export const HumanFlagSchema = z.boolean();
+
+// ID of the first entry to return in a paginated response
+export const StartSchema = z.number().int().nonnegative();
+
+// Maximum number of entries to return in a paginated response
+export const SizeSchema = z.number().int().positive();
+
+/*
+ * Composed object schemas
+ *
+ *
+ */
+
+export const TopicSummarySchema = z.object({
+  // Name of the topic
+  topic: TopicNameSchema,
+  // Total number of entries in the topic
+  count: CountSchema,
+  // Timestamp of the most recent write to the topic
+  lastUpdated: TimestampSchema,
+});
+
+export const SubscriptionSummarySchema = z.object({
+  // URL of the remote content endpoint being replicated
+  source: SourceUrlSchema,
+  // Local topic receiving the replicated entries
+  topic: TopicNameSchema,
+  // How often the server polls the remote endpoint, in seconds
+  frequency: FrequencySchema,
+  // Timestamp when this subscription was first established
+  created: TimestampSchema,
+});
+
+export const PaginationSchema = z.object({
+  // ID of the first entry to return; omit to start from the beginning
+  start: StartSchema.optional(),
+  // Maximum entries to return; omit to use the server default
+  size: SizeSchema.optional(),
+});
