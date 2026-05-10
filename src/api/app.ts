@@ -6,10 +6,11 @@ import { cors } from "hono/cors";
 import { registerRoutes } from "./routes/router.ts";
 import { getFeedRoute } from "./routes/get-feed.ts";
 import { postContentRoute } from "./routes/post-content.ts";
-import type { IGetTopicNames, IGetTopicStats, IGetSubscriptions, IWriteContent } from "./storage/capabilities.ts";
+import { getContentRoute } from "./routes/get-content.ts";
+import type { IGetTopicNames, IGetTopicStats, IGetSubscriptions, IWriteContent, IReadContent } from "./storage/capabilities.ts";
 
 export type AppDeps = {
-  storage: IGetTopicNames & IGetTopicStats & IGetSubscriptions & IWriteContent;
+  storage: IGetTopicNames & IGetTopicStats & IGetSubscriptions & IWriteContent & IReadContent;
 };
 
 export function createApp(deps: AppDeps): Hono {
@@ -18,7 +19,8 @@ export function createApp(deps: AppDeps): Hono {
   app.use("*", cors());
 
   registerRoutes(app, [
-    { method: "GET",  path: "/feed",            route: getFeedRoute(deps) },
+    { method: "GET",  path: "/feed",             route: getFeedRoute(deps) },
+    { method: "GET",  path: "/content/:topic",  route: getContentRoute(deps) },
     { method: "POST", path: "/content/:topic",  route: postContentRoute(deps) },
   ]);
 

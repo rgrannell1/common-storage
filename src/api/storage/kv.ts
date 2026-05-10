@@ -2,7 +2,7 @@
 // @design.md
 
 import type { IAtomicWriter, IStorageBackend } from "./backend.ts";
-import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IWriteContent, TopicStats, Subscription, ContentEntry } from "./capabilities.ts";
+import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IWriteContent, IReadContent, TopicStats, Subscription, ContentEntry, ReadContentOptions } from "./capabilities.ts";
 import type { TopicConfig } from "../../commons/config.ts";
 import type { StoredTopic, StoredTopicStats, StoredEntry } from "./stored-types.ts";
 import { KV_TOPIC, KV_TOPIC_STATS, KV_CONTENT, KV_CONTENT_COUNTER } from "./keys.ts";
@@ -29,7 +29,7 @@ class DenoAtomicWriter implements IAtomicWriter {
   }
 }
 
-export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, ICreateTopics, IWriteContent {
+export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, ICreateTopics, IWriteContent, IReadContent {
   private kv: Deno.Kv | null = null;
   private path: string | undefined;
 
@@ -169,6 +169,27 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
         return entry;
       }
     }
+  }
+
+  // -- IReadContent --
+
+  async readContent(topic: string, opts: ReadContentOptions): Promise<ContentEntry[] | null> {
+    this.#assertInitialised();
+    const meta = await this.kv!.get<StoredTopic>([...KV_TOPIC, topic]);
+    if (!meta.value) {
+      return null;
+    }
+
+    const prefix = [...KV_CONTENT, topic];
+    const selector = opts.start !== undefined
+      ? { prefix, start: [...KV_CONTENT, topic, opts.start] }
+      : { prefix };
+
+    const entries: ContentEntry[] = [];
+    for await (const item of this.kv!.list<StoredEntry>(selector, { limit: opts.size })) {
+      entries.push(item.value);
+    }
+    return entries;
   }
 
   async #createTopic(topic: TopicConfig, type: "event" | "object", now: number): Promise<void> {

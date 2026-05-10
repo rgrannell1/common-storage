@@ -45,3 +45,15 @@ export interface IWriteContent {
   // Returns null if the topic does not exist
   writeContent(topic: string, payload: unknown): Promise<ContentEntry | null>;
 }
+
+export type ReadContentOptions = {
+  // First entry ID to return, inclusive; omit to start from the beginning
+  start?: number;
+  // Maximum number of entries to return
+  size: number;
+};
+
+export interface IReadContent {
+  // Returns null if the topic does not exist, an empty array if it exists but has no entries
+  readContent(topic: string, opts: ReadContentOptions): Promise<ContentEntry[] | null>;
+}

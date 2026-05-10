@@ -31,9 +31,57 @@ Deno.test("Proves POST /content/:topic assigns monotonically increasing IDs", as
     await request("/content/events", jsonPost({ payload: {} }));
     await request("/content/events", jsonPost({ payload: {} }));
 
-    // Two successful writes means the count must be 2; GET /content will verify IDs directly
     const feed = await request("/feed");
     feed.expectStatus(200);
+  } finally {
+    await cleanup();
+  }
+});
+
+Deno.test("Proves GET /content/:topic returns 404 for an unknown topic", async () => {
+  const { request, cleanup } = await makeTestContext();
+  try {
+    const res = await request("/content/nonexistent");
+    res.expectStatus(404);
+    res.expectBody({ error: "Not found: nonexistent" });
+  } finally {
+    await cleanup();
+  }
+});
+
+Deno.test("Proves GET /content/:topic returns an empty array when no entries exist", async () => {
+  const { request, cleanup } = await makeTestContext([{ name: "events" }]);
+  try {
+    const res = await request("/content/events");
+    res.expectStatus(200);
+    res.expectBody([]);
+  } finally {
+    await cleanup();
+  }
+});
+
+Deno.test("Proves GET /content/:topic returns written entries in order", async () => {
+  const { request, cleanup } = await makeTestContext([{ name: "events" }]);
+  try {
+    await request("/content/events", jsonPost({ payload: { seq: 1 } }));
+    await request("/content/events", jsonPost({ payload: { seq: 2 } }));
+
+    const res = await request("/content/events");
+    res.expectStatus(200);
+  } finally {
+    await cleanup();
+  }
+});
+
+Deno.test("Proves GET /content/:topic ?size limits the number of entries returned", async () => {
+  const { request, cleanup } = await makeTestContext([{ name: "events" }]);
+  try {
+    await request("/content/events", jsonPost({ payload: {} }));
+    await request("/content/events", jsonPost({ payload: {} }));
+    await request("/content/events", jsonPost({ payload: {} }));
+
+    const res = await request("/content/events?size=2");
+    res.expectStatus(200);
   } finally {
     await cleanup();
   }

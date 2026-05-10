@@ -17,3 +17,6 @@ export const DEFAULT_HOST = "0.0.0.0";
 
 // Name of the systemd user service unit
 export const SYSTEMD_SERVICE_NAME = "common-storage";
+
+// Default number of entries returned by paginated content endpoints
+export const DEFAULT_PAGE_SIZE = 100;
