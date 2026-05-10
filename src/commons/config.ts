@@ -11,11 +11,12 @@ const ServerConfig = z.object({
   host: z.string().optional(),
 });
 
-const SchemasConfig = z.object({
-  // Path to folder of JSON Schema files for event topics
-  events: z.string().optional(),
-  // Path to folder of JSON Schema files for object topics
-  objects: z.string().optional(),
+// A single event or object topic declaration
+const TopicConfig = z.object({
+  // Unique name for this topic, used in API paths
+  name: z.string().min(1).max(128),
+  // Path to a JSON Schema file for payload validation; any JSON accepted if omitted
+  schema: z.string().optional(),
 });
 
 const SubscriptionConfig = z.object({
@@ -55,8 +56,10 @@ export const Config = z.object({
   server: ServerConfig,
   // Name of the env var holding the Macaroon root key
   rootKey: z.string(),
-  // Paths to topic schema folders
-  schemas: SchemasConfig.optional(),
+  // Event topics — ordered logs with server-assigned integer IDs
+  events: z.array(TopicConfig).optional(),
+  // Object topics — keyed dictionaries with user-supplied string IDs
+  objects: z.array(TopicConfig).optional(),
   // Remote topics to sync down periodically
   subscriptions: z.array(SubscriptionConfig).optional(),
   // Named token definitions for `cs mint`
@@ -66,6 +69,7 @@ export const Config = z.object({
 });
 
 export type Config = z.infer<typeof Config>;
+export type TopicConfig = z.infer<typeof TopicConfig>;
 export type TokenConfig = z.infer<typeof TokenConfig>;
 export type TokenCaveatsConfig = z.infer<typeof TokenCaveatsConfig>;
 export type SubscriptionConfig = z.infer<typeof SubscriptionConfig>;
