@@ -1,8 +1,8 @@
-// GET /feed — returns a JSON summary of server state
+// GET /feed — returns a JSON summary of all topics and active subscriptions
 // @design.md
 
 import { z } from "zod";
-import { err, type Result } from "../../commons/types/result.ts";
+import { ok, type Result } from "../../commons/types/result.ts";
 import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
 import { queryParser, responseParser } from "../parsers/combinators.ts";
@@ -19,16 +19,31 @@ const FeedResponseSchema = z.object({
 });
 
 type FeedRequest = z.infer<typeof FeedRequestSchema>;
+type FeedResponse = z.infer<typeof FeedResponseSchema>;
 
 type FeedDeps = {
   storage: IGetTopicNames & IGetTopicStats & IGetSubscriptions;
 };
 
-async function getFeed(_deps: FeedDeps, _params: FeedRequest): Promise<Result<RouteSuccess, RouteError>> {
-  return err({ kind: "internal", message: "not implemented" });
+async function getFeed(deps: FeedDeps, _params: FeedRequest): Promise<Result<FeedResponse, RouteError>> {
+  const names = await deps.storage.getTopicNames();
+
+  const topicStats = await Promise.all(names.map(deps.storage.getTopicStats.bind(deps.storage)));
+
+  const topics = topicStats
+    .filter(stats => stats !== null)
+    .map(stats => ({
+      topic: stats!.topic,
+      count: stats!.stats.count,
+      lastUpdated: stats!.stats.lastUpdated,
+    }));
+
+  const subscriptions = await deps.storage.getSubscriptions();
+
+  return ok({ topics, subscriptions });
 }
 
-export function getFeedRoute(deps: FeedDeps): Route<null, FeedRequest, RouteSuccess, RouteSuccess, RouteError> {
+export function getFeedRoute(deps: FeedDeps): Route<null, FeedRequest, FeedResponse, RouteSuccess, RouteError> {
   return {
     parseRequest: queryParser(FeedRequestSchema),
     handle: getFeed.bind(null, deps),

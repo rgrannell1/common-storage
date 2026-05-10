@@ -1,6 +1,8 @@
 // Storage capability sub-interfaces and their associated types — composed per route via intersection types
 // @design.md
 
+import type { TopicConfig } from "../../commons/config.ts";
+
 export type TopicStats = {
   topic: string;
   stats: {
@@ -11,7 +13,7 @@ export type TopicStats = {
 
 export type Subscription = {
   source: string;
-  target: string;
+  topic: string;
   frequency: number;
   created: number;
 };
@@ -26,4 +28,8 @@ export interface IGetTopicStats {
 
 export interface IGetSubscriptions {
   getSubscriptions(): Promise<Subscription[]>;
+}
+
+export interface ICreateTopics {
+  createTopics(events: TopicConfig[], objects: TopicConfig[]): Promise<void>;
 }

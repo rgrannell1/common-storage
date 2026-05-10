@@ -1,7 +1,11 @@
-// Deno KV implementation of IStorageBackend
+// Deno KV implementation of IStorageBackend and domain capability interfaces
 // @design.md
 
 import type { IAtomicWriter, IStorageBackend } from "./backend.ts";
+import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, TopicStats, Subscription } from "./capabilities.ts";
+import type { TopicConfig } from "../../commons/config.ts";
+import type { StoredTopic, StoredTopicStats } from "./stored-types.ts";
+import { KV_TOPIC, KV_TOPIC_STATS } from "./keys.ts";
 
 class DenoAtomicWriter implements IAtomicWriter {
   private op: Deno.AtomicOperation;
@@ -25,7 +29,7 @@ class DenoAtomicWriter implements IAtomicWriter {
   }
 }
 
-export class DenoKVBackend implements IStorageBackend {
+export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, ICreateTopics {
   private kv: Deno.Kv | null = null;
   private path: string | undefined;
 
@@ -80,6 +84,71 @@ export class DenoKVBackend implements IStorageBackend {
   atomic(): IAtomicWriter {
     this.#assertInitialised();
     return new DenoAtomicWriter(this.kv!.atomic());
+  }
+
+  // -- IGetTopicNames --
+
+  async getTopicNames(): Promise<string[]> {
+    this.#assertInitialised();
+    const names: string[] = [];
+    for await (const entry of this.kv!.list<StoredTopic>({ prefix: KV_TOPIC })) {
+      const name = entry.key[1];
+      if (typeof name === "string") {
+        names.push(name);
+      }
+    }
+    return names;
+  }
+
+  // -- IGetTopicStats --
+
+  async getTopicStats(topic: string): Promise<TopicStats | null> {
+    this.#assertInitialised();
+    const meta = await this.kv!.get<StoredTopic>([...KV_TOPIC, topic]);
+    if (!meta.value) {
+      return null;
+    }
+    const stats = await this.kv!.get<StoredTopicStats>([...KV_TOPIC_STATS, topic]);
+    return {
+      topic,
+      stats: {
+        count: stats.value?.count ?? 0,
+        lastUpdated: stats.value?.lastUpdated ?? meta.value.createdAt,
+      },
+    };
+  }
+
+  // -- IGetSubscriptions --
+
+  async getSubscriptions(): Promise<Subscription[]> {
+    return [];
+  }
+
+  // -- ICreateTopics --
+
+  async createTopics(events: TopicConfig[], objects: TopicConfig[]): Promise<void> {
+    this.#assertInitialised();
+    const now = Date.now();
+    for (const topic of events) {
+      await this.#createTopic(topic, "event", now);
+    }
+    for (const topic of objects) {
+      await this.#createTopic(topic, "object", now);
+    }
+  }
+
+  async #createTopic(topic: TopicConfig, type: "event" | "object", now: number): Promise<void> {
+    const metaKey = [...KV_TOPIC, topic.name];
+    const statsKey = [...KV_TOPIC_STATS, topic.name];
+    const stored: StoredTopic = { type, schema: topic.schema, createdAt: now };
+    const stats: StoredTopicStats = { count: 0, lastUpdated: now };
+
+    // check versionstamp null ensures we only write if the topic does not already exist
+    await this.kv!.atomic()
+      .check({ key: metaKey, versionstamp: null })
+      .set(metaKey, stored)
+      .set(statsKey, stats)
+      .commit();
   }
 
   #assertInitialised(): void {
