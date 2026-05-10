@@ -31,6 +31,9 @@ export const SourceUrlSchema = z.string().url();
 // Whether the response should be formatted for human reading
 export const HumanFlagSchema = z.boolean();
 
+// Timestamp as an ISO 8601 string; used in human-readable responses
+export const IsoTimestampSchema = z.string();
+
 // ID of the first entry to return in a paginated response
 export const StartSchema = z.number().int().nonnegative();
 
@@ -43,13 +46,16 @@ export const SizeSchema = z.number().int().positive();
  *
  */
 
+// Epoch milliseconds or ISO 8601 string; machine responses use numbers, human responses use strings
+const FlexTimestampSchema = z.union([TimestampSchema, IsoTimestampSchema]);
+
 export const TopicSummarySchema = z.object({
   // Name of the topic
   topic: TopicNameSchema,
   // Total number of entries in the topic
   count: CountSchema,
   // Timestamp of the most recent write to the topic
-  lastUpdated: TimestampSchema,
+  lastUpdated: FlexTimestampSchema,
 });
 
 export const SubscriptionSummarySchema = z.object({
@@ -60,7 +66,7 @@ export const SubscriptionSummarySchema = z.object({
   // How often the server polls the remote endpoint, in seconds
   frequency: FrequencySchema,
   // Timestamp when this subscription was first established
-  created: TimestampSchema,
+  created: FlexTimestampSchema,
 });
 
 export const PaginationSchema = z.object({
