@@ -12,7 +12,7 @@
     "@std/testing/mock": "jsr:@std/testing@^1/mock",
     "@std/testing/snapshot": "jsr:@std/testing@^1/snapshot",
     "@std/testing/time": "jsr:@std/testing@^1/time",
-    "@deno-libs/superfetch": "jsr:@deno-libs/superfetch@^0.1",
-    "peach": "../peach.ts/mod.ts"
+    "@deno-libs/superfetch": "jsr:@deno-libs/superfetch@^3",
+    "peach": "../peach.ts/src/mod.ts"
   }
 }
