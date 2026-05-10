@@ -86,3 +86,9 @@ export const PaginationSchema = z.object({
   // Maximum entries to return; omit to use the server default
   size: SizeSchema.optional(),
 });
+
+// Entry ID coerced from a query string parameter; used in paginated endpoints
+export const QueryStartSchema = z.coerce.number().int().nonnegative();
+
+// Page size coerced from a query string parameter; used in paginated endpoints
+export const QuerySizeSchema = z.coerce.number().int().positive();

@@ -6,7 +6,7 @@ import { ok, err, type Result } from "../../commons/types/result.ts";
 import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
 import { pathParamParser, queryParser, mergeParser, responseParser } from "../parsers/combinators.ts";
-import { TopicNameSchema, ContentEntrySchema } from "../parsers/schemas.ts";
+import { TopicNameSchema, ContentEntrySchema, QueryStartSchema, QuerySizeSchema } from "../parsers/schemas.ts";
 import { DEFAULT_PAGE_SIZE } from "../../commons/constants.ts";
 import type { IReadContent, ContentEntry } from "../storage/capabilities.ts";
 
@@ -14,10 +14,9 @@ const GetContentPathSchema = z.object({
   topic: TopicNameSchema,
 });
 
-// start and size arrive as strings from the URL; coerce handles conversion
 const GetContentQuerySchema = z.object({
-  start: z.coerce.number().int().nonnegative().optional(),
-  size: z.coerce.number().int().positive().optional(),
+  start: QueryStartSchema.optional(),
+  size: QuerySizeSchema.optional(),
 });
 
 type GetContentRequest = z.infer<typeof GetContentPathSchema> & z.infer<typeof GetContentQuerySchema>;
