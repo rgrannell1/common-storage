@@ -2,10 +2,10 @@
 // @design.md
 
 import type { IAtomicWriter, IStorageBackend } from "./backend.ts";
-import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, TopicStats, Subscription } from "./capabilities.ts";
+import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IWriteContent, TopicStats, Subscription, ContentEntry } from "./capabilities.ts";
 import type { TopicConfig } from "../../commons/config.ts";
-import type { StoredTopic, StoredTopicStats } from "./stored-types.ts";
-import { KV_TOPIC, KV_TOPIC_STATS } from "./keys.ts";
+import type { StoredTopic, StoredTopicStats, StoredEntry } from "./stored-types.ts";
+import { KV_TOPIC, KV_TOPIC_STATS, KV_CONTENT, KV_CONTENT_COUNTER } from "./keys.ts";
 
 class DenoAtomicWriter implements IAtomicWriter {
   private op: Deno.AtomicOperation;
@@ -29,7 +29,7 @@ class DenoAtomicWriter implements IAtomicWriter {
   }
 }
 
-export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, ICreateTopics {
+export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, ICreateTopics, IWriteContent {
   private kv: Deno.Kv | null = null;
   private path: string | undefined;
 
@@ -134,6 +134,40 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
     }
     for (const topic of objects) {
       await this.#createTopic(topic, "object", now);
+    }
+  }
+
+  // -- IWriteContent --
+
+  async writeContent(topic: string, payload: unknown): Promise<ContentEntry | null> {
+    this.#assertInitialised();
+    const metaKey = [...KV_TOPIC, topic];
+    const meta = await this.kv!.get<StoredTopic>(metaKey);
+    if (!meta.value) {
+      return null;
+    }
+
+    // Atomically claim the next ID by checking the counter versionstamp and retrying on conflict.
+    while (true) {
+      const counter = await this.kv!.get<number>([...KV_CONTENT_COUNTER, topic]);
+      const stats = await this.kv!.get<StoredTopicStats>([...KV_TOPIC_STATS, topic]);
+      const id = (counter.value ?? 0) + 1;
+      const now = Date.now();
+
+      const entry: StoredEntry = { id, createdAt: now, updatedAt: now, payload };
+      const newStats: StoredTopicStats = { count: (stats.value?.count ?? 0) + 1, lastUpdated: now };
+
+      const result = await this.kv!.atomic()
+        .check(counter)
+        .check(stats)
+        .set([...KV_CONTENT_COUNTER, topic], id)
+        .set([...KV_CONTENT, topic, id], entry)
+        .set([...KV_TOPIC_STATS, topic], newStats)
+        .commit();
+
+      if (result.ok) {
+        return entry;
+      }
     }
   }
 

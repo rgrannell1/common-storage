@@ -33,3 +33,15 @@ export interface IGetSubscriptions {
 export interface ICreateTopics {
   createTopics(events: TopicConfig[], objects: TopicConfig[]): Promise<void>;
 }
+
+export type ContentEntry = {
+  id: number;
+  createdAt: number;
+  updatedAt: number;
+  payload: unknown;
+};
+
+export interface IWriteContent {
+  // Returns null if the topic does not exist
+  writeContent(topic: string, payload: unknown): Promise<ContentEntry | null>;
+}

@@ -6,6 +6,7 @@ export type RequestParts<Body> = {
   headers: Headers;
   url: URL;
   body: Body;
+  params: Record<string, string>;
 };
 
 export type RequestParser<Parsed, Body, Failure> = (parts: RequestParts<Body>) => Result<Parsed, Failure>;

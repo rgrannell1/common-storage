@@ -12,3 +12,11 @@ export type StoredTopicStats = {
   count: number;
   lastUpdated: number;
 };
+
+// A single event topic entry as stored in KV
+export type StoredEntry = {
+  id: number;
+  createdAt: number;
+  updatedAt: number;
+  payload: unknown;
+};

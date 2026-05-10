@@ -69,6 +69,17 @@ export const SubscriptionSummarySchema = z.object({
   created: FlexTimestampSchema,
 });
 
+export const ContentEntrySchema = z.object({
+  // Server-assigned monotonically increasing integer ID
+  id: z.number().int().positive(),
+  // Timestamp when this entry was first written
+  createdAt: TimestampSchema,
+  // Timestamp of the most recent update to this entry
+  updatedAt: TimestampSchema,
+  // User-supplied payload; validated against the topic schema at write time
+  payload: z.unknown(),
+});
+
 export const PaginationSchema = z.object({
   // ID of the first entry to return; omit to start from the beginning
   start: StartSchema.optional(),
