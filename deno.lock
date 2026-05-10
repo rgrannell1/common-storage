@@ -1,12 +1,16 @@
 {
   "version": "5",
   "specifiers": {
+    "npm:hono@4": "4.12.18",
     "npm:macaroons.js@~0.3.9": "0.3.9",
     "npm:zod@3": "3.25.76"
   },
   "npm": {
     "ecma-nacl@2.5.3": {
       "integrity": "sha512-y8cHnMrAUEnGEHWTu+jF3JZfdeL+Qn5YuJaym5ukP1JdWmZTWYjNJTDB3tHe9JQp2AgVyji9Yh+Tfch0QCkfpQ=="
+    },
+    "hono@4.12.18": {
+      "integrity": "sha512-RWzP96k/yv0PQfyXnWjs6zot20TqfpfsNXhOnev8d1InAxubW93L11/oNUc3tQqn2G0bSdAOBpX+2uDFHV7kdQ=="
     },
     "is-typedarray@1.0.0": {
       "integrity": "sha512-cyA56iCMHAh5CdzjJIa4aohJyeO1YbwLi3Jc35MmRU6poroFjIGZzUzupGiRPOjgHg9TLu43xbpwXk523fMxKA=="

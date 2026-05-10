@@ -1,6 +1,7 @@
 {
   "imports": {
     "hono": "npm:hono@^4",
+    "hono/cors": "npm:hono@^4/cors",
     "@hono/zod-validator": "npm:@hono/zod-validator@^0.4",
     "zod": "npm:zod@^3",
     "ajv": "npm:ajv@^8",

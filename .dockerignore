@@ -1,0 +1,6 @@
+.git
+.vscode
+bs/
+tests/
+*.md
+*.service
