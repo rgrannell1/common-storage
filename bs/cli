@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+deno run \
+  --import-map=deno.dev.json \
+  --allow-read \
+  --allow-write \
+  --allow-env \
+  --allow-run \
+  src/cli/mod.ts "$@"

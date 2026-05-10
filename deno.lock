@@ -1,11 +1,15 @@
 {
   "version": "5",
   "specifiers": {
+    "npm:docopt@0.6": "0.6.2",
     "npm:hono@4": "4.12.18",
     "npm:macaroons.js@~0.3.9": "0.3.9",
     "npm:zod@3": "3.25.76"
   },
   "npm": {
+    "docopt@0.6.2": {
+      "integrity": "sha512-NqTbaYeE4gA/wU1hdKFdU+AFahpDOpgGLzHP42k6H6DKExJd0A55KEVWYhL9FEmHmgeLvEU2vuKXDuU+4yToOw=="
+    },
     "ecma-nacl@2.5.3": {
       "integrity": "sha512-y8cHnMrAUEnGEHWTu+jF3JZfdeL+Qn5YuJaym5ukP1JdWmZTWYjNJTDB3tHe9JQp2AgVyji9Yh+Tfch0QCkfpQ=="
     },

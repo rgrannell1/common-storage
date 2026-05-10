@@ -1,0 +1,11 @@
+[Unit]
+Description=common-storage server
+
+[Service]
+Type=simple
+ExecStart=common-storage serve
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

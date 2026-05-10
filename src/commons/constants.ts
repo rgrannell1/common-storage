@@ -14,3 +14,6 @@ export const DEFAULT_PORT = 2400;
 
 // Default host address the server binds to
 export const DEFAULT_HOST = "0.0.0.0";
+
+// Name of the systemd user service unit
+export const SYSTEMD_SERVICE_NAME = "common-storage";
