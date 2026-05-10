@@ -2,7 +2,7 @@
 // @design.md
 
 import type { ContentEntry, ReadContentOptions } from "../capabilities.ts";
-import type { StoredTopic, StoredTopicStats, StoredEntry } from "../stored-types.ts";
+import type { StoredTopic, StoredTopicStats, StoredEntry } from "../types/stored-types.ts";
 import { KV_TOPIC, KV_TOPIC_STATS, KV_CONTENT, KV_CONTENT_COUNTER } from "../keys.ts";
 
 export async function writeContent(kv: Deno.Kv, topic: string, payload: unknown): Promise<ContentEntry | null> {

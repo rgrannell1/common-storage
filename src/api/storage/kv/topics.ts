@@ -3,7 +3,7 @@
 
 import type { TopicConfig } from "../../../commons/config.ts";
 import type { TopicStats, Subscription } from "../capabilities.ts";
-import type { StoredTopic, StoredTopicStats } from "../stored-types.ts";
+import type { StoredTopic, StoredTopicStats } from "../types/stored-types.ts";
 import { KV_TOPIC, KV_TOPIC_STATS } from "../keys.ts";
 
 export async function getTopicNames(kv: Deno.Kv): Promise<string[]> {
