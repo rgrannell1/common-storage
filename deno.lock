@@ -1,0 +1,42 @@
+{
+  "version": "5",
+  "specifiers": {
+    "npm:macaroons.js@~0.3.9": "0.3.9",
+    "npm:zod@3": "3.25.76"
+  },
+  "npm": {
+    "ecma-nacl@2.5.3": {
+      "integrity": "sha512-y8cHnMrAUEnGEHWTu+jF3JZfdeL+Qn5YuJaym5ukP1JdWmZTWYjNJTDB3tHe9JQp2AgVyji9Yh+Tfch0QCkfpQ=="
+    },
+    "is-typedarray@1.0.0": {
+      "integrity": "sha512-cyA56iCMHAh5CdzjJIa4aohJyeO1YbwLi3Jc35MmRU6poroFjIGZzUzupGiRPOjgHg9TLu43xbpwXk523fMxKA=="
+    },
+    "macaroons.js@0.3.9": {
+      "integrity": "sha512-mSAl7o2xVYaN6ZxI/DfrB5G3cuQwW7D4HIwvvk6S5FrY4Ih6EQamV7/OMBW1XD79eiwBcstZ60DREH8M99N67A==",
+      "dependencies": [
+        "ecma-nacl",
+        "typedarray-to-buffer"
+      ]
+    },
+    "typedarray-to-buffer@3.1.5": {
+      "integrity": "sha512-zdu8XMNEDepKKR+XYOXAVPtWui0ly0NtohUscw+UmaHiAWT8hrV1rr//H6V+0DvJ3OQ19S979M0laLfX8rm82Q==",
+      "dependencies": [
+        "is-typedarray"
+      ]
+    },
+    "zod@3.25.76": {
+      "integrity": "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@std/json@1",
+      "npm:@hono/zod-validator@0.4",
+      "npm:ajv@8",
+      "npm:docopt@0.6",
+      "npm:hono@4",
+      "npm:macaroons.js@~0.3.9",
+      "npm:zod@3"
+    ]
+  }
+}

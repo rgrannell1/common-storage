@@ -1,0 +1,11 @@
+{
+  "imports": {
+    "hono": "npm:hono@^4",
+    "@hono/zod-validator": "npm:@hono/zod-validator@^0.4",
+    "zod": "npm:zod@^3",
+    "ajv": "npm:ajv@^8",
+    "@std/json": "jsr:@std/json@^1",
+    "docopt": "npm:docopt@^0.6",
+    "macaroons.js": "npm:macaroons.js@^0.3.9"
+  }
+}

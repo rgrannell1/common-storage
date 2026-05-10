@@ -1,0 +1,17 @@
+{
+  "imports": {
+    "hono": "npm:hono@^4",
+    "@hono/zod-validator": "npm:@hono/zod-validator@^0.4",
+    "zod": "npm:zod@^3",
+    "ajv": "npm:ajv@^8",
+    "@std/json": "jsr:@std/json@^1",
+    "docopt": "npm:docopt@^0.6",
+    "macaroons.js": "npm:macaroons.js@^0.3.9",
+    "@std/assert": "jsr:@std/assert@^1",
+    "@std/testing/mock": "jsr:@std/testing@^1/mock",
+    "@std/testing/snapshot": "jsr:@std/testing@^1/snapshot",
+    "@std/testing/time": "jsr:@std/testing@^1/time",
+    "@deno-libs/superfetch": "jsr:@deno-libs/superfetch@^0.1",
+    "peach": "../peach.ts/mod.ts"
+  }
+}
