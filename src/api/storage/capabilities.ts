@@ -34,26 +34,66 @@ export interface ICreateTopics {
   createTopics(events: TopicConfig[], objects: TopicConfig[]): Promise<void>;
 }
 
-export type ContentEntry = {
+export type EventEntry = {
   id: number;
   createdAt: number;
   updatedAt: number;
   payload: unknown;
 };
 
-export interface IWriteContent {
+export interface IWriteEvent {
   // Returns null if the topic does not exist
-  writeContent(topic: string, payload: unknown): Promise<ContentEntry | null>;
+  writeEvent(topic: string, payload: unknown): Promise<EventEntry | null>;
 }
 
-export type ReadContentOptions = {
+export type ReadEventOptions = {
   // First entry ID to return, inclusive; omit to start from the beginning
   start?: number;
   // Maximum number of entries to return
   size: number;
+  // Fetch specific entries by ID; when present, start and size are ignored
+  ids?: number[];
 };
 
-export interface IReadContent {
+export interface IReadEvents {
   // Returns null if the topic does not exist, an empty array if it exists but has no entries
-  readContent(topic: string, opts: ReadContentOptions): Promise<ContentEntry[] | null>;
+  readEvents(topic: string, opts: ReadEventOptions): Promise<EventEntry[] | null>;
+}
+
+export interface IReadEvent {
+  // Returns null if the topic or entry does not exist
+  readEvent(topic: string, id: number): Promise<EventEntry | null>;
+}
+
+export interface IUpdateEvent {
+  // Returns null if the topic or entry does not exist
+  updateEvent(topic: string, id: number, payload: unknown): Promise<EventEntry | null>;
+}
+
+export type ObjectEntry = {
+  id: string;
+  createdAt: number;
+  updatedAt: number;
+  // null indicates a tombstone (deleted entry)
+  payload: unknown;
+};
+
+export interface IUpsertObject {
+  // Creates or updates an object entry; returns null if the topic does not exist
+  upsertObject(topic: string, id: string, payload: unknown): Promise<ObjectEntry | null>;
+}
+
+export interface IReadObject {
+  // Returns null if the topic or entry does not exist
+  readObject(topic: string, id: string): Promise<ObjectEntry | null>;
+}
+
+export interface IDeleteObject {
+  // Writes a tombstone (payload: null); returns null only if the topic does not exist
+  deleteObject(topic: string, id: string): Promise<ObjectEntry | null>;
+}
+
+export interface IReadObjects {
+  // Returns null if the topic does not exist; includes tombstones
+  readObjects(topic: string): Promise<ObjectEntry[] | null>;
 }

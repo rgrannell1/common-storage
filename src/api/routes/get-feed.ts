@@ -25,6 +25,10 @@ type FeedDeps = {
   storage: IGetTopicNames & IGetTopicStats & IGetSubscriptions;
 };
 
+function isPresent<Value>(val: Value | null): val is Value {
+  return val !== null;
+}
+
 function formatTimestamp(ts: number, human: boolean): number | string {
   return human ? new Date(ts).toISOString() : ts;
 }
@@ -34,11 +38,11 @@ async function getFeed(deps: FeedDeps, params: FeedRequest): Promise<Result<Feed
   const topicStats = await Promise.all(names.map(deps.storage.getTopicStats.bind(deps.storage)));
 
   const topics = topicStats
-    .filter(stats => stats !== null)
+    .filter(isPresent)
     .map(stats => ({
-      topic: stats!.topic,
-      count: stats!.stats.count,
-      lastUpdated: formatTimestamp(stats!.stats.lastUpdated, params.human),
+      topic: stats.topic,
+      count: stats.stats.count,
+      lastUpdated: formatTimestamp(stats.stats.lastUpdated, params.human),
     }));
 
   const subscriptions = await deps.storage.getSubscriptions();

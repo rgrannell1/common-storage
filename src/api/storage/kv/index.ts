@@ -2,13 +2,14 @@
 // @design.md
 
 import type { IAtomicWriter, IStorageBackend } from "../backend.ts";
-import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IWriteContent, IReadContent, TopicStats, Subscription, ContentEntry, ReadContentOptions } from "../capabilities.ts";
+import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, TopicStats, Subscription, EventEntry, ReadEventOptions, ObjectEntry } from "../capabilities.ts";
 import type { TopicConfig } from "../../../commons/config.ts";
 import { DenoAtomicWriter } from "./atomic.ts";
 import * as Topics from "./topics.ts";
-import * as Content from "./content.ts";
+import * as Events from "./events.ts";
+import * as Objects from "./objects.ts";
 
-export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, ICreateTopics, IWriteContent, IReadContent {
+export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, ICreateTopics, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IUpsertObject, IReadObject, IDeleteObject, IReadObjects {
   private kv: Deno.Kv | null = null;
   private path: string | undefined;
 
@@ -92,18 +93,60 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
     return Topics.createTopics(this.kv!, events, objects);
   }
 
-  // -- IWriteContent --
+  // -- IWriteEvent --
 
-  async writeContent(topic: string, payload: unknown): Promise<ContentEntry | null> {
+  async writeEvent(topic: string, payload: unknown): Promise<EventEntry | null> {
     this.#assertInitialised();
-    return Content.writeContent(this.kv!, topic, payload);
+    return Events.writeEvent(this.kv!, topic, payload);
   }
 
-  // -- IReadContent --
+  // -- IReadEvents --
 
-  async readContent(topic: string, opts: ReadContentOptions): Promise<ContentEntry[] | null> {
+  async readEvents(topic: string, opts: ReadEventOptions): Promise<EventEntry[] | null> {
     this.#assertInitialised();
-    return Content.readContent(this.kv!, topic, opts);
+    return Events.readEvents(this.kv!, topic, opts);
+  }
+
+  // -- IReadEvent --
+
+  async readEvent(topic: string, id: number): Promise<EventEntry | null> {
+    this.#assertInitialised();
+    return Events.readEvent(this.kv!, topic, id);
+  }
+
+  // -- IUpdateEvent --
+
+  async updateEvent(topic: string, id: number, payload: unknown): Promise<EventEntry | null> {
+    this.#assertInitialised();
+    return Events.updateEvent(this.kv!, topic, id, payload);
+  }
+
+  // -- IUpsertObject --
+
+  async upsertObject(topic: string, id: string, payload: unknown): Promise<ObjectEntry | null> {
+    this.#assertInitialised();
+    return Objects.upsertObject(this.kv!, topic, id, payload);
+  }
+
+  // -- IReadObject --
+
+  async readObject(topic: string, id: string): Promise<ObjectEntry | null> {
+    this.#assertInitialised();
+    return Objects.readObject(this.kv!, topic, id);
+  }
+
+  // -- IDeleteObject --
+
+  async deleteObject(topic: string, id: string): Promise<ObjectEntry | null> {
+    this.#assertInitialised();
+    return Objects.deleteObject(this.kv!, topic, id);
+  }
+
+  // -- IReadObjects --
+
+  async readObjects(topic: string): Promise<ObjectEntry[] | null> {
+    this.#assertInitialised();
+    return Objects.readObjects(this.kv!, topic);
   }
 
   #assertInitialised(): void {

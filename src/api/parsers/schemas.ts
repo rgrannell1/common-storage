@@ -40,11 +40,7 @@ export const StartSchema = z.number().int().nonnegative();
 // Maximum number of entries to return in a paginated response
 export const SizeSchema = z.number().int().positive();
 
-/*
- * Composed object schemas
- *
- *
- */
+// Composed object schemas
 
 // Epoch milliseconds or ISO 8601 string; machine responses use numbers, human responses use strings
 const FlexTimestampSchema = z.union([TimestampSchema, IsoTimestampSchema]);
@@ -69,7 +65,18 @@ export const SubscriptionSummarySchema = z.object({
   created: FlexTimestampSchema,
 });
 
-export const ContentEntrySchema = z.object({
+export const ObjectEntrySchema = z.object({
+  // Client-supplied string ID
+  id: z.string().min(1),
+  // Timestamp when this entry was first written
+  createdAt: TimestampSchema,
+  // Timestamp of the most recent update to this entry
+  updatedAt: TimestampSchema,
+  // User-supplied payload; null indicates a tombstone
+  payload: z.unknown().nullable(),
+});
+
+export const EventEntrySchema = z.object({
   // Server-assigned monotonically increasing integer ID
   id: z.number().int().positive(),
   // Timestamp when this entry was first written
@@ -92,3 +99,10 @@ export const QueryStartSchema = z.coerce.number().int().nonnegative();
 
 // Page size coerced from a query string parameter; used in paginated endpoints
 export const QuerySizeSchema = z.coerce.number().int().positive();
+
+// Comma-separated list of entry IDs coerced from a query string parameter; used in ?ids= lookups
+export const QueryIdsSchema = z.string()
+  .transform((val) => val.split(",").map((segment) => parseInt(segment.trim(), 10)))
+  .refine((ids) => ids.every((id) => Number.isInteger(id) && id > 0), {
+    message: "ids must be a comma-separated list of positive integers",
+  });

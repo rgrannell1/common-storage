@@ -42,3 +42,11 @@ export function jsonPost(body: unknown): RequestInit {
     body: JSON.stringify(body),
   };
 }
+
+export function jsonPut(body: unknown): RequestInit {
+  return {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  };
+}

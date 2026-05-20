@@ -14,8 +14,16 @@ export type StoredTopicStats = {
 };
 
 // A single event topic entry as stored in KV
-export type StoredEntry = {
+export type StoredEvent = {
   id: number;
+  createdAt: number;
+  updatedAt: number;
+  payload: unknown;
+};
+
+// A single object topic entry as stored in KV; payload null indicates a tombstone
+export type StoredObject = {
+  id: string;
   createdAt: number;
   updatedAt: number;
   payload: unknown;
