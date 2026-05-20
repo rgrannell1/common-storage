@@ -1,7 +1,7 @@
 // Integration tests for PUT /objects/:topic/:id
 // @work.md
 
-import { makeTestContext, makePersistentServer, jsonPut } from "./helpers.ts";
+import { makeTestContext, makePersistentServer, discard, jsonPut } from "./helpers.ts";
 
 Deno.test("Proves PUT /objects/:topic/:id returns 404 for an unknown topic", async () => {
   const { request, cleanup } = await makeTestContext();
@@ -30,7 +30,7 @@ Deno.test("Proves PUT /objects/:topic/:id returns 200 for a new entry", async ()
 Deno.test("Proves PUT /objects/:topic/:id returns 200 when updating an existing entry", async () => {
   const { fetch, cleanup } = await makePersistentServer([], [{ name: "things" }]);
   try {
-    await fetch("/objects/things/key1", jsonPut({ payload: { value: 1 } }));
+    await discard(await fetch("/objects/things/key1", jsonPut({ payload: { value: 1 } })));
     const res = await fetch("/objects/things/key1", jsonPut({ payload: { value: 2 } }));
     const entry = await res.json() as { payload: { value: number } };
 

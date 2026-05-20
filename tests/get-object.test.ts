@@ -1,7 +1,7 @@
 // Integration tests for GET /objects/:topic/:id
 // @work.md
 
-import { makeTestContext, makePersistentServer, jsonPut } from "./helpers.ts";
+import { makeTestContext, makePersistentServer, discard, jsonPut } from "./helpers.ts";
 
 Deno.test("Proves GET /objects/:topic/:id returns 404 for an unknown topic", async () => {
   const { request, cleanup } = await makeTestContext();
@@ -26,7 +26,7 @@ Deno.test("Proves GET /objects/:topic/:id returns 404 for a missing entry", asyn
 Deno.test("Proves GET /objects/:topic/:id returns a written entry", async () => {
   const { fetch, cleanup } = await makePersistentServer([], [{ name: "things" }]);
   try {
-    await fetch("/objects/things/key1", jsonPut({ payload: { value: 42 } }));
+    await discard(await fetch("/objects/things/key1", jsonPut({ payload: { value: 42 } })));
 
     const res = await fetch("/objects/things/key1");
     const entry = await res.json() as { id: string; payload: { value: number } };

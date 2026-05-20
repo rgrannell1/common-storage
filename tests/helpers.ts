@@ -69,6 +69,11 @@ export async function makePersistentServer(
   return { fetch, cleanup };
 }
 
+// Cancel a response body without reading it; prevents Deno's "body not consumed" leak detection.
+export async function discard(res: Response): Promise<void> {
+  await res.body?.cancel();
+}
+
 export function jsonPost(body: unknown): RequestInit {
   return {
     method: "POST",

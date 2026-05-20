@@ -1,7 +1,7 @@
 // Integration tests for PUT /events/:topic/:id
 // @work.md
 
-import { makeTestContext, makePersistentServer, jsonPost, jsonPut } from "./helpers.ts";
+import { makeTestContext, makePersistentServer, discard, jsonPost, jsonPut } from "./helpers.ts";
 
 Deno.test("Proves PUT /events/:topic/:id returns 404 for an unknown topic", async () => {
   const { request, cleanup } = await makeTestContext();
@@ -26,7 +26,7 @@ Deno.test("Proves PUT /events/:topic/:id returns 404 for a missing entry", async
 Deno.test("Proves PUT /events/:topic/:id returns 200 and updates the entry", async () => {
   const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   try {
-    await fetch("/events/logs", jsonPost({ payload: { value: 1 } }));
+    await discard(await fetch("/events/logs", jsonPost({ payload: { value: 1 } })));
 
     const res = await fetch("/events/logs/1", jsonPut({ payload: { value: 2 } }));
     const entry = await res.json() as { payload: { value: number } };
@@ -41,8 +41,8 @@ Deno.test("Proves PUT /events/:topic/:id returns 200 and updates the entry", asy
 Deno.test("Proves PUT /events/:topic/:id GET after update reflects new payload", async () => {
   const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   try {
-    await fetch("/events/logs", jsonPost({ payload: { value: 1 } }));
-    await fetch("/events/logs/1", jsonPut({ payload: { value: 2 } }));
+    await discard(await fetch("/events/logs", jsonPost({ payload: { value: 1 } })));
+    await discard(await fetch("/events/logs/1", jsonPut({ payload: { value: 2 } })));
 
     const res = await fetch("/events/logs/1");
     const entry = await res.json() as { payload: { value: number } };
