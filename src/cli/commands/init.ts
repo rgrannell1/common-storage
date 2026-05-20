@@ -1,5 +1,5 @@
 // cs init — open $EDITOR with the config, validate on exit, and set up the server
-// @design.md
+// @work.md
 
 import { Config } from "../../commons/config.ts";
 import { DEFAULT_PORT } from "../../commons/constants.ts";

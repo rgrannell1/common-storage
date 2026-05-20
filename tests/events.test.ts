@@ -1,8 +1,8 @@
 // Integration and fuzz tests for POST /events/:topic and GET /events/:topic
-// @design.md
+// @work.md
 
 import * as Peach from "peach";
-import { makeTestContext, jsonPost } from "./helpers.ts";
+import { makeTestContext, makePersistentServer, jsonPost } from "./helpers.ts";
 
 Deno.test("Proves POST /events/:topic returns 404 for an unknown topic", async () => {
   const { request, cleanup } = await makeTestContext();
@@ -67,27 +67,70 @@ Deno.test("Proves GET /events/:topic returns an empty array when no entries exis
 });
 
 Deno.test("Proves GET /events/:topic returns written entries in order", async () => {
-  const { request, cleanup } = await makeTestContext([{ name: "logs" }]);
+  const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   try {
-    await request("/events/logs", jsonPost({ payload: { seq: 1 } }));
-    await request("/events/logs", jsonPost({ payload: { seq: 2 } }));
+    const postInit = (seq: number): RequestInit => ({
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload: { seq } }),
+    });
 
-    const res = await request("/events/logs");
-    res.expectStatus(200);
+    await (await fetch("/events/logs", postInit(1))).json();
+    await (await fetch("/events/logs", postInit(2))).json();
+
+    const res = await fetch("/events/logs");
+    const entries = await res.json() as Array<{ id: number }>;
+
+    if (entries.length !== 2) throw new Error(`Expected 2 entries, got ${entries.length}`);
+    if (entries[0].id !== 1 || entries[1].id !== 2) {
+      throw new Error(`Expected ids [1, 2] in order, got [${entries[0].id}, ${entries[1].id}]`);
+    }
   } finally {
     await cleanup();
   }
 });
 
 Deno.test("Proves GET /events/:topic ?size limits the number of entries returned", async () => {
-  const { request, cleanup } = await makeTestContext([{ name: "logs" }]);
+  const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   try {
-    await request("/events/logs", jsonPost({ payload: {} }));
-    await request("/events/logs", jsonPost({ payload: {} }));
-    await request("/events/logs", jsonPost({ payload: {} }));
+    const postInit: RequestInit = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload: {} }),
+    };
 
-    const res = await request("/events/logs?size=2");
-    res.expectStatus(200);
+    await (await fetch("/events/logs", postInit)).json();
+    await (await fetch("/events/logs", postInit)).json();
+    await (await fetch("/events/logs", postInit)).json();
+
+    const res = await fetch("/events/logs?size=2");
+    const entries = await res.json() as unknown[];
+
+    if (entries.length !== 2) throw new Error(`Expected 2 entries with size=2, got ${entries.length}`);
+  } finally {
+    await cleanup();
+  }
+});
+
+Deno.test("Proves GET /events/:topic ?start returns entries from that ID onward", async () => {
+  const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
+  try {
+    const postInit: RequestInit = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload: {} }),
+    };
+
+    await (await fetch("/events/logs", postInit)).json();
+    await (await fetch("/events/logs", postInit)).json();
+    await (await fetch("/events/logs", postInit)).json();
+
+    // start=2 should return entries with id >= 2
+    const res = await fetch("/events/logs?start=2");
+    const entries = await res.json() as Array<{ id: number }>;
+
+    if (entries.length !== 2) throw new Error(`Expected 2 entries with start=2, got ${entries.length}`);
+    if (entries[0].id !== 2) throw new Error(`Expected first entry id=2, got ${entries[0].id}`);
   } finally {
     await cleanup();
   }

@@ -1,5 +1,5 @@
 // Translates RouteSuccess and RouteError values into Hono responses
-// @design.md
+// @work.md
 
 import type { Context } from "hono";
 import type { RouteSuccess, RouteError } from "../../commons/types/responses.ts";

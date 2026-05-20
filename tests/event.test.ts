@@ -1,7 +1,7 @@
 // Integration tests for GET /events/:topic/:id
-// @design.md
+// @work.md
 
-import { makeTestContext, jsonPost } from "./helpers.ts";
+import { makeTestContext, makePersistentServer, jsonPost } from "./helpers.ts";
 
 Deno.test("Proves GET /events/:topic/:id returns 404 for an unknown topic", async () => {
   const { request, cleanup } = await makeTestContext();
@@ -24,13 +24,16 @@ Deno.test("Proves GET /events/:topic/:id returns 404 for a missing entry", async
 });
 
 Deno.test("Proves GET /events/:topic/:id returns a written entry", async () => {
-  const { request, cleanup } = await makeTestContext([{ name: "logs" }]);
+  const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   try {
-    await request("/events/logs", jsonPost({ payload: { value: 42 } }));
+    await fetch("/events/logs", jsonPost({ payload: { value: 42 } }));
 
-    // fresh backend assigns ID 1 to the first write
-    const res = await request("/events/logs/1");
-    res.expectStatus(200);
+    const res = await fetch("/events/logs/1");
+    const entry = await res.json() as { id: number; payload: { value: number } };
+
+    if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+    if (entry.id !== 1) throw new Error(`Expected id 1, got ${entry.id}`);
+    if (entry.payload.value !== 42) throw new Error(`Expected payload.value 42, got ${entry.payload.value}`);
   } finally {
     await cleanup();
   }

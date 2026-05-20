@@ -1,5 +1,5 @@
 // DELETE /objects/:topic/:id — writes a tombstone to an object topic entry
-// @design.md
+// @work.md
 
 import { z } from "zod";
 import { ok, err, type Result } from "../../commons/types/result.ts";

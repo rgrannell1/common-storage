@@ -1,5 +1,5 @@
 // Data-driven route builder — registers Route objects with the Hono app
-// @design.md
+// @work.md
 
 import type { Hono, Context } from "hono";
 import type { Route, RequestParts } from "../../commons/types/parser.ts";

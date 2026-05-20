@@ -1,5 +1,5 @@
 // Low-level KV storage interfaces — raw primitives only; domain interfaces live in domain.ts
-// @design.md
+// @work.md
 
 // Fluent builder for atomic KV operations; commit applies all writes or none
 export interface IAtomicWriter {

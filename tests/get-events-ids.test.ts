@@ -1,7 +1,7 @@
 // Integration tests for GET /events/:topic?ids=
-// @design.md
+// @work.md
 
-import { makeTestContext, jsonPost } from "./helpers.ts";
+import { makeTestContext, makePersistentServer, jsonPost } from "./helpers.ts";
 
 Deno.test("Proves GET /events/:topic?ids= returns 404 for an unknown topic", async () => {
   const { request, cleanup } = await makeTestContext();
@@ -25,14 +25,28 @@ Deno.test("Proves GET /events/:topic?ids= returns an empty array when no IDs mat
 });
 
 Deno.test("Proves GET /events/:topic?ids= returns only the requested entries", async () => {
-  const { request, cleanup } = await makeTestContext([{ name: "logs" }]);
+  const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   try {
-    await request("/events/logs", jsonPost({ payload: { seq: 1 } }));
-    await request("/events/logs", jsonPost({ payload: { seq: 2 } }));
-    await request("/events/logs", jsonPost({ payload: { seq: 3 } }));
+    const postInit = (seq: number): RequestInit => ({
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload: { seq } }),
+    });
 
-    const res = await request("/events/logs?ids=1,3");
-    res.expectStatus(200);
+    await (await fetch("/events/logs", postInit(1))).json();
+    await (await fetch("/events/logs", postInit(2))).json();
+    await (await fetch("/events/logs", postInit(3))).json();
+
+    const res = await fetch("/events/logs?ids=1,3");
+    const entries = await res.json() as Array<{ id: number }>;
+
+    if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+    if (entries.length !== 2) throw new Error(`Expected 2 entries, got ${entries.length}`);
+
+    const ids = entries.map(entry => entry.id).sort((a, b) => a - b);
+    if (ids[0] !== 1 || ids[1] !== 3) {
+      throw new Error(`Expected ids [1, 3], got [${ids.join(", ")}]`);
+    }
   } finally {
     await cleanup();
   }

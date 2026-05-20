@@ -1,0 +1,11 @@
+#!/usr/bin/env zsh
+# Run the cmstr container; config is mounted from XDG_CONFIG_HOME
+
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/common-storage"
+
+docker run \
+  --name cmstr \
+  -p 2400:2400 \
+  -v "$CONFIG_DIR:/config:ro" \
+  -v cmstr_kv:/data \
+  cmstr:latest

@@ -1,7 +1,7 @@
 // Integration tests for GET /objects/:topic/:id
-// @design.md
+// @work.md
 
-import { makeTestContext, jsonPut } from "./helpers.ts";
+import { makeTestContext, makePersistentServer, jsonPut } from "./helpers.ts";
 
 Deno.test("Proves GET /objects/:topic/:id returns 404 for an unknown topic", async () => {
   const { request, cleanup } = await makeTestContext();
@@ -24,12 +24,16 @@ Deno.test("Proves GET /objects/:topic/:id returns 404 for a missing entry", asyn
 });
 
 Deno.test("Proves GET /objects/:topic/:id returns a written entry", async () => {
-  const { request, cleanup } = await makeTestContext([], [{ name: "things" }]);
+  const { fetch, cleanup } = await makePersistentServer([], [{ name: "things" }]);
   try {
-    await request("/objects/things/key1", jsonPut({ payload: { value: 42 } }));
+    await fetch("/objects/things/key1", jsonPut({ payload: { value: 42 } }));
 
-    const res = await request("/objects/things/key1");
-    res.expectStatus(200);
+    const res = await fetch("/objects/things/key1");
+    const entry = await res.json() as { id: string; payload: { value: number } };
+
+    if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+    if (entry.id !== "key1") throw new Error(`Expected id "key1", got "${entry.id}"`);
+    if (entry.payload.value !== 42) throw new Error(`Expected payload.value 42, got ${entry.payload.value}`);
   } finally {
     await cleanup();
   }

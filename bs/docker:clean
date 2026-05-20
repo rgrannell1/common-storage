@@ -1,0 +1,5 @@
+#!/usr/bin/env zsh
+# Stop and remove the cmstr container and its KV volume
+
+docker rm -f $(docker ps -aq --filter name=cmstr) 2>/dev/null
+docker volume rm cmstr_kv 2>/dev/null

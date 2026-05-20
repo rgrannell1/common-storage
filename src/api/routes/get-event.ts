@@ -1,5 +1,5 @@
 // GET /events/:topic/:id — returns a single entry from an event topic
-// @design.md
+// @work.md
 
 import { z } from "zod";
 import { ok, err, type Result } from "../../commons/types/result.ts";

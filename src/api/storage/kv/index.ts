@@ -1,15 +1,16 @@
 // DenoKVBackend — assembles all capability implementations; delegates to domain modules
-// @design.md
+// @work.md
 
 import type { IAtomicWriter, IStorageBackend } from "../backend.ts";
-import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, TopicStats, Subscription, EventEntry, ReadEventOptions, ObjectEntry } from "../capabilities.ts";
+import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadIdempotencyEntry, IWriteIdempotencyEntry, TopicStats, Subscription, EventEntry, ReadEventOptions, ObjectEntry } from "../capabilities.ts";
 import type { TopicConfig } from "../../../commons/config.ts";
 import { DenoAtomicWriter } from "./atomic.ts";
 import * as Topics from "./topics.ts";
 import * as Events from "./events.ts";
 import * as Objects from "./objects.ts";
+import * as Idempotency from "./idempotency.ts";
 
-export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, ICreateTopics, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IUpsertObject, IReadObject, IDeleteObject, IReadObjects {
+export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, ICreateTopics, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadIdempotencyEntry, IWriteIdempotencyEntry {
   private kv: Deno.Kv | null = null;
   private path: string | undefined;
 
@@ -147,6 +148,20 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
   async readObjects(topic: string): Promise<ObjectEntry[] | null> {
     this.#assertInitialised();
     return Objects.readObjects(this.kv!, topic);
+  }
+
+  // -- IReadIdempotencyEntry --
+
+  async readIdempotencyEntry(topic: string, key: string): Promise<unknown | null> {
+    this.#assertInitialised();
+    return Idempotency.readIdempotencyEntry(this.kv!, topic, key);
+  }
+
+  // -- IWriteIdempotencyEntry --
+
+  async writeIdempotencyEntry(topic: string, key: string, entry: unknown): Promise<void> {
+    this.#assertInitialised();
+    return Idempotency.writeIdempotencyEntry(this.kv!, topic, key, entry);
   }
 
   #assertInitialised(): void {

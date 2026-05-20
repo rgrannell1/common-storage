@@ -1,7 +1,7 @@
 // Integration tests for GET /feed
-// @design.md
+// @work.md
 
-import { makeTestContext, jsonPost } from "./helpers.ts";
+import { makeTestContext, makePersistentServer, jsonPost } from "./helpers.ts";
 
 Deno.test("Proves GET /feed returns empty topics when no topics are configured", async () => {
   const { request, cleanup } = await makeTestContext();
@@ -25,13 +25,17 @@ Deno.test("Proves GET /feed returns 200 for a server with configured topics", as
 });
 
 Deno.test("Proves GET /feed count reflects writes to the topic", async () => {
-  const { request, cleanup } = await makeTestContext([{ name: "events" }]);
+  const { fetch, cleanup } = await makePersistentServer([{ name: "events" }]);
   try {
-    await request("/content/events", jsonPost({ payload: {} }));
-    await request("/content/events", jsonPost({ payload: {} }));
+    const postInit: RequestInit = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payload: {} }) };
+    await fetch("/events/events", postInit);
+    await fetch("/events/events", postInit);
 
-    const res = await request("/feed");
-    res.expectStatus(200);
+    const res = await fetch("/feed");
+    const body = await res.json() as { topics: { topic: string; count: number }[] };
+
+    if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+    if (body.topics[0].count !== 2) throw new Error(`Expected count 2, got ${body.topics[0].count}`);
   } finally {
     await cleanup();
   }

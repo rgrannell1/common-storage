@@ -1,5 +1,5 @@
 // GET /events/:topic — returns a paginated list of entries from an event topic
-// @design.md
+// @work.md
 
 import { z } from "zod";
 import { ok, err, type Result } from "../../commons/types/result.ts";

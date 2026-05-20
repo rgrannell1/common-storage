@@ -1,5 +1,5 @@
 // GET /feed — returns a JSON summary of all topics and active subscriptions
-// @design.md
+// @work.md
 
 import { z } from "zod";
 import { ok, type Result } from "../../commons/types/result.ts";

@@ -1,5 +1,5 @@
 // Object topic read/write — implements IUpsertObject, IReadObject, IDeleteObject, IReadObjects
-// @design.md
+// @work.md
 
 import type { ObjectEntry } from "../capabilities.ts";
 import type { StoredTopic, StoredTopicStats, StoredObject } from "../types/stored-types.ts";
@@ -60,7 +60,8 @@ export async function deleteObject(kv: Deno.Kv, topic: string, id: string): Prom
       payload: null,
     };
     const newStats: StoredTopicStats = {
-      count: (stats.value?.count ?? 0) + (isNew ? 1 : 0),
+      // deleting a never-written key must not inflate the count
+      count: stats.value?.count ?? 0,
       lastUpdated: now,
     };
 

@@ -1,5 +1,5 @@
 // GET /objects/:topic — returns all entries from an object topic, including tombstones
-// @design.md
+// @work.md
 
 import { z } from "zod";
 import { ok, err, type Result } from "../../commons/types/result.ts";

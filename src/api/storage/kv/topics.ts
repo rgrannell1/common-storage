@@ -1,5 +1,5 @@
 // Topic CRUD — implements IGetTopicNames, IGetTopicStats, IGetSubscriptions, ICreateTopics
-// @design.md
+// @work.md
 
 import type { TopicConfig } from "../../../commons/config.ts";
 import type { TopicStats, Subscription } from "../capabilities.ts";

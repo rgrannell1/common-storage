@@ -1,7 +1,7 @@
 // Integration tests for DELETE /objects/:topic/:id
-// @design.md
+// @work.md
 
-import { makeTestContext, jsonPut } from "./helpers.ts";
+import { makeTestContext, makePersistentServer, jsonPut } from "./helpers.ts";
 
 function httpDelete(): RequestInit {
   return { method: "DELETE" };
@@ -38,14 +38,21 @@ Deno.test("Proves DELETE /objects/:topic/:id writes a tombstone for an existing 
   }
 });
 
-Deno.test("Proves DELETE /objects/:topic/:id tombstone is readable via GET", async () => {
-  const { request, cleanup } = await makeTestContext([], [{ name: "things" }]);
+Deno.test("Proves DELETE /objects/:topic/:id tombstone is readable via GET with payload null", async () => {
+  const { fetch, cleanup } = await makePersistentServer([], [{ name: "things" }]);
   try {
-    await request("/objects/things/key1", jsonPut({ payload: { value: 1 } }));
-    await request("/objects/things/key1", httpDelete());
+    await (await fetch("/objects/things/key1", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload: { value: 1 } }),
+    })).json();
+    await (await fetch("/objects/things/key1", { method: "DELETE" })).json();
 
-    const res = await request("/objects/things/key1");
-    res.expectStatus(200);
+    const res = await fetch("/objects/things/key1");
+    const entry = await res.json() as { payload: unknown };
+
+    if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+    if (entry.payload !== null) throw new Error(`Expected payload null for tombstone, got ${JSON.stringify(entry.payload)}`);
   } finally {
     await cleanup();
   }

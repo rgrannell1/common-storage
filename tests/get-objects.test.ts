@@ -1,7 +1,7 @@
 // Integration tests for GET /objects/:topic
-// @design.md
+// @work.md
 
-import { makeTestContext, jsonPut } from "./helpers.ts";
+import { makeTestContext, makePersistentServer, jsonPut } from "./helpers.ts";
 
 Deno.test("Proves GET /objects/:topic returns 404 for an unknown topic", async () => {
   const { request, cleanup } = await makeTestContext();
@@ -25,26 +25,50 @@ Deno.test("Proves GET /objects/:topic returns an empty array when no entries exi
 });
 
 Deno.test("Proves GET /objects/:topic returns all written entries", async () => {
-  const { request, cleanup } = await makeTestContext([], [{ name: "things" }]);
+  const { fetch, cleanup } = await makePersistentServer([], [{ name: "things" }]);
   try {
-    await request("/objects/things/key1", jsonPut({ payload: { value: 1 } }));
-    await request("/objects/things/key2", jsonPut({ payload: { value: 2 } }));
+    const putInit = (payload: unknown): RequestInit => ({
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload }),
+    });
 
-    const res = await request("/objects/things");
-    res.expectStatus(200);
+    await (await fetch("/objects/things/key1", putInit({ value: 1 }))).json();
+    await (await fetch("/objects/things/key2", putInit({ value: 2 }))).json();
+
+    const res = await fetch("/objects/things");
+    const entries = await res.json() as Array<{ id: string }>;
+
+    if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+    if (entries.length !== 2) throw new Error(`Expected 2 entries, got ${entries.length}`);
+
+    const ids = entries.map(entry => entry.id).sort();
+    if (ids[0] !== "key1" || ids[1] !== "key2") {
+      throw new Error(`Expected ids [key1, key2], got [${ids.join(", ")}]`);
+    }
   } finally {
     await cleanup();
   }
 });
 
-Deno.test("Proves GET /objects/:topic includes tombstones", async () => {
-  const { request, cleanup } = await makeTestContext([], [{ name: "things" }]);
+Deno.test("Proves GET /objects/:topic includes tombstones with payload null", async () => {
+  const { fetch, cleanup } = await makePersistentServer([], [{ name: "things" }]);
   try {
-    await request("/objects/things/key1", jsonPut({ payload: { value: 1 } }));
-    await request("/objects/things/key1", { method: "DELETE" });
+    await (await fetch("/objects/things/key1", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload: { value: 1 } }),
+    })).json();
+    await (await fetch("/objects/things/key1", { method: "DELETE" })).json();
 
-    const res = await request("/objects/things");
-    res.expectStatus(200);
+    const res = await fetch("/objects/things");
+    const entries = await res.json() as Array<{ id: string; payload: unknown }>;
+
+    if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+
+    const tombstone = entries.find(entry => entry.id === "key1");
+    if (!tombstone) throw new Error("Expected tombstone entry for key1 to be present");
+    if (tombstone.payload !== null) throw new Error(`Expected tombstone payload to be null, got ${JSON.stringify(tombstone.payload)}`);
   } finally {
     await cleanup();
   }

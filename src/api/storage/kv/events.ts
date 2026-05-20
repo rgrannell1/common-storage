@@ -1,5 +1,5 @@
 // Event topic read/write — implements IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent
-// @design.md
+// @work.md
 
 import type { EventEntry, ReadEventOptions } from "../capabilities.ts";
 import type { StoredTopic, StoredTopicStats, StoredEvent } from "../types/stored-types.ts";
@@ -81,7 +81,7 @@ export async function updateEvent(kv: Deno.Kv, topic: string, id: number, payloa
 
 async function readEventsByIds(kv: Deno.Kv, topic: string, ids: number[]): Promise<EventEntry[]> {
   const results = await Promise.all(ids.map(id => kv.get<StoredEvent>([...KV_EVENT, topic, id])));
-  return results.filter(item => item.value !== null).map(item => item.value!);
+  return results.flatMap(item => item.value !== null ? [item.value] : []);
 }
 
 export async function readEvents(kv: Deno.Kv, topic: string, opts: ReadEventOptions): Promise<EventEntry[] | null> {

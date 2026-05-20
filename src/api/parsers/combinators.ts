@@ -87,6 +87,13 @@ export function bodyParser<SchemaOutput>(schema: z.ZodType<SchemaOutput>) {
   };
 }
 
+// Extracts the Idempotency-Key header as an optional string.
+export function idempotencyKeyParser() {
+  return (parts: RequestParts<unknown>): Result<{ idempotencyKey: string | undefined }, RouteError> => {
+    return ok({ idempotencyKey: parts.headers.get("Idempotency-Key") ?? undefined });
+  };
+}
+
 // Merges two RequestParsers, running both and intersecting their output types.
 // Returns the first error encountered if either parser fails.
 export function mergeParser<ParsedA, ParsedB>(
@@ -102,4 +109,25 @@ export function mergeParser<ParsedA, ParsedB>(
 
     return ok({ ...resultA.value, ...resultB.value });
   };
+}
+
+// Merges three RequestParsers into one, intersecting their output types in order.
+export function mergeAll<ParsedA, ParsedB, ParsedC>(
+  parserA: RequestParser<ParsedA, unknown, RouteError>,
+  parserB: RequestParser<ParsedB, unknown, RouteError>,
+  parserC: RequestParser<ParsedC, unknown, RouteError>,
+): RequestParser<ParsedA & ParsedB & ParsedC, unknown, RouteError>;
+
+// Merges two RequestParsers into one, intersecting their output types.
+export function mergeAll<ParsedA, ParsedB>(
+  parserA: RequestParser<ParsedA, unknown, RouteError>,
+  parserB: RequestParser<ParsedB, unknown, RouteError>,
+): RequestParser<ParsedA & ParsedB, unknown, RouteError>;
+
+export function mergeAll(
+  // deno-lint-ignore no-explicit-any
+  ...parsers: Array<RequestParser<any, unknown, RouteError>>
+  // deno-lint-ignore no-explicit-any
+): RequestParser<any, unknown, RouteError> {
+  return parsers.reduce(mergeParser);
 }

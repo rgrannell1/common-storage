@@ -1,5 +1,5 @@
 // Storage capability sub-interfaces and their associated types — composed per route via intersection types
-// @design.md
+// @work.md
 
 import type { TopicConfig } from "../../commons/config.ts";
 
@@ -96,4 +96,13 @@ export interface IDeleteObject {
 export interface IReadObjects {
   // Returns null if the topic does not exist; includes tombstones
   readObjects(topic: string): Promise<ObjectEntry[] | null>;
+}
+
+export interface IReadIdempotencyEntry {
+  // Returns null if no cached entry exists for the (topic, key) pair
+  readIdempotencyEntry(topic: string, key: string): Promise<unknown | null>;
+}
+
+export interface IWriteIdempotencyEntry {
+  writeIdempotencyEntry(topic: string, key: string, entry: unknown): Promise<void>;
 }
