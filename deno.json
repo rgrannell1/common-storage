@@ -1,7 +1,5 @@
 {
-  "deploy": {
-    "entrypoint": "main.ts"
-  },
+  "unstable": ["kv", "cron"],
   "lint": {
     "plugins": ["./lint-plugins/no-single-letter-vars.ts"]
   },
