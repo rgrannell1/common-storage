@@ -15,15 +15,18 @@ import { deleteObjectRoute } from "./routes/delete-object.ts";
 import { getObjectsRoute } from "./routes/get-objects.ts";
 import { postDiffRoute } from "./routes/post-diff.ts";
 import type { IFullStorage } from "./storage/capabilities.ts";
+import { MetricsCollector, metricsMiddleware } from "./metrics/collector.ts";
 
 export type AppDeps = {
   storage: IFullStorage;
+  collector: MetricsCollector;
 };
 
 export function createApp(deps: AppDeps): Hono {
   const app = new Hono();
 
   app.use("*", cors());
+  app.use("*", metricsMiddleware(deps.collector));
 
   registerRoutes(app, [
     { method: "GET",    path: "/feed",               route: getFeedRoute(deps) },

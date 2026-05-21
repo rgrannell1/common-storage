@@ -4,6 +4,7 @@
 import { makeFetch } from "@deno-libs/superfetch";
 import { DenoKVBackend } from "../src/api/storage/kv/index.ts";
 import { createApp } from "../src/api/app.ts";
+import { MetricsCollector } from "../src/api/metrics/collector.ts";
 import type { TopicConfig } from "../src/commons/config.ts";
 
 // superfetch shuts the server down after every request, so each call to `request` creates a
@@ -23,7 +24,7 @@ export async function makeTestContext(
   await storage.init();
   await storage.createTopics(events, objects);
 
-  const app = createApp({ storage });
+  const app = createApp({ storage, collector: new MetricsCollector() });
 
   const request = (url: string, init?: RequestInit) => makeFetch(app.fetch)(url, init);
 
@@ -53,7 +54,7 @@ export async function makePersistentServer(
   await storage.init();
   await storage.createTopics(events, objects);
 
-  const app = createApp({ storage });
+  const app = createApp({ storage, collector: new MetricsCollector() });
   const server = Deno.serve({ port: 0 }, app.fetch);
   const { port } = server.addr;
 
