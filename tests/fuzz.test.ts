@@ -288,7 +288,7 @@ Deno.test("Proves POST /diff/:topic never crashes on arbitrary bodies for both t
   }
 });
 
-Deno.test("Proves write routes never crash when given arbitrary topic names", async () => {
+Deno.test("Proves all routes never crash when given arbitrary topic names", async () => {
   const { fetch, cleanup } = await makePersistentServer([{ name: "events" }], [{ name: "objects" }]);
   try {
     for (const topic of FUZZ_TOPIC_NAMES) {
@@ -305,6 +305,21 @@ Deno.test("Proves write routes never crash when given arbitrary topic names", as
 
       const diffRes = await fetch(`/diff/${encoded}`, buildFuzzInit("POST"));
       await assertNoCrash(diffRes, `POST /diff/${topic}`);
+
+      const getEventsRes = await fetch(`/events/${encoded}`);
+      await assertNoCrash(getEventsRes, `GET /events/${topic}`);
+
+      const getEventRes = await fetch(`/events/${encoded}/1`);
+      await assertNoCrash(getEventRes, `GET /events/${topic}/1`);
+
+      const getObjectsRes = await fetch(`/objects/${encoded}`);
+      await assertNoCrash(getObjectsRes, `GET /objects/${topic}`);
+
+      const getObjectRes = await fetch(`/objects/${encoded}/someId`);
+      await assertNoCrash(getObjectRes, `GET /objects/${topic}/someId`);
+
+      const deleteObjectRes = await fetch(`/objects/${encoded}/someId`, { method: "DELETE" });
+      await assertNoCrash(deleteObjectRes, `DELETE /objects/${topic}/someId`);
     }
   } finally {
     await cleanup();
@@ -493,6 +508,122 @@ Deno.test("Proves GET /events/:topic?size= never crashes on extreme size values"
     for (const sizeVal of FUZZ_SIZE_PARAMS) {
       const res = await fetch(`/events/events?size=${encodeURIComponent(sizeVal)}`);
       await assertNoCrash(res, `GET /events/events?size=${sizeVal}`);
+    }
+  } finally {
+    await cleanup();
+  }
+});
+
+// ?start= values — symmetric to FUZZ_SIZE_PARAMS; integer start offsets with edge cases
+const FUZZ_START_PARAMS = [
+  "0",
+  "1",
+  "-1",
+  "9007199254740991",
+  "-9007199254740991",
+  "NaN",
+  "Infinity",
+  "-Infinity",
+  "",
+  "1.5",
+  "1e5",
+  "1e20",
+  "9".repeat(30),
+  "abc",
+];
+
+Deno.test("Proves GET /events/:topic?start= never crashes on extreme start values", async () => {
+  const { fetch, cleanup } = await makePersistentServer([{ name: "events" }]);
+  try {
+    for (const startVal of FUZZ_START_PARAMS) {
+      const res = await fetch(`/events/events?start=${encodeURIComponent(startVal)}`);
+      await assertNoCrash(res, `GET /events/events?start=${startVal}`);
+    }
+  } finally {
+    await cleanup();
+  }
+});
+
+// JMESPath-specific adversarial inputs — patterns that exercise the parser's error handling,
+// deep recursion, and long expression paths rather than just schema validation.
+const FUZZ_FILTER_PARAMS = [
+  "payload",
+  "payload.value",
+  "*",
+  "@",
+  "**",
+  "[*]",
+  "[?@ == @]",
+  "sort_by(@, &updatedAt)",
+  "length(@)",
+  "[?payload.value > `0`]",
+  // Deeply recursive wildcard — exercises parser stack depth
+  "[?a.[?b.[?c.[?d.[?e]]]]]",
+  // Very long chained path — may cause linear scan or O(n) allocation
+  "payload." + "nested.".repeat(100) + "value",
+  "SELECT * FROM events; DROP TABLE--",
+  arbitraryStringGen(),
+  "a".repeat(1000),
+];
+
+Deno.test("Proves ?filter= param never crashes on adversarial JMESPath expressions", async () => {
+  const { fetch, cleanup } = await makePersistentServer([{ name: "events" }], [{ name: "objects" }]);
+  try {
+    for (const filterVal of FUZZ_FILTER_PARAMS) {
+      const encoded = encodeURIComponent(filterVal);
+
+      const eventsRes = await fetch(`/events/events?filter=${encoded}`);
+      await assertNoCrash(eventsRes, `GET /events/events?filter=${filterVal.slice(0, 50)}`);
+
+      const objectsRes = await fetch(`/objects/objects?filter=${encoded}`);
+      await assertNoCrash(objectsRes, `GET /objects/objects?filter=${filterVal.slice(0, 50)}`);
+    }
+  } finally {
+    await cleanup();
+  }
+});
+
+// Valid-shape diff bodies with semantically wrong content — these pass the Zod schema check
+// and reach business logic, where wrong hash lengths, non-hex chars, or huge arrays may crash.
+const VALID_HEX_64 = "a".repeat(64);
+
+const STRUCTURED_DIFF_BODIES = [
+  // Event diff: hash too short (32 chars instead of 64)
+  { bucketSize: 500, root: "a".repeat(32), buckets: [] },
+  // Event diff: non-hex characters in root and bucket hash
+  { bucketSize: 500, root: "z".repeat(64), buckets: [{ start: 0, end: 500, hash: "z".repeat(64) }] },
+  // Event diff: bucketSize of zero
+  { bucketSize: 0, root: VALID_HEX_64, buckets: [] },
+  // Event diff: negative bucketSize
+  { bucketSize: -1, root: VALID_HEX_64, buckets: [] },
+  // Event diff: 5000 buckets — exercises unbounded array handling
+  { bucketSize: 1, root: VALID_HEX_64, buckets: Array.from({ length: 5000 }, (_, idx) => ({ start: idx, end: idx + 1, hash: VALID_HEX_64 })) },
+  // Event diff: overlapping bucket ranges
+  { bucketSize: 100, root: VALID_HEX_64, buckets: [{ start: 0, end: 100, hash: VALID_HEX_64 }, { start: 50, end: 150, hash: VALID_HEX_64 }] },
+  // Event diff: start > end
+  { bucketSize: 100, root: VALID_HEX_64, buckets: [{ start: 500, end: 0, hash: VALID_HEX_64 }] },
+  // Object diff: hash too short
+  { entries: [{ id: "abc", hash: "a".repeat(32) }] },
+  // Object diff: empty id
+  { entries: [{ id: "", hash: VALID_HEX_64 }] },
+  // Object diff: non-hex hash
+  { entries: [{ id: "abc", hash: "not-hex-at-all-padding-to-64-chars-xxxxxxxxxxxxxxxxxx" }] },
+  // Object diff: 5000 entries — exercises unbounded array handling
+  { entries: Array.from({ length: 5000 }, (_, idx) => ({ id: `id-${idx}`, hash: VALID_HEX_64 })) },
+];
+
+Deno.test("Proves POST /diff/:topic never crashes on structurally valid but semantically wrong bodies", async () => {
+  const { fetch, cleanup } = await makePersistentServer([{ name: "events" }], [{ name: "objects" }]);
+  try {
+    for (const [bodyIdx, body] of STRUCTURED_DIFF_BODIES.entries()) {
+      for (const topic of ["events", "objects"]) {
+        const res = await fetch(`/diff/${topic}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        await assertNoCrash(res, `POST /diff/${topic} body=${bodyIdx}`);
+      }
     }
   } finally {
     await cleanup();

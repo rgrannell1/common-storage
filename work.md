@@ -377,15 +377,15 @@ The root key is the one secret, held as an environment variable. Tokens do not e
 - [x] #37 `fixed` — `main.ts:15-16` — config is loaded from the XDG path (`~/.config/...`) which does not exist on Deno Deploy; support a `CMSTR_CONFIG_PATH` env var override so Deploy can point to a relative `./config.json` committed alongside the code
       > Deno Deploy compatibility
 
-- [ ] #38 `open` — `tests/fuzz.test.ts` — `?filter=` JMESPath param is not fuzz-tested; arbitrary strings fed to the JMESPath parser may crash or return 500 instead of 400
+- [x] #38 `fixed` — `tests/fuzz.test.ts` — `?filter=` JMESPath param is not fuzz-tested; arbitrary strings fed to the JMESPath parser may crash or return 500 instead of 400
       > malformed expressions should return 400; the parser may not be hardened against adversarial input
 
-- [ ] #39 `open` — `tests/fuzz.test.ts` — path params (`:topic`, `:id`) are not fuzz-tested; long names, null bytes, unicode, and path-traversal strings may cause KV key issues or routing errors
+- [x] #39 `fixed` — `tests/fuzz.test.ts` — path params (`:topic`, `:id`) are not fuzz-tested; long names, null bytes, unicode, and path-traversal strings may cause KV key issues or routing errors
       > 128-char topic name limit, special characters in KV keys, `../foo` and `%00` variants
 
-- [ ] #40 `open` — `tests/fuzz.test.ts` — `POST /diff/:topic` body is not fuzz-tested with structurally valid but semantically wrong payloads; hashes of wrong length, non-hex chars, thousands of buckets, `bucketSize: 0`, and overlapping ranges are untested
+- [x] #40 `fixed` — `tests/fuzz.test.ts` — `POST /diff/:topic` body is not fuzz-tested with structurally valid but semantically wrong payloads; hashes of wrong length, non-hex chars, thousands of buckets, `bucketSize: 0`, and overlapping ranges are untested
       > passes schema parse step but hits business logic — likely crash surface
 
-- [ ] #41 `open` — `tests/fuzz.test.ts` — `?start=` param is not fuzz-tested; non-integers, negatives, `NaN`, `Infinity`, and very large values may return 500 instead of 4xx
+- [x] #41 `fixed` — `tests/fuzz.test.ts` — `?start=` param is not fuzz-tested; non-integers, negatives, `NaN`, `Infinity`, and very large values may return 500 instead of 4xx
 
 ### Passing
