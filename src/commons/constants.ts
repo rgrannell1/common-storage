@@ -23,3 +23,27 @@ export const DEFAULT_PAGE_SIZE = 100;
 
 // Route path segments that carry a :topic parameter — used by auth middleware to extract the topic
 export const TOPIC_ROUTE_PREFIXES = ["events", "objects", "diff"] as const;
+
+// Valid HTTP methods used across route registration and config token caveats
+export const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE"] as const;
+
+// Milliseconds per second — used to convert frequency values from seconds to milliseconds
+export const MS_PER_SECOND = 1_000;
+
+// How often the metrics emitter snapshots and writes to the metrics topic, in milliseconds
+export const METRICS_INTERVAL_MS = 60_000;
+
+// Object ID for the metrics snapshot — always overwritten; topic holds one live record
+export const METRICS_OBJECT_ID = "latest";
+
+// How long to wait between stream polls when no new entries are found, in milliseconds
+export const STREAM_POLL_INTERVAL_MS = 1_000;
+
+// Duration to tail remote NDJSON stream after a diff round-trip, in milliseconds
+export const TAIL_DURATION_MS = 5_000;
+
+// Bucket width used when building diff requests for set reconciliation
+export const DEFAULT_BUCKET_SIZE = 100;
+
+// Environment variable name holding the Macaroon root key
+export const ROOT_KEY_ENV_VAR = "COMMON_STORAGE_ROOT_KEY";

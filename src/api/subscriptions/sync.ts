@@ -5,6 +5,7 @@ import type { SubscriptionConfig } from "../../commons/config.ts";
 import type { IReadEvents, IUpdateEvent, EventEntry } from "../storage/capabilities.ts";
 import { buildDiffRequest } from "./diff.ts";
 import { postDiff, fetchRange, tailEvents } from "./client.ts";
+import { DEFAULT_BUCKET_SIZE } from "../../commons/constants.ts";
 
 type SyncStorage = IReadEvents & IUpdateEvent;
 
@@ -48,7 +49,7 @@ export async function syncOnce(config: SubscriptionConfig, storage: SyncStorage)
   if (local === null) return;
 
   if (local.length === 0) {
-    await fullFetch(storage, config.topic, config.source, token, 500);
+    await fullFetch(storage, config.topic, config.source, token, DEFAULT_BUCKET_SIZE);
     return;
   }
 
@@ -56,9 +57,22 @@ export async function syncOnce(config: SubscriptionConfig, storage: SyncStorage)
   const diffResult = await postDiff(config.source, config.topic, token, diffReq);
   if (diffResult.kind === "match") return;
 
-  let maxId = local.length > 0 ? local[local.length - 1].id : 0;
-  for (const range of diffResult.ranges) {
-    const lastId = await fetchAndReplicate(storage, config.topic, config.source, token, range.start + 1, diffReq.bucketSize);
+  const initialMaxId = local.length > 0 ? local[local.length - 1].id : 0;
+  await applyDiffAndTail(storage, config, token, diffResult.ranges, diffReq.bucketSize, initialMaxId);
+}
+
+// Fetches differing ranges then tails the stream to catch writes that arrived during the diff round-trip.
+async function applyDiffAndTail(
+  storage: SyncStorage,
+  config: SubscriptionConfig,
+  token: string,
+  ranges: { start: number; end: number }[],
+  bucketSize: number,
+  initialMaxId: number,
+): Promise<void> {
+  let maxId = initialMaxId;
+  for (const range of ranges) {
+    const lastId = await fetchAndReplicate(storage, config.topic, config.source, token, range.start + 1, bucketSize);
     maxId = Math.max(maxId, lastId);
   }
 

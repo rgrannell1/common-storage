@@ -1,8 +1,9 @@
 // Config schema and derived types for the common-storage server
 
 import { z } from "zod";
+import { HTTP_METHODS } from "./constants.ts";
 
-const HttpMethod = z.enum(["GET", "POST", "PUT", "DELETE"]);
+const HttpMethod = z.enum(HTTP_METHODS);
 
 const ServerConfig = z.object({
   // Port the HTTP server listens on

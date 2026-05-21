@@ -3,9 +3,7 @@
 
 import type { EventEntry, EventDiffRequest } from "../storage/capabilities.ts";
 import { hashEventBucket, hashBucketRoot } from "../storage/kv/hashing.ts";
-
-// Bucket width used when building diff requests; must match across client and server.
-const DEFAULT_BUCKET_SIZE = 500;
+import { DEFAULT_BUCKET_SIZE } from "../../commons/constants.ts";
 
 type BucketEntry = { id: number; updatedAt: number };
 

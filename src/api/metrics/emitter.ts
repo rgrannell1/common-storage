@@ -3,13 +3,7 @@
 
 import type { IUpsertObject } from "../storage/capabilities.ts";
 import type { MetricsCollector } from "./collector.ts";
-import { METRICS_TOPIC } from "../../commons/constants.ts";
-
-// How often to upsert the metrics object, in milliseconds
-const METRICS_INTERVAL_MS = 60_000;
-
-// Fixed object ID — always overwritten; the topic holds one live snapshot
-const METRICS_OBJECT_ID = "latest";
+import { METRICS_TOPIC, METRICS_INTERVAL_MS, METRICS_OBJECT_ID } from "../../commons/constants.ts";
 
 // Starts a periodic loop that snapshots the collector and upserts the metrics object.
 // Returns a cleanup function that stops the loop.

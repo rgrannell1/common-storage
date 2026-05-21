@@ -30,10 +30,12 @@ export async function readEvents(kv: Deno.Kv, topic: string, opts: ReadEventOpti
     return null;
   }
 
+  // Fetch by explicit ID list — bypasses the range selector
   if (opts.ids !== undefined) {
     return readEventsByIds(kv, topic, opts.ids);
   }
 
+  // Range scan: list from start key up to size, or full topic if start is unset
   const prefix = [...KV_EVENT, topic];
   const selector = opts.start !== undefined
     ? { prefix, start: [...KV_EVENT, topic, opts.start] }

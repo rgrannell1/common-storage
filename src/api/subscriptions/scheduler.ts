@@ -4,6 +4,7 @@
 import type { SubscriptionConfig } from "../../commons/config.ts";
 import type { IReadEvents, IUpdateEvent } from "../storage/capabilities.ts";
 import { syncOnce } from "./sync.ts";
+import { MS_PER_SECOND } from "../../commons/constants.ts";
 
 type SchedulerStorage = IReadEvents & IUpdateEvent;
 
@@ -15,7 +16,7 @@ export function startSubscriptions(configs: SubscriptionConfig[], storage: Sched
       } catch (err) {
         console.error(`Subscription sync failed for topic "${config.topic}":`, err);
       }
-    }, config.frequency * 1_000);
+    }, config.frequency * MS_PER_SECOND);
   });
 
   return () => intervals.forEach(clearInterval);

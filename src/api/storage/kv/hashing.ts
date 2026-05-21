@@ -29,6 +29,8 @@ export function hashUpdatedAt(updatedAt: number): Promise<string> {
 
 // SHA-256 over concatenated id||updatedAt pairs (8 bytes each, big-endian) sorted ascending by id; used for event bucket hashes.
 export function hashEventBucket(entries: Array<{ id: number; updatedAt: number }>): Promise<string> {
+  // Layout: each entry occupies 16 bytes — 8 bytes (id) followed by 8 bytes (updatedAt),
+  // both big-endian uint64. This matches the spec: SHA-256 of id||updatedAt pairs sorted by id.
   const buf = new Uint8Array(entries.length * UINT64_BYTES * 2);
   const view = new DataView(buf.buffer);
   for (let idx = 0; idx < entries.length; idx++) {

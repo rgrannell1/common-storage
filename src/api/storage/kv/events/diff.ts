@@ -8,12 +8,20 @@ import { KV_TOPIC, KV_EVENT } from "../../keys.ts";
 
 type BucketEntry = { id: number; updatedAt: number };
 
+function bucketStartFor(id: number, bucketSize: number): number {
+  return Math.floor((id - 1) / bucketSize) * bucketSize;
+}
+
+function byIdAscending(a: BucketEntry, b: BucketEntry): number {
+  return a.id - b.id;
+}
+
 // Scans all events in the topic and groups them by bucket start offset.
 async function buildBucketMap(kv: Deno.Kv, topic: string, bucketSize: number): Promise<Map<number, BucketEntry[]>> {
   const bucketMap = new Map<number, BucketEntry[]>();
   for await (const item of kv.list<StoredEvent>({ prefix: [...KV_EVENT, topic] })) {
     const { id, updatedAt } = item.value;
-    const bucketStart = Math.floor((id - 1) / bucketSize) * bucketSize;
+    const bucketStart = bucketStartFor(id, bucketSize);
     if (!bucketMap.has(bucketStart)) bucketMap.set(bucketStart, []);
     bucketMap.get(bucketStart)!.push({ id, updatedAt });
   }
@@ -23,7 +31,7 @@ async function buildBucketMap(kv: Deno.Kv, topic: string, bucketSize: number): P
 // Computes a SHA-256 hash for each client bucket against the server's entries.
 async function computeBucketHashes(bucketMap: Map<number, BucketEntry[]>, buckets: EventDiffBucket[]): Promise<string[]> {
   return Promise.all(buckets.map(bucket => {
-    const entries = (bucketMap.get(bucket.start) ?? []).sort((a, b) => a.id - b.id);
+    const entries = (bucketMap.get(bucket.start) ?? []).sort(byIdAscending);
     return hashEventBucket(entries);
   }));
 }

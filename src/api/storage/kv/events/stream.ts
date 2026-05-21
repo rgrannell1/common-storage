@@ -4,9 +4,7 @@
 import type { EventEntry } from "../../capabilities.ts";
 import type { StoredTopic, StoredEvent } from "../../types/stored-types.ts";
 import { KV_TOPIC, KV_EVENT } from "../../keys.ts";
-
-// How long to wait between polls when no new entries are found
-const STREAM_POLL_INTERVAL_MS = 1_000;
+import { STREAM_POLL_INTERVAL_MS } from "../../../../commons/constants.ts";
 
 // Waits for the poll interval, resolving early if the signal is aborted.
 function waitForPoll(signal: AbortSignal): Promise<void> {

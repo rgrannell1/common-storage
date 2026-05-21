@@ -5,13 +5,14 @@ import type { Hono, Context } from "hono";
 import type { Route, RequestParts } from "../../commons/types/parser.ts";
 import type { RouteSuccess, RouteError } from "../../commons/types/responses.ts";
 import { sendSuccess, sendError } from "../commons/responses.ts";
+import { HTTP_METHODS } from "../../commons/constants.ts";
 
 // Body/Params/HandlerOutput are opaque to the router; only the error and response output types matter
 // since those are the only values the router touches (to call sendError/sendSuccess).
 // deno-lint-ignore no-explicit-any
 type BoundRoute = Route<any, any, any, RouteSuccess, RouteError>;
 
-type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
+type HttpMethod = typeof HTTP_METHODS[number];
 
 export type RouteSpec = {
   method: HttpMethod;

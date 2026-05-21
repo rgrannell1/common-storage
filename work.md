@@ -328,5 +328,41 @@ The root key is the one secret, held as an environment variable. Tokens do not e
       > own file please
 - [x] #15 `fixed` — `src/commons/auth.ts:19` — `AuthError` should move to a central types location alongside other error types
       > lift error response types somewhere more central across the package
+- [x] #16 `fixed` — `src/api/metrics/emitter.ts:9` — `METRICS_INTERVAL_MS` and `METRICS_OBJECT_ID` are local constants; move to `src/commons/constants.ts`
+      > constants file
+- [x] #17 `fixed` — `src/api/routes/get-feed.ts:40` — topics build block lacks a comment
+      > document this codeblock
+- [x] #18 `fixed` — `src/api/routes/router.ts:14` — `HttpMethod` type is defined inline; derive from a constant in `src/commons/constants.ts`
+      > constants file
+- [x] #19 `fixed` — `src/api/storage/kv/events/diff.ts:15-16` — `bucketStart` computation should be extracted to a named helper
+      > factor this out
+- [x] #20 `fixed` — `src/api/storage/kv/events/diff.ts:26` — sort comparator lambda `(a, b) => a.id - b.id` should be extracted to a named function
+      > factor out lambda
+- [x] #21 `fixed` — `src/api/storage/kv/events/read.ts:33` — ids-branch block lacks a comment
+      > document this block
+- [x] #22 `fixed` — `src/api/storage/kv/events/read.ts:37` — paginated-fetch block lacks a comment
+      > document this block
+- [x] #23 `fixed` — `src/api/storage/kv/events/stream.ts:9` — `STREAM_POLL_INTERVAL_MS` should move to `src/commons/constants.ts`
+      > lift to constants
+- [x] #24 `fixed` — `src/api/storage/kv/hashing.ts:35-36` — packed `id||updatedAt` big-endian layout lacks a comment explaining the choice
+      > document these choices, why this approach?
+- [x] #25 `fixed` — `src/api/subscriptions/client.ts:7` — `TAIL_DURATION_MS` should move to `src/commons/constants.ts`
+      > lift to constants
+- [x] #26 `fixed` — `src/api/subscriptions/diff.ts:8` — `DEFAULT_BUCKET_SIZE` should move to `src/commons/constants.ts` and value reduced to 100
+      > lift to constants. Smaller buckets. Buckets of 100
+- [x] #27 `fixed` — `src/api/subscriptions/scheduler.ts:18` — magic `1_000` ms-per-second multiplier should be a named constant
+      > lift 1_000 to a constant
+- [x] #28 `fixed` — `src/api/subscriptions/sync.ts:51` — magic number `500` passed to `fullFetch` should use `DEFAULT_BUCKET_SIZE` from constants
+      > magic number, move to constants
+- [x] #29 `fixed` — `src/api/subscriptions/sync.ts:60-68` — range-fetch and tail loop should be factored into a helper function
+      > factor out this logic
+- [x] #30 `fixed` — `src/cli/commands/init.ts:10` — `"COMMON_STORAGE_ROOT_KEY"` string literal should be a named constant
+      > factor out to constants
+- [x] #31 `fixed` — `src/cli/prompt.ts:3` — `promptYesNo` is not imported anywhere outside `setup.ts`; file is dead code
+      > dead code?
+- [x] #32 `fixed` — `src/cli/setup.ts:8` — `setup.ts` is not imported anywhere; entire file is dead code
+      > dead code.
+- [x] #33 `fixed` — `src/commons/config.ts:5` — `HttpMethod` Zod enum re-declares the HTTP methods list; derive from a shared constant in `src/commons/constants.ts`
+      > use methods from constants
 
 ### Passing

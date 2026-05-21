@@ -2,9 +2,7 @@
 // All functions are stateless; callers supply the base URL and token on each call.
 
 import type { EventEntry, EventDiffRequest } from "../storage/capabilities.ts";
-
-// Duration of the post-diff NDJSON tail to catch writes that arrived during the diff round-trip
-const TAIL_DURATION_MS = 5_000;
+import { TAIL_DURATION_MS } from "../../commons/constants.ts";
 
 type DiffResponse =
   | { kind: "match" }

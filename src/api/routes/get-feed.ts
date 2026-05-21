@@ -37,6 +37,7 @@ async function getFeed(deps: FeedDeps, params: FeedRequest): Promise<Result<Feed
   const names = await deps.storage.getTopicNames();
   const topicStats = await Promise.all(names.map(deps.storage.getTopicStats.bind(deps.storage)));
 
+  // Drop null entries (topics that have no stats yet), then shape each into a summary object
   const topics = topicStats
     .filter(isPresent)
     .map(stats => ({

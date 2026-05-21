@@ -2,12 +2,12 @@
 // @work.md
 
 import { Config } from "../../commons/config.ts";
-import { DEFAULT_PORT } from "../../commons/constants.ts";
+import { DEFAULT_PORT, ROOT_KEY_ENV_VAR } from "../../commons/constants.ts";
 import { xdgConfigHome, resolveConfigPath, parentDir } from "../paths.ts";
 
 const CONFIG_SKELETON = JSON.stringify({
   server: { port: DEFAULT_PORT },
-  rootKey: "COMMON_STORAGE_ROOT_KEY",
+  rootKey: ROOT_KEY_ENV_VAR,
 }, null, 2);
 
 async function configExists(path: string): Promise<boolean> {
