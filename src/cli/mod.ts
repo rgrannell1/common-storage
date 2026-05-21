@@ -26,7 +26,7 @@ Options:
   -h --help         Show this help
 
 Commands:
-  init              Open $EDITOR with config, validate, and set up the server
+  init              Create config skeleton if absent; validate and report errors if present
   mint [<name>]     Print a token for the named definition, or all name/token pairs
   http              Make an API request to a common-storage server
 `;
