@@ -5,11 +5,11 @@ import { z } from "zod";
 import { ok, err, type Result } from "../../commons/types/result.ts";
 import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
-import { pathParamParser, queryParser, mergeParser, responseParser } from "../parsers/combinators.ts";
+import { pathParamParser, queryParser, mergeParser, mergeAll, acceptParser, abortSignalParser, responseParser } from "../parsers/combinators.ts";
 import { TopicNameSchema, EventEntrySchema, QueryStartSchema, QuerySizeSchema, QueryIdsSchema, QueryFilterSchema } from "../parsers/schemas.ts";
 import { applyFilter } from "../parsers/filter.ts";
 import { DEFAULT_PAGE_SIZE } from "../../commons/constants.ts";
-import type { IReadEvents, EventEntry } from "../storage/capabilities.ts";
+import type { IReadEvents, IStreamEvents, EventEntry } from "../storage/capabilities.ts";
 
 const GetEventsPathSchema = z.object({
   topic: TopicNameSchema,
@@ -22,10 +22,10 @@ const GetEventsQuerySchema = z.object({
   filter: QueryFilterSchema.optional(),
 });
 
-type GetEventsRequest = z.infer<typeof GetEventsPathSchema> & z.infer<typeof GetEventsQuerySchema>;
+type GetEventsRequest = z.infer<typeof GetEventsPathSchema> & z.infer<typeof GetEventsQuerySchema> & { stream: boolean; signal: AbortSignal };
 
 type GetEventsDeps = {
-  storage: IReadEvents;
+  storage: IReadEvents & IStreamEvents;
 };
 
 const GetEventsResponseSchema = z.object({
@@ -34,9 +34,27 @@ const GetEventsResponseSchema = z.object({
   next: z.number().int().positive().nullable(),
 });
 
-type GetEventsResponse = z.infer<typeof GetEventsResponseSchema>;
+type GetEventsPaginated = z.infer<typeof GetEventsResponseSchema>;
+type GetEventsStream = { kind: "stream"; stream: ReadableStream<Uint8Array> };
+type GetEventsResponse = GetEventsPaginated | GetEventsStream;
+
+function buildNdjsonStream(generator: AsyncGenerator<EventEntry>): ReadableStream<Uint8Array> {
+  return ReadableStream.from(generator)
+    .pipeThrough(new TransformStream<EventEntry, string>({
+      transform(entry, controller) {
+        controller.enqueue(JSON.stringify(entry) + "\n");
+      },
+    }))
+    .pipeThrough(new TextEncoderStream());
+}
 
 async function getEvents(deps: GetEventsDeps, params: GetEventsRequest): Promise<Result<GetEventsResponse, RouteError>> {
+  if (params.stream) {
+    const startId = params.start ?? 1;
+    const generator = deps.storage.streamEvents(params.topic, startId, params.signal);
+    return ok({ kind: "stream", stream: buildNdjsonStream(generator) });
+  }
+
   const size = params.size ?? DEFAULT_PAGE_SIZE;
   const fetched = await deps.storage.readEvents(params.topic, {
     start: params.start,
@@ -59,10 +77,22 @@ async function getEvents(deps: GetEventsDeps, params: GetEventsRequest): Promise
   return ok({ entries: fetched, next });
 }
 
+function eventsResponseParser(value: unknown): Result<RouteSuccess, RouteError> {
+  if (value !== null && typeof value === "object" && "kind" in value && (value as GetEventsStream).kind === "stream") {
+    return ok(value as RouteSuccess);
+  }
+  return responseParser(GetEventsResponseSchema)(value);
+}
+
 export function getEventsRoute(deps: GetEventsDeps): Route<null, GetEventsRequest, GetEventsResponse, RouteSuccess, RouteError> {
   return {
-    parseRequest: mergeParser(pathParamParser(GetEventsPathSchema), queryParser(GetEventsQuerySchema)),
+    parseRequest: mergeAll(
+      pathParamParser(GetEventsPathSchema),
+      queryParser(GetEventsQuerySchema),
+      acceptParser("application/x-ndjson"),
+      abortSignalParser(),
+    ),
     handle: getEvents.bind(null, deps),
-    parseResponse: responseParser(GetEventsResponseSchema),
+    parseResponse: eventsResponseParser,
   };
 }

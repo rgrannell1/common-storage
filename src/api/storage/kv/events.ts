@@ -1,7 +1,10 @@
-// Event topic read/write — implements IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent
+// Event topic read/write — implements IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents
 // @work.md
 
 import type { EventEntry, ReadEventOptions } from "../capabilities.ts";
+
+// How long to wait between polls when no new entries are found
+const STREAM_POLL_INTERVAL_MS = 1_000;
 import type { StoredTopic, StoredTopicStats, StoredEvent } from "../types/stored-types.ts";
 import { KV_TOPIC, KV_TOPIC_STATS, KV_EVENT, KV_EVENT_COUNTER } from "../keys.ts";
 
@@ -75,6 +78,40 @@ export async function updateEvent(kv: Deno.Kv, topic: string, id: number, payloa
 
     if (result.ok) {
       return updated;
+    }
+  }
+}
+
+// Waits for the poll interval, resolving early if the signal is aborted.
+function waitForPoll(signal: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, STREAM_POLL_INTERVAL_MS);
+    signal.addEventListener("abort", () => { clearTimeout(timer); resolve(); }, { once: true });
+  });
+}
+
+export async function* streamEvents(kv: Deno.Kv, topic: string, startId: number, signal: AbortSignal): AsyncGenerator<EventEntry> {
+  const meta = await kv.get<StoredTopic>([...KV_TOPIC, topic]);
+  if (!meta.value) return;
+
+  let nextId = startId;
+
+  while (!signal.aborted) {
+    const prefix = [...KV_EVENT, topic];
+    const selector = nextId > 1
+      ? { prefix, start: [...KV_EVENT, topic, nextId] }
+      : { prefix };
+
+    let yieldedAny = false;
+    for await (const item of kv.list<StoredEvent>(selector)) {
+      if (signal.aborted) return;
+      yield item.value;
+      nextId = item.value.id + 1;
+      yieldedAny = true;
+    }
+
+    if (!yieldedAny) {
+      await waitForPoll(signal);
     }
   }
 }

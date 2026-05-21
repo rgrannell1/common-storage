@@ -2,7 +2,7 @@
 // @work.md
 
 import type { IAtomicWriter, IStorageBackend } from "../backend.ts";
-import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadIdempotencyEntry, IWriteIdempotencyEntry, TopicStats, Subscription, EventEntry, ReadEventOptions, ObjectEntry } from "../capabilities.ts";
+import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadIdempotencyEntry, IWriteIdempotencyEntry, TopicStats, Subscription, EventEntry, ReadEventOptions, ObjectEntry } from "../capabilities.ts";
 import type { TopicConfig } from "../../../commons/config.ts";
 import { DenoAtomicWriter } from "./atomic.ts";
 import * as Topics from "./topics.ts";
@@ -10,7 +10,7 @@ import * as Events from "./events.ts";
 import * as Objects from "./objects.ts";
 import * as Idempotency from "./idempotency.ts";
 
-export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, ICreateTopics, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadIdempotencyEntry, IWriteIdempotencyEntry {
+export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, ICreateTopics, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadIdempotencyEntry, IWriteIdempotencyEntry {
   private kv: Deno.Kv | null = null;
   private path: string | undefined;
 
@@ -106,6 +106,13 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
   async readEvents(topic: string, opts: ReadEventOptions): Promise<EventEntry[] | null> {
     this.#assertInitialised();
     return Events.readEvents(this.kv!, topic, opts);
+  }
+
+  // -- IStreamEvents --
+
+  async *streamEvents(topic: string, startId: number, signal: AbortSignal): AsyncGenerator<EventEntry> {
+    this.#assertInitialised();
+    yield* Events.streamEvents(this.kv!, topic, startId, signal);
   }
 
   // -- IReadEvent --

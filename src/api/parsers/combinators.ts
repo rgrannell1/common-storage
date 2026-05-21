@@ -94,6 +94,21 @@ export function idempotencyKeyParser() {
   };
 }
 
+// Returns whether the Accept header includes a given media type.
+export function acceptParser(mediaType: string) {
+  return (parts: RequestParts<unknown>): Result<{ stream: boolean }, RouteError> => {
+    const accept = parts.headers.get("Accept") ?? "";
+    return ok({ stream: accept.includes(mediaType) });
+  };
+}
+
+// Extracts the request AbortSignal so handlers can cancel work when the client disconnects.
+export function abortSignalParser() {
+  return (parts: RequestParts<unknown>): Result<{ signal: AbortSignal }, RouteError> => {
+    return ok({ signal: parts.signal });
+  };
+}
+
 // Merges two RequestParsers, running both and intersecting their output types.
 // Returns the first error encountered if either parser fails.
 export function mergeParser<ParsedA, ParsedB>(
@@ -111,23 +126,8 @@ export function mergeParser<ParsedA, ParsedB>(
   };
 }
 
-// Merges three RequestParsers into one, intersecting their output types in order.
-export function mergeAll<ParsedA, ParsedB, ParsedC>(
-  parserA: RequestParser<ParsedA, unknown, RouteError>,
-  parserB: RequestParser<ParsedB, unknown, RouteError>,
-  parserC: RequestParser<ParsedC, unknown, RouteError>,
-): RequestParser<ParsedA & ParsedB & ParsedC, unknown, RouteError>;
-
-// Merges two RequestParsers into one, intersecting their output types.
-export function mergeAll<ParsedA, ParsedB>(
-  parserA: RequestParser<ParsedA, unknown, RouteError>,
-  parserB: RequestParser<ParsedB, unknown, RouteError>,
-): RequestParser<ParsedA & ParsedB, unknown, RouteError>;
-
-export function mergeAll(
-  // deno-lint-ignore no-explicit-any
-  ...parsers: Array<RequestParser<any, unknown, RouteError>>
-  // deno-lint-ignore no-explicit-any
-): RequestParser<any, unknown, RouteError> {
+// Merges any number of RequestParsers, intersecting their output types. The caller's route type annotation provides the concrete result type.
+// deno-lint-ignore no-explicit-any
+export function mergeAll(...parsers: Array<RequestParser<any, unknown, RouteError>>): RequestParser<any, unknown, RouteError> {
   return parsers.reduce(mergeParser);
 }

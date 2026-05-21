@@ -36,6 +36,7 @@ function buildHandler(route: BoundRoute, method: HttpMethod) {
       url: new URL(ctx.req.url),
       body,
       params: ctx.req.param(),
+      signal: ctx.req.raw.signal,
     };
 
     const parsed = route.parseRequest(parts);

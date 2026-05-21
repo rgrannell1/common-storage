@@ -60,6 +60,11 @@ export interface IReadEvents {
   readEvents(topic: string, opts: ReadEventOptions): Promise<EventEntry[] | null>;
 }
 
+export interface IStreamEvents {
+  // Yields entries from startId onward indefinitely, polling for new writes; terminates when signal is aborted or topic does not exist
+  streamEvents(topic: string, startId: number, signal: AbortSignal): AsyncGenerator<EventEntry>;
+}
+
 export interface IReadEvent {
   // Returns null if the topic or entry does not exist
   readEvent(topic: string, id: number): Promise<EventEntry | null>;
@@ -106,3 +111,21 @@ export interface IReadIdempotencyEntry {
 export interface IWriteIdempotencyEntry {
   writeIdempotencyEntry(topic: string, key: string, entry: unknown): Promise<void>;
 }
+
+// Full storage backend — intersection of all capability interfaces. Use only where all capabilities are genuinely required (e.g. AppDeps). Route deps types should remain narrow.
+export type IFullStorage =
+  & IGetTopicNames
+  & IGetTopicStats
+  & IGetSubscriptions
+  & ICreateTopics
+  & IWriteEvent
+  & IReadEvents
+  & IStreamEvents
+  & IReadEvent
+  & IUpdateEvent
+  & IUpsertObject
+  & IReadObject
+  & IDeleteObject
+  & IReadObjects
+  & IReadIdempotencyEntry
+  & IWriteIdempotencyEntry;

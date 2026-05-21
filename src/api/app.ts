@@ -13,10 +13,10 @@ import { putObjectRoute } from "./routes/put-object.ts";
 import { getObjectRoute } from "./routes/get-object.ts";
 import { deleteObjectRoute } from "./routes/delete-object.ts";
 import { getObjectsRoute } from "./routes/get-objects.ts";
-import type { IGetTopicNames, IGetTopicStats, IGetSubscriptions, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadIdempotencyEntry, IWriteIdempotencyEntry } from "./storage/capabilities.ts";
+import type { IFullStorage } from "./storage/capabilities.ts";
 
 export type AppDeps = {
-  storage: IGetTopicNames & IGetTopicStats & IGetSubscriptions & IWriteEvent & IReadEvents & IReadEvent & IUpdateEvent & IUpsertObject & IReadObject & IDeleteObject & IReadObjects & IReadIdempotencyEntry & IWriteIdempotencyEntry;
+  storage: IFullStorage;
 };
 
 export function createApp(deps: AppDeps): Hono {
