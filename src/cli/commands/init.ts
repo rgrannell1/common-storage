@@ -1,7 +1,6 @@
-// cs init — create a config skeleton if absent, or validate the existing config
+// cs init — create a config skeleton at the XDG config path if one does not already exist
 // @work.md
 
-import { Config, readConfigText } from "../../commons/config.ts";
 import { DEFAULT_PORT, ROOT_KEY_ENV_VAR } from "../../commons/constants.ts";
 import { xdgConfigHome, resolveConfigPath, parentDir } from "../paths.ts";
 
@@ -24,40 +23,14 @@ async function createSkeleton(path: string): Promise<void> {
   await Deno.writeTextFile(path, CONFIG_SKELETON);
 }
 
-function validateConfig(text: string): string[] {
-  let raw: unknown;
-  try {
-    raw = JSON.parse(text);
-  } catch (parseErr) {
-    return [`Not valid JSON: ${parseErr}`];
-  }
-
-  const result = Config.safeParse(raw);
-  if (result.success) return [];
-  return result.error.errors.map(zodErr => `${zodErr.path.join(".")}: ${zodErr.message}`);
-}
-
 export async function init(): Promise<void> {
   const path = resolveConfigPath(xdgConfigHome());
 
-  if (!await configExists(path)) {
-    await createSkeleton(path);
-    console.log(`Created config: ${path}`);
+  if (await configExists(path)) {
+    console.log(`Config already exists: ${path}`);
     return;
   }
 
-  console.log(`Config: ${path}`);
-  const text = await readConfigText(path);
-  const errors = validateConfig(text);
-
-  if (errors.length === 0) {
-    console.log("Config is valid.");
-    return;
-  }
-
-  console.error("Config is invalid:");
-  for (const error of errors) {
-    console.error(`  ${error}`);
-  }
-  Deno.exit(1);
+  await createSkeleton(path);
+  console.log(`Created config: ${path}`);
 }

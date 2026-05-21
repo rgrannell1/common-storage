@@ -261,7 +261,12 @@ Deno.test("Proves PUT /objects/:topic/:id never crashes on arbitrary bodies", as
   try {
     for (let idx = 0; idx < FUZZ_ITERATIONS; idx++) {
       const rawId = arbitraryStringGen() || "fallback-id";
-      const encodedId = encodeURIComponent(rawId);
+      let encodedId: string;
+      try {
+        encodedId = encodeURIComponent(rawId);
+      } catch {
+        encodedId = "fallback-id";
+      }
       const res = await fetch(`/objects/objects/${encodedId}`, buildFuzzInit("PUT"));
       await assertNoCrash(res, `PUT /objects/objects/${rawId} iter=${idx}`);
     }
@@ -339,6 +344,155 @@ Deno.test("Proves DELETE /objects/:topic/:id never crashes on arbitrary IDs", as
       const encoded = encodeURIComponent(rawId);
       const res = await fetch(`/objects/objects/${encoded}`, { method: "DELETE" });
       await assertNoCrash(res, `DELETE /objects/objects/${rawId}`);
+    }
+  } finally {
+    await cleanup();
+  }
+});
+
+// Idempotency key values covering length edge cases — the key is stored as a Deno KV key part,
+// which has a 2KB per-element limit. Exceeding it should return an error, not crash.
+const FUZZ_IDEMPOTENCY_KEYS = [
+  "normal-key",
+  "",
+  "k".repeat(2048),
+  "k".repeat(4096),
+  "k".repeat(65536),
+  arbitraryStringGen(),
+  "key with spaces",
+  "key\twith\ttabs",
+  "key/with/slashes",
+  JSON.stringify({ nested: "object" }),
+];
+
+Deno.test("Proves write routes never crash on extreme Idempotency-Key header values", async () => {
+  const { fetch, cleanup } = await makePersistentServer([{ name: "events" }], [{ name: "objects" }]);
+  try {
+    for (const idempotencyKey of FUZZ_IDEMPOTENCY_KEYS) {
+      // Use per-operation suffixes so each route gets an independent cache namespace —
+      // sharing a key across POST and PUT is a separate server bug tested below.
+      const postKey = `${idempotencyKey}-post`;
+      const putEventKey = `${idempotencyKey}-put-event`;
+      const putObjectKey = `${idempotencyKey}-put-object`;
+
+      // Skip keys that contain non-ByteString characters — the fetch API rejects these
+      // client-side before they reach the server, so there is nothing server-side to test.
+      if (!isSendableHeaderValue(postKey)) continue;
+
+      const postRes = await fetch("/events/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Idempotency-Key": postKey },
+        body: JSON.stringify({ payload: {} }),
+      });
+      await assertNoCrash(postRes, `POST /events/events with Idempotency-Key length=${postKey.length}`);
+
+      const putRes = await fetch("/events/events/1", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Idempotency-Key": putEventKey },
+        body: JSON.stringify({ payload: {} }),
+      });
+      await assertNoCrash(putRes, `PUT /events/events/1 with Idempotency-Key length=${putEventKey.length}`);
+
+      const putObjectRes = await fetch("/objects/objects/test-id", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Idempotency-Key": putObjectKey },
+        body: JSON.stringify({ payload: {} }),
+      });
+      await assertNoCrash(putObjectRes, `PUT /objects/objects/test-id with Idempotency-Key length=${putObjectKey.length}`);
+    }
+  } finally {
+    await cleanup();
+  }
+});
+
+// Regression test for the cross-operation idempotency key contamination bug:
+// POST writes EventEntry to the cache; PUT reads it back expecting PutEventResult.
+// Accessing .entry on a plain EventEntry returns undefined → parseResponse fails → 500.
+Deno.test("Proves POST then PUT with the same Idempotency-Key on the same topic does not 500", async () => {
+  const { fetch, cleanup } = await makePersistentServer([{ name: "events" }]);
+  try {
+    const sharedKey = "shared-idempotency-key";
+
+    const postRes = await fetch("/events/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Idempotency-Key": sharedKey },
+      body: JSON.stringify({ payload: {} }),
+    });
+    await assertNoCrash(postRes, "POST /events/events with shared idempotency key");
+
+    const putRes = await fetch("/events/events/1", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "Idempotency-Key": sharedKey },
+      body: JSON.stringify({ payload: {} }),
+    });
+    await assertNoCrash(putRes, "PUT /events/events/1 with same idempotency key as prior POST");
+  } finally {
+    await cleanup();
+  }
+});
+
+// ?ids= values covering empty lists, malformed entries, and large lists.
+// Commas are not percent-encoded — they're valid unencoded in query strings and are the
+// expected delimiter, so encoding them would triple the URL length unnecessarily.
+// The parser splits on commas before the schema refine, exercising the unbounded split.
+const FUZZ_IDS_PARAMS = [
+  "",
+  "1",
+  "1,2,3",
+  "1,",
+  ",1",
+  ",,,,",
+  "1,abc,3",
+  "1e10",
+  Array.from({ length: 500 }, (_, idx) => idx + 1).join(","),
+  Array.from({ length: 2000 }, (_, idx) => idx + 1).join(","),
+  "2147483647",
+  "9007199254740991",
+  "-1,-2,-3",
+  " 1 , 2 , 3 ",
+];
+
+Deno.test("Proves GET /events/:topic?ids= never crashes on pathological id lists", async () => {
+  const { fetch, cleanup } = await makePersistentServer([{ name: "events" }]);
+  try {
+    for (const idsVal of FUZZ_IDS_PARAMS) {
+      // Encode only characters that must be encoded in query strings; leave commas raw.
+      const encoded = idsVal.replace(/[^a-zA-Z0-9,.\-_~: ]/g, (ch) => encodeURIComponent(ch));
+      const res = await fetch(`/events/events?ids=${encoded}`);
+      await assertNoCrash(res, `GET /events/events?ids= length=${idsVal.length}`);
+    }
+  } finally {
+    await cleanup();
+  }
+});
+
+// ?size= values covering the full int range and non-integer edge cases.
+// QuerySizeSchema has no upper bound — a value of Number.MAX_SAFE_INTEGER passes Zod
+// validation and is forwarded to the KV list limit.
+const FUZZ_SIZE_PARAMS = [
+  "0",
+  "1",
+  "100",
+  "10000",
+  "1000000",
+  "2147483647",
+  "9007199254740991",
+  "-1",
+  "1.5",
+  "Infinity",
+  "NaN",
+  "",
+  "1e5",
+  "1e20",
+  "9".repeat(30),
+];
+
+Deno.test("Proves GET /events/:topic?size= never crashes on extreme size values", async () => {
+  const { fetch, cleanup } = await makePersistentServer([{ name: "events" }]);
+  try {
+    for (const sizeVal of FUZZ_SIZE_PARAMS) {
+      const res = await fetch(`/events/events?size=${encodeURIComponent(sizeVal)}`);
+      await assertNoCrash(res, `GET /events/events?size=${sizeVal}`);
     }
   } finally {
     await cleanup();

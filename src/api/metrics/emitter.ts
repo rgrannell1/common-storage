@@ -3,13 +3,13 @@
 
 import type { IUpsertObject } from "../storage/capabilities.ts";
 import type { MetricsCollector } from "./collector.ts";
-import { METRICS_TOPIC, METRICS_INTERVAL_MS, METRICS_OBJECT_ID } from "../../commons/constants.ts";
+import { METRICS_TOPIC, METRICS_CRON, METRICS_OBJECT_ID } from "../../commons/constants.ts";
+import { startCron } from "../commons/cron.ts";
 
-// Starts a periodic loop that snapshots the collector and upserts the metrics object.
-// Returns a cleanup function that stops the loop.
+// Starts a cron that snapshots the collector and upserts the metrics object each minute.
+// Returns a cleanup function that cancels the cron.
 export function startMetricsLoop(storage: IUpsertObject, collector: MetricsCollector): () => void {
-  const intervalId = setInterval(async () => {
+  return startCron("cmstr-metrics", METRICS_CRON, async () => {
     await storage.upsertObject(METRICS_TOPIC, METRICS_OBJECT_ID, collector.snapshot());
-  }, METRICS_INTERVAL_MS);
-  return () => clearInterval(intervalId);
+  });
 }

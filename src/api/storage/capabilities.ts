@@ -105,12 +105,12 @@ export interface IReadObjects {
 }
 
 export interface IReadIdempotencyEntry {
-  // Returns null if no cached entry exists for the (topic, key) pair
-  readIdempotencyEntry(topic: string, key: string): Promise<unknown | null>;
+  // Returns null if no cached entry exists for the (namespace, topic, key) triple
+  readIdempotencyEntry(namespace: string, topic: string, key: string): Promise<unknown | null>;
 }
 
 export interface IWriteIdempotencyEntry {
-  writeIdempotencyEntry(topic: string, key: string, entry: unknown): Promise<void>;
+  writeIdempotencyEntry(namespace: string, topic: string, key: string, entry: unknown): Promise<void>;
 }
 
 export interface IGetTopicType {
@@ -150,6 +150,10 @@ export interface IDiffObjects {
   diffObjects(topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null>;
 }
 
+export interface ISweepTombstones {
+  sweepTombstones(topic: string): Promise<void>;
+}
+
 export type UpdateEventTimestamps = {
   // Timestamp to use for createdAt when creating a new entry; ignored on update
   createdAt?: number;
@@ -176,5 +180,6 @@ export type IFullStorage =
   & IDeleteObject
   & IReadObjects
   & IDiffObjects
+  & ISweepTombstones
   & IReadIdempotencyEntry
   & IWriteIdempotencyEntry;

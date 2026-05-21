@@ -135,7 +135,7 @@ Deno.test("Proves POST /diff/:topic returns only the differing range among multi
   const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   try {
     const entry1 = await (await fetch("/events/logs", jsonPost({ payload: {} }))).json() as EventEntry;
-    const _entry2 = await (await fetch("/events/logs", jsonPost({ payload: {} }))).json() as EventEntry;
+    await discard(await fetch("/events/logs", jsonPost({ payload: {} })));
 
     // Correct hash for the first bucket, wrong for the second
     const hash0 = await hashEventBucket([{ id: entry1.id, updatedAt: entry1.updatedAt }]);

@@ -50,3 +50,27 @@ export const ROOT_KEY_ENV_VAR = "COMMON_STORAGE_ROOT_KEY";
 
 // Maximum JSON-encoded payload size in bytes; Deno KV hard-limits stored values at 65536 bytes
 export const MAX_PAYLOAD_BYTES = 60_000;
+
+// Maximum byte length of an Idempotency-Key header value; keeps the KV key well under Deno KV's 2KB total key limit
+export const MAX_IDEMPOTENCY_KEY_BYTES = 512;
+
+// Tombstones older than this are eligible for GC
+export const TOMBSTONE_RETENTION_MS = 24 * 60 * 60 * 1_000;
+
+// Cron schedule for the metrics emitter — every minute
+export const METRICS_CRON = "* * * * *";
+
+// Cron schedule for the tombstone GC sweep — daily at midnight
+export const GC_CRON = "0 0 * * *";
+
+// Env var name to override the config file path; useful on Deno Deploy where XDG paths do not exist
+export const CMSTR_CONFIG_PATH_ENV_VAR = "CMSTR_CONFIG_PATH";
+
+// Idempotency cache namespace for POST /events/:topic
+export const IDEMPOTENCY_NS_POST_EVENT = "post-event";
+
+// Idempotency cache namespace for PUT /events/:topic/:id
+export const IDEMPOTENCY_NS_PUT_EVENT = "put-event";
+
+// Idempotency cache namespace for PUT /objects/:topic/:id
+export const IDEMPOTENCY_NS_PUT_OBJECT = "put-object";

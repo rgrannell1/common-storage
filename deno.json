@@ -1,6 +1,13 @@
 {
+  "deploy": {
+    "entrypoint": "main.ts"
+  },
   "lint": {
     "plugins": ["./lint-plugins/no-single-letter-vars.ts"]
+  },
+  "compilerOptions": {
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   },
   "imports": {
     "@deno-libs/superfetch": "jsr:@deno-libs/superfetch@^3.0.0",

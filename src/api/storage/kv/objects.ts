@@ -5,6 +5,7 @@ import type { ObjectEntry, ObjectDiffRequest, ObjectDiffResult } from "../capabi
 import { hashUpdatedAt } from "./hashing.ts";
 import type { StoredTopic, StoredTopicStats, StoredObject } from "../types/stored-types.ts";
 import { KV_TOPIC, KV_TOPIC_STATS, KV_OBJECT } from "../keys.ts";
+import { TOMBSTONE_RETENTION_MS } from "../../../commons/constants.ts";
 
 export async function upsertObject(kv: Deno.Kv, topic: string, id: string, payload: unknown): Promise<ObjectEntry | null> {
   const meta = await kv.get<StoredTopic>([...KV_TOPIC, topic]);
@@ -129,4 +130,14 @@ export async function readObject(kv: Deno.Kv, topic: string, id: string): Promis
   }
 
   return entry.value;
+}
+
+// Deletes tombstones (payload: null) whose updatedAt is older than TOMBSTONE_RETENTION_MS.
+export async function sweepTombstones(kv: Deno.Kv, topic: string): Promise<void> {
+  const cutoff = Date.now() - TOMBSTONE_RETENTION_MS;
+  for await (const item of kv.list<StoredObject>({ prefix: [...KV_OBJECT, topic] })) {
+    if (item.value.payload === null && item.value.updatedAt < cutoff) {
+      await kv.delete(item.key);
+    }
+  }
 }

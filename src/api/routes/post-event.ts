@@ -9,7 +9,7 @@ import { pathParamParser, bodyParser, mergeAll, idempotencyKeyParser, responsePa
 import { TopicNameSchema, EventEntrySchema } from "../parsers/schemas.ts";
 import type { IValidateTopicPayload } from "../parsers/payload-schema.ts";
 import type { IWriteEvent, IReadIdempotencyEntry, IWriteIdempotencyEntry, EventEntry } from "../storage/capabilities.ts";
-import { MAX_PAYLOAD_BYTES } from "../../commons/constants.ts";
+import { MAX_PAYLOAD_BYTES, IDEMPOTENCY_NS_POST_EVENT } from "../../commons/constants.ts";
 
 const PostEventPathSchema = z.object({
   topic: TopicNameSchema,
@@ -28,7 +28,7 @@ type PostEventDeps = {
 
 async function postEvent(deps: PostEventDeps, params: PostEventRequest): Promise<Result<EventEntry, RouteError>> {
   if (params.idempotencyKey !== undefined) {
-    const cached = await deps.storage.readIdempotencyEntry(params.topic, params.idempotencyKey);
+    const cached = await deps.storage.readIdempotencyEntry(IDEMPOTENCY_NS_POST_EVENT, params.topic, params.idempotencyKey);
     if (cached !== null) {
       return ok(cached as EventEntry);
     }
@@ -47,7 +47,7 @@ async function postEvent(deps: PostEventDeps, params: PostEventRequest): Promise
   }
 
   if (params.idempotencyKey !== undefined) {
-    await deps.storage.writeIdempotencyEntry(params.topic, params.idempotencyKey, entry);
+    await deps.storage.writeIdempotencyEntry(IDEMPOTENCY_NS_POST_EVENT, params.topic, params.idempotencyKey, entry);
   }
 
   return ok(entry);

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { ok, err, type Result } from "../../commons/types/result.ts";
 import type { RequestParts, RequestParser, ResponseParser } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
+import { MAX_IDEMPOTENCY_KEY_BYTES } from "../../commons/constants.ts";
 
 // Builds a RequestParser that extracts query params from the URL matching the schema's shape.
 // Boolean fields are read as flags (present = true, absent = false); all others as strings.
@@ -87,10 +88,17 @@ export function bodyParser<SchemaOutput>(schema: z.ZodType<SchemaOutput>) {
   };
 }
 
-// Extracts the Idempotency-Key header as an optional string.
+// Extracts the Idempotency-Key header as an optional string; rejects keys exceeding the length limit.
 export function idempotencyKeyParser() {
   return (parts: RequestParts<unknown>): Result<{ idempotencyKey: string | undefined }, RouteError> => {
-    return ok({ idempotencyKey: parts.headers.get("Idempotency-Key") ?? undefined });
+    const raw = parts.headers.get("Idempotency-Key");
+    if (raw === null) return ok({ idempotencyKey: undefined });
+
+    if (raw.length > MAX_IDEMPOTENCY_KEY_BYTES) {
+      return err({ kind: "parse_request", field: "Idempotency-Key", message: `Idempotency-Key must be at most ${MAX_IDEMPOTENCY_KEY_BYTES} bytes` });
+    }
+
+    return ok({ idempotencyKey: raw });
   };
 }
 

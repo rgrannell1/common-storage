@@ -3,12 +3,14 @@
 import { docopt } from "docopt";
 import { init } from "./commands/init.ts";
 import { mint } from "./commands/mint.ts";
+import { validate } from "./commands/validate.ts";
 
 const DOC = `
 cs - common-storage CLI
 
 Usage:
   cs init
+  cs validate
   cs mint [<name>]
   cs http get feed                                   [--server <alias>]
   cs http get content  -p topic=<topic>              [--server <alias>] [-p start=<id>] [-p size=<n>]
@@ -27,7 +29,8 @@ Options:
   -h --help         Show this help
 
 Commands:
-  init              Create config skeleton if absent; validate and report errors if present
+  init              Create config skeleton if absent
+  validate          Parse and validate the config file, reporting any errors
   mint [<name>]     Print a token for the named definition, or all name/token pairs
   http              Make an API request to a common-storage server
 `;
@@ -36,8 +39,8 @@ const args = docopt(DOC, { argv: Deno.args });
 
 if (args["init"]) {
   await init();
-}
-
-if (args["mint"]) {
+} else if (args["validate"]) {
+  await validate();
+} else if (args["mint"]) {
   await mint(args["<name>"] ?? undefined);
 }

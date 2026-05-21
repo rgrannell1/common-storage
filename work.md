@@ -25,7 +25,9 @@ All Zod scalar field schemas — topic name, timestamp, title, version, paginati
 
 `GET /feed` returns a JSON object containing an array of topic summaries each with the topic name, entry count, and last-updated timestamp; and an array of active subscriptions each with the source URL, local topic name, polling frequency, and creation timestamp. The `?human` query flag is accepted but reserved for future pretty-printing; it does not change the response structure.
 
-`cs init` opens the config file at `~/.config/common-storage/config.json` in `$EDITOR`, creating it with a minimal valid skeleton if it does not yet exist. When the editor exits, the file is parsed as JSON and validated against the Zod config schema. If the file is not valid JSON or fails validation, the errors are printed and the user is asked whether to re-open the editor; this loop repeats until the config is valid or the user declines. Once the config is valid, the user is asked whether to run the server as a systemd user service or as a Docker container; the command handles the full setup without the user interacting with systemd or Docker directly. The XDG base directory (`$XDG_CONFIG_HOME`, defaulting to `~/.config`) is respected when locating the config file.
+`cs init` creates a minimal config skeleton at `~/.config/common-storage/config.json` if one does not already exist, then exits. If the file already exists, the command reports its path and does nothing. The XDG base directory (`$XDG_CONFIG_HOME`, defaulting to `~/.config`) is respected when locating the config file.
+
+`cs validate` reads the config file and validates it against the Zod config schema. If the file is missing, not valid JSON, or fails schema validation, the errors are printed and the command exits non-zero. On success it prints the config path and exits zero.
 
 The config supports explicit topic definitions for both event and object topics. Event topics are declared as an array of objects each with a `name` and an optional `schema` field (a path to a JSON Schema file for payload validation). Object topics are declared the same way. If `schema` is omitted for a topic, any JSON value is accepted as a payload. The `SchemasConfig` folder-path approach is replaced by these explicit topic lists. Topic names must be between 1 and 128 characters.
 
@@ -195,7 +197,9 @@ Rotating the bloom filter periodically prevents it from filling entirely and los
 
 ## CLI
 
-`common-storage init` opens `$EDITOR` with the config file at `~/.config/common-storage/config.json` (XDG base dir). A Dockerfile is provided for running common-storage as a hardened container. On exit, the config is validated against the schema. If it is invalid, the errors are printed and the user is asked whether to re-open the editor and fix them; this repeats until the config is valid or the user aborts. Once valid, the command asks how the user wants to run the server — as a systemd user service or as a Docker container — and handles the setup entirely: writing and enabling the service, or building and running the container. The user never interacts with systemd or Docker directly.
+`cs init` creates a minimal config skeleton at `~/.config/common-storage/config.json` (XDG base dir) if one does not already exist, then exits. If the file already exists, it reports the path and does nothing.
+
+`cs validate` reads and validates the config against the Zod schema. Prints errors and exits non-zero on failure; prints the config path and exits zero on success.
 
 `common-storage mint <name>` derives and prints a Macaroon token for the named token definition in config. `common-storage mint` with no arguments prints all name/token pairs.
 
@@ -364,5 +368,24 @@ The root key is the one secret, held as an environment variable. Tokens do not e
       > dead code.
 - [x] #33 `fixed` — `src/commons/config.ts:5` — `HttpMethod` Zod enum re-declares the HTTP methods list; derive from a shared constant in `src/commons/constants.ts`
       > use methods from constants
+- [x] #34 `fixed` — `main.ts:33` — entry point uses `Deno.serve()` which is not the Deno Deploy pattern; needs `export default { fetch }` satisfying `Deno.ServeDefaultExport`
+      > Deno Deploy compatibility
+- [x] #35 `fixed` — `src/api/metrics/emitter.ts:11` — `setInterval` blocks isolate from idling on Deno Deploy, preventing deployments from being replaced; replace with `Deno.cron()`
+      > Deno Deploy compatibility
+- [x] #36 `fixed` — `src/api/subscriptions/scheduler.ts:13` — `setInterval` per subscription has the same isolate-idle problem; replace with `Deno.cron()` (note: crons must be registered at module load, so subscriptions must be registered statically from config)
+      > Deno Deploy compatibility
+- [x] #37 `fixed` — `main.ts:15-16` — config is loaded from the XDG path (`~/.config/...`) which does not exist on Deno Deploy; support a `CMSTR_CONFIG_PATH` env var override so Deploy can point to a relative `./config.json` committed alongside the code
+      > Deno Deploy compatibility
+
+- [ ] #38 `open` — `tests/fuzz.test.ts` — `?filter=` JMESPath param is not fuzz-tested; arbitrary strings fed to the JMESPath parser may crash or return 500 instead of 400
+      > malformed expressions should return 400; the parser may not be hardened against adversarial input
+
+- [ ] #39 `open` — `tests/fuzz.test.ts` — path params (`:topic`, `:id`) are not fuzz-tested; long names, null bytes, unicode, and path-traversal strings may cause KV key issues or routing errors
+      > 128-char topic name limit, special characters in KV keys, `../foo` and `%00` variants
+
+- [ ] #40 `open` — `tests/fuzz.test.ts` — `POST /diff/:topic` body is not fuzz-tested with structurally valid but semantically wrong payloads; hashes of wrong length, non-hex chars, thousands of buckets, `bucketSize: 0`, and overlapping ranges are untested
+      > passes schema parse step but hits business logic — likely crash surface
+
+- [ ] #41 `open` — `tests/fuzz.test.ts` — `?start=` param is not fuzz-tested; non-integers, negatives, `NaN`, `Infinity`, and very large values may return 500 instead of 4xx
 
 ### Passing

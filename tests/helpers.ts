@@ -71,11 +71,16 @@ export type PersistentTestContext = {
   cleanup: () => Promise<void>;
 };
 
-export async function makePersistentServer(
-  events: TopicConfig[] = [],
-  objects: TopicConfig[] = [],
+type ServerHandle = {
+  port: number;
+  cleanup: () => Promise<void>;
+};
+
+async function spawnServer(
+  events: TopicConfig[],
+  objects: TopicConfig[],
   rateLimits?: RateLimitConfig,
-): Promise<PersistentTestContext> {
+): Promise<ServerHandle> {
   const tmpPath = await Deno.makeTempFile({ suffix: ".db" });
   const storage = new DenoKVBackend(tmpPath);
 
@@ -87,43 +92,34 @@ export async function makePersistentServer(
   const server = Deno.serve({ port: 0 }, app.fetch);
   const { port } = server.addr;
 
-  const fetch = (url: string, init?: RequestInit) =>
-    globalThis.fetch(`http://localhost:${port}${url}`, withAuth(init));
-
   const cleanup = async () => {
     await server.shutdown();
     await storage.close();
     await Deno.remove(tmpPath);
   };
 
+  return { port, cleanup };
+}
+
+export async function makePersistentServer(
+  events: TopicConfig[] = [],
+  objects: TopicConfig[] = [],
+  rateLimits?: RateLimitConfig,
+): Promise<PersistentTestContext> {
+  const { port, cleanup } = await spawnServer(events, objects, rateLimits);
+  const fetch = (url: string, init?: RequestInit) =>
+    globalThis.fetch(`http://localhost:${port}${url}`, withAuth(init));
   return { fetch, cleanup };
 }
 
-// Creates a persistent server that sends requests without adding an auth token — used to prove routes reject unauthenticated requests.
+// Creates a persistent server whose fetch wrapper omits the auth token — used to prove routes reject unauthenticated requests.
 export async function makeUnauthContext(
   events: TopicConfig[] = [],
   objects: TopicConfig[] = [],
 ): Promise<PersistentTestContext> {
-  const tmpPath = await Deno.makeTempFile({ suffix: ".db" });
-  const storage = new DenoKVBackend(tmpPath);
-
-  await storage.init();
-  await storage.createTopics(events, objects);
-
-  const schemas = await buildSchemaRegistry(events, objects);
-  const app = createApp({ storage, collector: new MetricsCollector(), config: TEST_CONFIG, schemas });
-  const server = Deno.serve({ port: 0 }, app.fetch);
-  const { port } = server.addr;
-
+  const { port, cleanup } = await spawnServer(events, objects);
   const fetch = (url: string, init?: RequestInit) =>
     globalThis.fetch(`http://localhost:${port}${url}`, init);
-
-  const cleanup = async () => {
-    await server.shutdown();
-    await storage.close();
-    await Deno.remove(tmpPath);
-  };
-
   return { fetch, cleanup };
 }
 

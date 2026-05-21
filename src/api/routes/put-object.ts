@@ -9,7 +9,7 @@ import { pathParamParser, bodyParser, mergeAll, idempotencyKeyParser, responsePa
 import { TopicNameSchema, ObjectEntrySchema } from "../parsers/schemas.ts";
 import type { IValidateTopicPayload } from "../parsers/payload-schema.ts";
 import type { IUpsertObject, IReadIdempotencyEntry, IWriteIdempotencyEntry, ObjectEntry } from "../storage/capabilities.ts";
-import { MAX_PAYLOAD_BYTES } from "../../commons/constants.ts";
+import { MAX_PAYLOAD_BYTES, IDEMPOTENCY_NS_PUT_OBJECT } from "../../commons/constants.ts";
 
 const PutObjectPathSchema = z.object({
   topic: TopicNameSchema,
@@ -29,7 +29,7 @@ type PutObjectDeps = {
 
 async function putObject(deps: PutObjectDeps, params: PutObjectRequest): Promise<Result<ObjectEntry, RouteError>> {
   if (params.idempotencyKey !== undefined) {
-    const cached = await deps.storage.readIdempotencyEntry(params.topic, params.idempotencyKey);
+    const cached = await deps.storage.readIdempotencyEntry(IDEMPOTENCY_NS_PUT_OBJECT, params.topic, params.idempotencyKey);
     if (cached !== null) {
       return ok(cached as ObjectEntry);
     }
@@ -48,7 +48,7 @@ async function putObject(deps: PutObjectDeps, params: PutObjectRequest): Promise
   }
 
   if (params.idempotencyKey !== undefined) {
-    await deps.storage.writeIdempotencyEntry(params.topic, params.idempotencyKey, entry);
+    await deps.storage.writeIdempotencyEntry(IDEMPOTENCY_NS_PUT_OBJECT, params.topic, params.idempotencyKey, entry);
   }
 
   return ok(entry);

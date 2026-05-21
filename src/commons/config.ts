@@ -78,6 +78,19 @@ export type TokenCaveatsConfig = z.infer<typeof TokenCaveatsConfig>;
 export type SubscriptionConfig = z.infer<typeof SubscriptionConfig>;
 export type AliasConfig = z.infer<typeof AliasConfig>;
 
+// Parses and validates config text; returns human-readable error strings, or an empty array on success.
+export function validateConfigText(text: string): string[] {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch (parseErr) {
+    return [`Not valid JSON: ${parseErr}`];
+  }
+  const result = Config.safeParse(raw);
+  if (result.success) return [];
+  return result.error.errors.map(zodErr => `${zodErr.path.join(".")}: ${zodErr.message}`);
+}
+
 // Reads config text from path: runs it as a subprocess if executable, reads it as a file otherwise.
 // Mirrors the Ansible dynamic-inventory pattern — static and generated configs share the same interface.
 export async function readConfigText(path: string): Promise<string> {
