@@ -7,6 +7,7 @@ import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
 import { pathParamParser, bodyParser, mergeAll, idempotencyKeyParser, responseParser } from "../parsers/combinators.ts";
 import { TopicNameSchema, ObjectEntrySchema } from "../parsers/schemas.ts";
+import type { IValidateTopicPayload } from "../parsers/payload-schema.ts";
 import type { IUpsertObject, IReadIdempotencyEntry, IWriteIdempotencyEntry, ObjectEntry } from "../storage/capabilities.ts";
 
 const PutObjectPathSchema = z.object({
@@ -22,6 +23,7 @@ type PutObjectRequest = z.infer<typeof PutObjectPathSchema> & z.infer<typeof Put
 
 type PutObjectDeps = {
   storage: IUpsertObject & IReadIdempotencyEntry & IWriteIdempotencyEntry;
+  schemas: IValidateTopicPayload;
 };
 
 async function putObject(deps: PutObjectDeps, params: PutObjectRequest): Promise<Result<ObjectEntry, RouteError>> {
@@ -31,6 +33,9 @@ async function putObject(deps: PutObjectDeps, params: PutObjectRequest): Promise
       return ok(cached as ObjectEntry);
     }
   }
+
+  const schemaError = deps.schemas.validate(params.topic, params.payload);
+  if (schemaError !== null) return err({ kind: "validation_error", message: schemaError });
 
   const entry = await deps.storage.upsertObject(params.topic, params.id, params.payload);
   if (entry === null) {

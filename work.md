@@ -298,4 +298,35 @@ The root key is the one secret, held as an environment variable. Tokens do not e
 
 ### Snag List
 
+- [x] #1 `fixed` — `src/api/app.ts:22` — `AppDeps` is defined in app.ts instead of a dedicated types file
+      > move to type file
+- [x] #2 `fixed` — `src/api/commons/responses.ts:18` — `SuccessHandler` and `ErrorHandler` type aliases lack documentation
+      > document these briefly
+- [x] #3 `fixed` — `src/api/metrics/collector.ts:45` — `#recordBucket` private method lacks a doc comment
+      > document what this does
+- [x] #4 `fixed` — `src/api/metrics/collector.ts:47` — magic number `60_000` (ms per minute) is inlined rather than named
+      > factor out constants to named variables
+- [x] #5 `fixed` — `src/api/metrics/collector.ts:57` — `#trimBuckets` private method lacks a doc comment
+      > document what this does
+- [x] #6 `fixed` — `src/api/metrics/collector.ts:63` — `#rateForMinutes` private method lacks a doc comment
+      > document what this does
+- [x] #7 `fixed` — `src/api/middleware/auth.ts:13` — user flagged `isTopicPrefix` body (no comment left)
+      >
+- [x] #8 `fixed` — `src/api/middleware/auth.ts:17` — user flagged `topicFromPath` body lines 17–21 (no comment left)
+      >
+- [x] #9 `wontfix` — `src/api/middleware/rate-limit.ts:50` — bloom filter removed entirely; first-time IPs now get a KV counter directly
+      > DO NOT IMPLEMENT THIS YOURSELF. USE A LIBRARY
+- [x] #10 `fixed` — `src/api/routes/get-events.ts:41` — `buildNdjsonStream` lacks a doc comment
+      > document this
+- [x] #11 `fixed` — `src/api/routes/get-events.ts:51` — `getEvents` handles two distinct paths (stream and paginated) in one body; split into focused helpers
+      > large function
+- [x] #12 `fixed` — `src/api/routes/post-diff.ts:44` — functions in post-diff.ts lack doc comments
+      > document functions in here
+- [x] #13 `fixed` — `src/api/storage/kv/events.ts:1` — file is too large; decompose into a folder with subfiles per concern
+      > this file is ENORMOUS. Decompose into a folder + subfiles
+- [x] #14 `fixed` — `src/api/storage/kv/index.ts:13` — base KV utility methods (get/set/delete/list) should be extracted to their own file
+      > own file please
+- [x] #15 `fixed` — `src/commons/auth.ts:19` — `AuthError` should move to a central types location alongside other error types
+      > lift error response types somewhere more central across the package
+
 ### Passing

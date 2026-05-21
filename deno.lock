@@ -2,6 +2,7 @@
   "version": "5",
   "specifiers": {
     "jsr:@deno-libs/superfetch@3": "3.0.0",
+    "jsr:@std/assert@*": "1.0.0",
     "jsr:@std/assert@1.0.0": "1.0.0",
     "jsr:@std/internal@^1.0.1": "1.0.13",
     "jsr:@std/json@1": "1.1.0",
@@ -9,6 +10,7 @@
     "jsr:@std/streams@^1.1.0": "1.1.0",
     "npm:@hono/zod-validator@0.4": "0.4.3_hono@4.12.18_zod@3.25.76",
     "npm:ajv@8": "8.17.1",
+    "npm:bloom-filters@3": "3.0.4",
     "npm:docopt@0.6": "0.6.2",
     "npm:hono@4": "4.12.18",
     "npm:jmespath@0.16": "0.16.0",
@@ -19,7 +21,7 @@
     "@deno-libs/superfetch@3.0.0": {
       "integrity": "8504f17cd6cab62789aaa9cafe9ef07a263a4cafa46f96ee8caae52aa3d821f7",
       "dependencies": [
-        "jsr:@std/assert",
+        "jsr:@std/assert@1.0.0",
         "jsr:@std/media-types"
       ]
     },
@@ -53,6 +55,9 @@
         "zod"
       ]
     },
+    "@types/seedrandom@3.0.8": {
+      "integrity": "sha512-TY1eezMU2zH2ozQoAFAQFOPpvP15g+ZgSfTZt31AUUH/Rxtnz3H+A/Sv1Snw2/amp//omibc+AEkTaA8KUeOLQ=="
+    },
     "ajv@8.17.1": {
       "integrity": "sha512-B/gBuNg5SiMTrPkC+A2+cW0RszwxYmn6VYxB/inlBStS5nx6xHIt/ehKRhIMhqusl7a8LjQoZnjCs5vhwxOQ1g==",
       "dependencies": [
@@ -61,6 +66,25 @@
         "json-schema-traverse",
         "require-from-string"
       ]
+    },
+    "base64-arraybuffer@1.0.2": {
+      "integrity": "sha512-I3yl4r9QB5ZRY3XuJVEPfc2XhZO6YweFPI+UovAzn+8/hb3oJ6lnysaFcjVpkCPfVWFUDvoZ8kmVDP7WyRtYtQ=="
+    },
+    "bloom-filters@3.0.4": {
+      "integrity": "sha512-BdnPWo2OpYhlvuP2fRzJBdioMCkm7Zp0HCf8NJgF5Mbyqy7VQ/CnTiVWMMyq4EZCBHwj0Kq6098gW2/3RsZsrA==",
+      "dependencies": [
+        "@types/seedrandom",
+        "base64-arraybuffer",
+        "is-buffer",
+        "lodash",
+        "long",
+        "reflect-metadata",
+        "seedrandom",
+        "xxhashjs"
+      ]
+    },
+    "cuint@0.2.2": {
+      "integrity": "sha512-d4ZVpCW31eWwCMe1YT3ur7mUDnTXbgwyzaL320DrcRT45rfjYxkt5QWLrmOJ+/UEAI2+fQgKe/fCjR8l4TpRgw=="
     },
     "docopt@0.6.2": {
       "integrity": "sha512-NqTbaYeE4gA/wU1hdKFdU+AFahpDOpgGLzHP42k6H6DKExJd0A55KEVWYhL9FEmHmgeLvEU2vuKXDuU+4yToOw=="
@@ -77,6 +101,9 @@
     "hono@4.12.18": {
       "integrity": "sha512-RWzP96k/yv0PQfyXnWjs6zot20TqfpfsNXhOnev8d1InAxubW93L11/oNUc3tQqn2G0bSdAOBpX+2uDFHV7kdQ=="
     },
+    "is-buffer@2.0.5": {
+      "integrity": "sha512-i2R6zNFDwgEHJyQUtJEk0XFi1i0dPFn/oqjK3/vPCcDeJvW5NQ83V8QbicfF1SupOaB0h8ntgBC2YiE7dfyctQ=="
+    },
     "is-typedarray@1.0.0": {
       "integrity": "sha512-cyA56iCMHAh5CdzjJIa4aohJyeO1YbwLi3Jc35MmRU6poroFjIGZzUzupGiRPOjgHg9TLu43xbpwXk523fMxKA=="
     },
@@ -86,6 +113,12 @@
     "json-schema-traverse@1.0.0": {
       "integrity": "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="
     },
+    "lodash@4.17.21": {
+      "integrity": "sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg=="
+    },
+    "long@5.3.2": {
+      "integrity": "sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA=="
+    },
     "macaroons.js@0.3.9": {
       "integrity": "sha512-mSAl7o2xVYaN6ZxI/DfrB5G3cuQwW7D4HIwvvk6S5FrY4Ih6EQamV7/OMBW1XD79eiwBcstZ60DREH8M99N67A==",
       "dependencies": [
@@ -93,13 +126,25 @@
         "typedarray-to-buffer"
       ]
     },
+    "reflect-metadata@0.1.14": {
+      "integrity": "sha512-ZhYeb6nRaXCfhnndflDK8qI6ZQ/YcWZCISRAWICW9XYqMUwjZM9Z0DveWX/ABN01oxSHwVxKQmxeYZSsm0jh5A=="
+    },
     "require-from-string@2.0.2": {
       "integrity": "sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw=="
+    },
+    "seedrandom@3.0.5": {
+      "integrity": "sha512-8OwmbklUNzwezjGInmZ+2clQmExQPvomqjL7LFqOYqtmuxRgQYqOD3mHaU+MvZn5FLUeVxVfQjwLZW/n/JFuqg=="
     },
     "typedarray-to-buffer@3.1.5": {
       "integrity": "sha512-zdu8XMNEDepKKR+XYOXAVPtWui0ly0NtohUscw+UmaHiAWT8hrV1rr//H6V+0DvJ3OQ19S979M0laLfX8rm82Q==",
       "dependencies": [
         "is-typedarray"
+      ]
+    },
+    "xxhashjs@0.2.2": {
+      "integrity": "sha512-AkTuIuVTET12tpsVIQo+ZU6f/qDmKuRUcjaqR+OIvm+aCBsZ95i7UVY5WJ9TMsSaZ0DA2WxoZ4acu0sPH+OKAw==",
+      "dependencies": [
+        "cuint"
       ]
     },
     "zod@3.25.76": {

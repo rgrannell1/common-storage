@@ -35,6 +35,8 @@ const TokenCaveatsConfig = z.object({
   topic: z.string().min(1).max(128).optional(),
   // HTTP methods this token may use; omit to allow all methods
   methods: z.array(HttpMethod).optional(),
+  // ISO 8601 datetime after which this token is invalid, e.g. "2026-12-31T00:00"
+  expires: z.string().optional(),
 });
 
 const TokenConfig = z.object({
@@ -74,3 +76,8 @@ export type TokenConfig = z.infer<typeof TokenConfig>;
 export type TokenCaveatsConfig = z.infer<typeof TokenCaveatsConfig>;
 export type SubscriptionConfig = z.infer<typeof SubscriptionConfig>;
 export type AliasConfig = z.infer<typeof AliasConfig>;
+
+export async function loadConfig(path: string): Promise<Config> {
+  const text = await Deno.readTextFile(path);
+  return Config.parse(JSON.parse(text));
+}

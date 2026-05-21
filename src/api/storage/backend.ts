@@ -14,6 +14,7 @@ export interface IStorageBackend {
   close(): Promise<void>;
   get<StoredValue>(key: string[]): Promise<StoredValue | null>;
   set<StoredValue>(key: string[], value: StoredValue): Promise<void>;
+  setWithExpiry<StoredValue>(key: string[], value: StoredValue, expireInMs: number): Promise<void>;
   delete(key: string[]): Promise<void>;
   list<StoredValue>(prefix: string[], options?: { start?: string[]; limit?: number }): AsyncIterable<{ key: string[]; value: StoredValue }>;
   atomic(): IAtomicWriter;

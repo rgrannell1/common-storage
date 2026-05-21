@@ -7,6 +7,7 @@ import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
 import { pathParamParser, bodyParser, mergeAll, idempotencyKeyParser } from "../parsers/combinators.ts";
 import { TopicNameSchema, EventEntrySchema, TimestampSchema } from "../parsers/schemas.ts";
+import type { IValidateTopicPayload } from "../parsers/payload-schema.ts";
 import type { IUpdateEvent, IReadIdempotencyEntry, IWriteIdempotencyEntry, EventEntry } from "../storage/capabilities.ts";
 
 const PutEventPathSchema = z.object({
@@ -25,6 +26,7 @@ type PutEventResult = { entry: EventEntry; created: boolean };
 
 type PutEventDeps = {
   storage: IUpdateEvent & IReadIdempotencyEntry & IWriteIdempotencyEntry;
+  schemas: IValidateTopicPayload;
 };
 
 async function putEvent(deps: PutEventDeps, params: PutEventRequest): Promise<Result<PutEventResult, RouteError>> {
@@ -34,6 +36,9 @@ async function putEvent(deps: PutEventDeps, params: PutEventRequest): Promise<Re
       return ok(cached as PutEventResult);
     }
   }
+
+  const schemaError = deps.schemas.validate(params.topic, params.payload);
+  if (schemaError !== null) return err({ kind: "validation_error", message: schemaError });
 
   const result = await deps.storage.updateEvent(params.topic, params.id, params.payload, {
     createdAt: params.createdAt,

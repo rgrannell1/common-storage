@@ -24,5 +24,3 @@ export const KV_RATE_LIMIT_IP = ["rate-limit", "ip"];
 // Prefix for global rate-limit bucket counters: ["rate-limit", "global", <bucket-minute>]
 export const KV_RATE_LIMIT_GLOBAL = ["rate-limit", "global"];
 
-// Bloom filter state for IP deduplication: ["bloom", "ip"]
-export const KV_BLOOM_IP = ["bloom", "ip"];

@@ -1,6 +1,7 @@
 // Storage capability sub-interfaces and their associated types — composed per route via intersection types
 // @work.md
 
+import type { IStorageBackend } from "./backend.ts";
 import type { TopicConfig } from "../../commons/config.ts";
 
 export type TopicStats = {
@@ -158,6 +159,7 @@ export type UpdateEventTimestamps = {
 
 // Full storage backend — intersection of all capability interfaces. Use only where all capabilities are genuinely required (e.g. AppDeps). Route deps types should remain narrow.
 export type IFullStorage =
+  & IStorageBackend
   & IGetTopicNames
   & IGetTopicStats
   & IGetSubscriptions

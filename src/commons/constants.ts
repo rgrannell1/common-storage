@@ -20,3 +20,6 @@ export const SYSTEMD_SERVICE_NAME = "common-storage";
 
 // Default number of entries returned by paginated content endpoints
 export const DEFAULT_PAGE_SIZE = 100;
+
+// Route path segments that carry a :topic parameter — used by auth middleware to extract the topic
+export const TOPIC_ROUTE_PREFIXES = ["events", "objects", "diff"] as const;

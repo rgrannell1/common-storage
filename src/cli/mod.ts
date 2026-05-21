@@ -2,6 +2,7 @@
 
 import { docopt } from "docopt";
 import { init } from "./commands/init.ts";
+import { mint } from "./commands/mint.ts";
 
 const DOC = `
 cs - common-storage CLI
@@ -35,4 +36,8 @@ const args = docopt(DOC, { argv: Deno.args });
 
 if (args["init"]) {
   await init();
+}
+
+if (args["mint"]) {
+  await mint(args["<name>"] ?? undefined);
 }

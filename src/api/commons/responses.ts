@@ -15,7 +15,10 @@ import {
 
 const NDJSON_CONTENT_TYPE = "application/x-ndjson";
 
+// Maps a discriminated success kind to a function that serialises it into an HTTP Response.
 type SuccessHandler<Kind extends RouteSuccess["kind"]> = (ctx: Context, success: Extract<RouteSuccess, { kind: Kind }>) => Response;
+
+// Maps a discriminated error kind to a function that serialises it into an HTTP Response.
 type ErrorHandler<Kind extends RouteError["kind"]> = (ctx: Context, error: Extract<RouteError, { kind: Kind }>) => Response;
 
 const SUCCESS_HANDLERS: { [Kind in RouteSuccess["kind"]]: SuccessHandler<Kind> } = {

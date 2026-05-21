@@ -4,9 +4,9 @@
 import type { IAtomicWriter, IStorageBackend } from "../backend.ts";
 import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IGetTopicType, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents, IDiffEvents, EventDiffRequest, EventDiffResult, UpdateEventTimestamps, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IDiffObjects, ObjectDiffRequest, ObjectDiffResult, IReadIdempotencyEntry, IWriteIdempotencyEntry, TopicStats, Subscription, EventEntry, ReadEventOptions, ObjectEntry } from "../capabilities.ts";
 import type { TopicConfig } from "../../../commons/config.ts";
-import { DenoAtomicWriter } from "./atomic.ts";
+import { kvGet, kvSet, kvSetWithExpiry, kvDelete, kvList, kvAtomic } from "./base.ts";
 import * as Topics from "./topics.ts";
-import * as Events from "./events.ts";
+import * as Events from "./events/index.ts";
 import * as Objects from "./objects.ts";
 import * as Idempotency from "./idempotency.ts";
 
@@ -29,18 +29,22 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
 
   async get<StoredValue>(key: string[]): Promise<StoredValue | null> {
     this.#assertInitialised();
-    const entry = await this.kv!.get<StoredValue>(key);
-    return entry.value;
+    return kvGet<StoredValue>(this.kv!, key);
   }
 
   async set<StoredValue>(key: string[], value: StoredValue): Promise<void> {
     this.#assertInitialised();
-    await this.kv!.set(key, value);
+    return kvSet<StoredValue>(this.kv!, key, value);
+  }
+
+  async setWithExpiry<StoredValue>(key: string[], value: StoredValue, expireInMs: number): Promise<void> {
+    this.#assertInitialised();
+    return kvSetWithExpiry<StoredValue>(this.kv!, key, value, expireInMs);
   }
 
   async delete(key: string[]): Promise<void> {
     this.#assertInitialised();
-    await this.kv!.delete(key);
+    return kvDelete(this.kv!, key);
   }
 
   async *list<StoredValue>(
@@ -48,23 +52,12 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
     options?: { start?: string[]; limit?: number },
   ): AsyncGenerator<{ key: string[]; value: StoredValue }> {
     this.#assertInitialised();
-
-    const selector: Deno.KvListSelector = options?.start
-      ? { prefix, start: options.start }
-      : { prefix };
-
-    const kvOptions: Deno.KvListOptions = options?.limit
-      ? { limit: options.limit }
-      : {};
-
-    for await (const entry of this.kv!.list<StoredValue>(selector, kvOptions)) {
-      yield { key: entry.key as string[], value: entry.value };
-    }
+    yield* kvList<StoredValue>(this.kv!, prefix, options);
   }
 
   atomic(): IAtomicWriter {
     this.#assertInitialised();
-    return new DenoAtomicWriter(this.kv!.atomic());
+    return kvAtomic(this.kv!);
   }
 
   // -- IGetTopicType --

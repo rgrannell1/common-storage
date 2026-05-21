@@ -38,6 +38,7 @@ type GetEventsPaginated = z.infer<typeof GetEventsResponseSchema>;
 type GetEventsStream = { kind: "stream"; stream: ReadableStream<Uint8Array> };
 type GetEventsResponse = GetEventsPaginated | GetEventsStream;
 
+// Wraps an async generator of entries into a UTF-8 NDJSON ReadableStream.
 function buildNdjsonStream(generator: AsyncGenerator<EventEntry>): ReadableStream<Uint8Array> {
   return ReadableStream.from(generator)
     .pipeThrough(new TransformStream<EventEntry, string>({
@@ -48,13 +49,13 @@ function buildNdjsonStream(generator: AsyncGenerator<EventEntry>): ReadableStrea
     .pipeThrough(new TextEncoderStream());
 }
 
-async function getEvents(deps: GetEventsDeps, params: GetEventsRequest): Promise<Result<GetEventsResponse, RouteError>> {
-  if (params.stream) {
-    const startId = params.start ?? 1;
-    const generator = deps.storage.streamEvents(params.topic, startId, params.signal);
-    return ok({ kind: "stream", stream: buildNdjsonStream(generator) });
-  }
+function streamEventsResponse(deps: GetEventsDeps, params: GetEventsRequest): Result<GetEventsResponse, RouteError> {
+  const startId = params.start ?? 1;
+  const generator = deps.storage.streamEvents(params.topic, startId, params.signal);
+  return ok({ kind: "stream", stream: buildNdjsonStream(generator) });
+}
 
+async function paginatedEventsResponse(deps: GetEventsDeps, params: GetEventsRequest): Promise<Result<GetEventsResponse, RouteError>> {
   const size = params.size ?? DEFAULT_PAGE_SIZE;
   const fetched = await deps.storage.readEvents(params.topic, {
     start: params.start,
@@ -75,6 +76,11 @@ async function getEvents(deps: GetEventsDeps, params: GetEventsRequest): Promise
   }
 
   return ok({ entries: fetched, next });
+}
+
+async function getEvents(deps: GetEventsDeps, params: GetEventsRequest): Promise<Result<GetEventsResponse, RouteError>> {
+  if (params.stream) return streamEventsResponse(deps, params);
+  return paginatedEventsResponse(deps, params);
 }
 
 function eventsResponseParser(value: unknown): Result<RouteSuccess, RouteError> {
