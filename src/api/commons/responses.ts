@@ -9,6 +9,7 @@ import {
   STATUS_NO_CONTENT,
   STATUS_BAD_REQUEST,
   STATUS_NOT_FOUND,
+  STATUS_UNPROCESSABLE,
   STATUS_INTERNAL_ERROR,
 } from "./statuses.ts";
 
@@ -25,9 +26,10 @@ const SUCCESS_HANDLERS: { [Kind in RouteSuccess["kind"]]: SuccessHandler<Kind> }
 };
 
 const ERROR_HANDLERS: { [Kind in RouteError["kind"]]: ErrorHandler<Kind> } = {
-  parse_request: (ctx, error) => ctx.json({ error: error.message, field: error.field }, STATUS_BAD_REQUEST),
-  not_found:     (ctx, error) => ctx.json({ error: `Not found: ${error.resource}` }, STATUS_NOT_FOUND),
-  internal:      (ctx, _error) => ctx.json({ error: "Internal server error" }, STATUS_INTERNAL_ERROR),
+  parse_request:    (ctx, error) => ctx.json({ error: error.message, field: error.field }, STATUS_BAD_REQUEST),
+  validation_error: (ctx, error) => ctx.json({ error: error.message }, STATUS_UNPROCESSABLE),
+  not_found:        (ctx, error) => ctx.json({ error: `Not found: ${error.resource}` }, STATUS_NOT_FOUND),
+  internal:         (ctx, _error) => ctx.json({ error: "Internal server error" }, STATUS_INTERNAL_ERROR),
 };
 
 export function sendSuccess(ctx: Context, success: RouteSuccess): Response {

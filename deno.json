@@ -1,5 +1,6 @@
 {
   "imports": {
+    "@deno-libs/superfetch": "jsr:@deno-libs/superfetch@^3.0.0",
     "hono": "npm:hono@^4",
     "hono/cors": "npm:hono@^4/cors",
     "@hono/zod-validator": "npm:@hono/zod-validator@^0.4",
@@ -7,6 +8,8 @@
     "ajv": "npm:ajv@^8",
     "@std/json": "jsr:@std/json@^1",
     "docopt": "npm:docopt@^0.6",
-    "macaroons.js": "npm:macaroons.js@^0.3.9"
+    "macaroons.js": "npm:macaroons.js@^0.3.9",
+    "jmespath": "npm:jmespath@^0.16",
+    "peach": "../peach.ts/src/mod.ts"
   }
 }

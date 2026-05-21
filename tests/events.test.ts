@@ -60,7 +60,7 @@ Deno.test("Proves GET /events/:topic returns an empty array when no entries exis
   try {
     const res = await request("/events/logs");
     res.expectStatus(200);
-    res.expectBody([]);
+    res.expectBody({ entries: [], next: null });
   } finally {
     await cleanup();
   }
@@ -79,7 +79,7 @@ Deno.test("Proves GET /events/:topic returns written entries in order", async ()
     await (await fetch("/events/logs", postInit(2))).json();
 
     const res = await fetch("/events/logs");
-    const entries = await res.json() as Array<{ id: number }>;
+    const { entries } = await res.json() as { entries: Array<{ id: number }> };
 
     if (entries.length !== 2) throw new Error(`Expected 2 entries, got ${entries.length}`);
     if (entries[0].id !== 1 || entries[1].id !== 2) {
@@ -104,7 +104,7 @@ Deno.test("Proves GET /events/:topic ?size limits the number of entries returned
     await (await fetch("/events/logs", postInit)).json();
 
     const res = await fetch("/events/logs?size=2");
-    const entries = await res.json() as unknown[];
+    const { entries } = await res.json() as { entries: unknown[] };
 
     if (entries.length !== 2) throw new Error(`Expected 2 entries with size=2, got ${entries.length}`);
   } finally {
@@ -127,10 +127,86 @@ Deno.test("Proves GET /events/:topic ?start returns entries from that ID onward"
 
     // start=2 should return entries with id >= 2
     const res = await fetch("/events/logs?start=2");
-    const entries = await res.json() as Array<{ id: number }>;
+    const { entries } = await res.json() as { entries: Array<{ id: number }> };
 
     if (entries.length !== 2) throw new Error(`Expected 2 entries with start=2, got ${entries.length}`);
     if (entries[0].id !== 2) throw new Error(`Expected first entry id=2, got ${entries[0].id}`);
+  } finally {
+    await cleanup();
+  }
+});
+
+type NextIdCase = {
+  label: string;
+  writeCount: number;
+  size: number;
+  expectedNext: number | null;
+};
+
+const NEXT_ID_CASES: NextIdCase[] = [
+  // full page: server cannot tell if more entries exist, so next points past last returned id
+  { label: "full page → next points past last entry", writeCount: 3, size: 2, expectedNext: 3 },
+  // partial page: fewer entries than requested, topic is exhausted
+  { label: "partial page → next is null",             writeCount: 3, size: 4, expectedNext: null },
+  // exact fit: server still cannot distinguish end-of-topic from a full page without a lookahead read
+  { label: "exact fit → next is non-null",            writeCount: 3, size: 3, expectedNext: 4 },
+];
+
+for (const { label, writeCount, size, expectedNext } of NEXT_ID_CASES) {
+  Deno.test(`Proves GET /events/:topic next id — ${label}`, async () => {
+    const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
+    try {
+      const postInit: RequestInit = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload: {} }),
+      };
+
+      for (let idx = 0; idx < writeCount; idx++) {
+        await (await fetch("/events/logs", postInit)).json();
+      }
+
+      const res = await fetch(`/events/logs?size=${size}`);
+      const { next } = await res.json() as { next: number | null };
+
+      if (next !== expectedNext) {
+        throw new Error(`Expected next=${expectedNext}, got next=${next}`);
+      }
+    } finally {
+      await cleanup();
+    }
+  });
+}
+
+Deno.test("Proves GET /events/:topic next id can be used to continue pagination", async () => {
+  const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
+  try {
+    const postInit: RequestInit = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload: {} }),
+    };
+
+    for (let idx = 0; idx < 4; idx++) {
+      await (await fetch("/events/logs", postInit)).json();
+    }
+
+    const page1 = await (await fetch("/events/logs?size=2")).json() as { entries: Array<{ id: number }>; next: number | null };
+    if (page1.entries.length !== 2) throw new Error(`Page 1: expected 2 entries, got ${page1.entries.length}`);
+    if (page1.next === null) throw new Error("Page 1: expected non-null next");
+
+    // Page 2 returns exactly size=2 entries, so next is non-null — server cannot distinguish end-of-topic from a full page
+    const page2 = await (await fetch(`/events/logs?size=2&start=${page1.next}`)).json() as { entries: Array<{ id: number }>; next: number | null };
+    if (page2.entries.length !== 2) throw new Error(`Page 2: expected 2 entries, got ${page2.entries.length}`);
+    if (page2.next === null) throw new Error("Page 2: expected non-null next (exact fit, lookahead required to confirm end)");
+
+    // Page 3 is empty — confirms topic is exhausted
+    const page3 = await (await fetch(`/events/logs?size=2&start=${page2.next}`)).json() as { entries: Array<{ id: number }>; next: number | null };
+    if (page3.entries.length !== 0) throw new Error(`Page 3: expected 0 entries, got ${page3.entries.length}`);
+    if (page3.next !== null) throw new Error(`Page 3: expected null next, got ${page3.next}`);
+
+    const allIds = [...page1.entries, ...page2.entries].map(entry => entry.id);
+    if (allIds.join(",") !== "1,2,3,4") throw new Error(`Expected ids 1,2,3,4 across pages, got ${allIds.join(",")}`);
   } finally {
     await cleanup();
   }

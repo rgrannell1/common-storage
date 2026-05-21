@@ -100,6 +100,9 @@ export const QueryStartSchema = z.coerce.number().int().nonnegative();
 // Page size coerced from a query string parameter; used in paginated endpoints
 export const QuerySizeSchema = z.coerce.number().int().positive();
 
+// JMESPath filter expression applied to each entry's payload; used in ?filter= lookups
+export const QueryFilterSchema = z.string().min(1);
+
 // Comma-separated list of entry IDs coerced from a query string parameter; used in ?ids= lookups
 export const QueryIdsSchema = z.string()
   .transform((val) => val.split(",").map((segment) => parseInt(segment.trim(), 10)))

@@ -18,7 +18,7 @@ Deno.test("Proves GET /events/:topic?ids= returns an empty array when no IDs mat
   try {
     const res = await request("/events/logs?ids=99,100");
     res.expectStatus(200);
-    res.expectBody([]);
+    res.expectBody({ entries: [], next: null });
   } finally {
     await cleanup();
   }
@@ -38,7 +38,7 @@ Deno.test("Proves GET /events/:topic?ids= returns only the requested entries", a
     await (await fetch("/events/logs", postInit(3))).json();
 
     const res = await fetch("/events/logs?ids=1,3");
-    const entries = await res.json() as Array<{ id: number }>;
+    const { entries } = await res.json() as { entries: Array<{ id: number }> };
 
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     if (entries.length !== 2) throw new Error(`Expected 2 entries, got ${entries.length}`);

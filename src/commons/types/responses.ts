@@ -2,6 +2,7 @@
 
 export type RouteError =
   | { kind: "parse_request"; field: string; message: string }
+  | { kind: "validation_error"; message: string }
   | { kind: "not_found"; resource: string }
   | { kind: "internal"; message: string };
 
