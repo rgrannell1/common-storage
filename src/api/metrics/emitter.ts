@@ -1,39 +1,21 @@
-// Periodic metrics emitter — flushes the collector and writes a snapshot event to the metrics topic.
-// Depends only on IWriteEvent; all collection is handled by collector.ts.
+// Periodic metrics emitter — snapshots the collector and upserts to the metrics object topic.
+// Depends only on IUpsertObject; all collection is handled by collector.ts.
 
-import type { IWriteEvent } from "../storage/capabilities.ts";
+import type { IUpsertObject } from "../storage/capabilities.ts";
 import type { MetricsCollector } from "./collector.ts";
 import { METRICS_TOPIC } from "../../commons/constants.ts";
 
-// How often to emit a metrics event, in milliseconds
+// How often to upsert the metrics object, in milliseconds
 const METRICS_INTERVAL_MS = 60_000;
 
-type MetricsPayload = {
-  requests: {
-    total: number;
-    byMethod: Record<string, number>;
-    byStatus: Record<string, number>;
-  };
-  periodMs: number;
-  timestamp: number;
-};
+// Fixed object ID — always overwritten; the topic holds one live snapshot
+const METRICS_OBJECT_ID = "latest";
 
-async function emitSnapshot(storage: IWriteEvent, collector: MetricsCollector, periodMs: number): Promise<void> {
-  const snapshot = collector.flush();
-  const payload: MetricsPayload = {
-    requests: snapshot,
-    periodMs,
-    timestamp: Date.now(),
-  };
-  await storage.writeEvent(METRICS_TOPIC, payload);
-}
-
-// Starts a periodic loop that flushes the collector and writes a metrics event.
+// Starts a periodic loop that snapshots the collector and upserts the metrics object.
 // Returns a cleanup function that stops the loop.
-export function startMetricsLoop(storage: IWriteEvent, collector: MetricsCollector): () => void {
-  const intervalId = setInterval(
-    () => emitSnapshot(storage, collector, METRICS_INTERVAL_MS),
-    METRICS_INTERVAL_MS,
-  );
+export function startMetricsLoop(storage: IUpsertObject, collector: MetricsCollector): () => void {
+  const intervalId = setInterval(async () => {
+    await storage.upsertObject(METRICS_TOPIC, METRICS_OBJECT_ID, collector.snapshot());
+  }, METRICS_INTERVAL_MS);
   return () => clearInterval(intervalId);
 }

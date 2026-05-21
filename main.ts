@@ -23,7 +23,7 @@ async function main(): Promise<void> {
   await storage.createTopics(config.events ?? [], config.objects ?? []);
 
   // Ensure the reserved metrics topic always exists, independent of user config
-  await storage.createTopics([{ name: METRICS_TOPIC }], []);
+  await storage.createTopics([], [{ name: METRICS_TOPIC }]);
 
   const collector = new MetricsCollector();
   startMetricsLoop(storage, collector);
