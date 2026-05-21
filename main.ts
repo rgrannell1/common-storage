@@ -8,6 +8,7 @@ import { DenoKVBackend } from "./src/api/storage/kv/index.ts";
 import { xdgConfigHome, resolveConfigPath } from "./src/cli/paths.ts";
 import { MetricsCollector } from "./src/api/metrics/collector.ts";
 import { startMetricsLoop } from "./src/api/metrics/emitter.ts";
+import { startSubscriptions } from "./src/api/subscriptions/scheduler.ts";
 
 async function loadConfig(path: string): Promise<Config> {
   const text = await Deno.readTextFile(path);
@@ -27,6 +28,7 @@ async function main(): Promise<void> {
 
   const collector = new MetricsCollector();
   startMetricsLoop(storage, collector);
+  startSubscriptions(config.subscriptions ?? [], storage);
 
   const app = createApp({ storage, collector });
 

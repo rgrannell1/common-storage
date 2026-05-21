@@ -13,11 +13,29 @@ Deno.test("Proves PUT /events/:topic/:id returns 404 for an unknown topic", asyn
   }
 });
 
-Deno.test("Proves PUT /events/:topic/:id returns 404 for a missing entry", async () => {
-  const { request, cleanup } = await makeTestContext([{ name: "logs" }]);
+Deno.test("Proves PUT /events/:topic/:id creates entry at specific ID when absent", async () => {
+  const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   try {
-    const res = await request("/events/logs/999", jsonPut({ payload: {} }));
-    res.expectStatus(404);
+    const res = await fetch("/events/logs/500", jsonPut({ payload: { value: 1 } }));
+    const entry = await res.json() as { id: number; payload: { value: number } };
+
+    if (res.status !== 201) throw new Error(`Expected 201, got ${res.status}`);
+    if (entry.id !== 500) throw new Error(`Expected id 500, got ${entry.id}`);
+  } finally {
+    await cleanup();
+  }
+});
+
+Deno.test("Proves PUT /events/:topic/:id advances counter so subsequent writes avoid collision", async () => {
+  const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
+  try {
+    await discard(await fetch("/events/logs/500", jsonPut({ payload: {} })));
+
+    const res = await fetch("/events/logs", jsonPost({ payload: {} }));
+    const entry = await res.json() as { id: number };
+
+    if (res.status !== 201) throw new Error(`Expected 201, got ${res.status}`);
+    if (entry.id <= 500) throw new Error(`Expected id > 500, got ${entry.id}`);
   } finally {
     await cleanup();
   }

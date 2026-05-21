@@ -2,7 +2,7 @@
 // @work.md
 
 import type { IAtomicWriter, IStorageBackend } from "../backend.ts";
-import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IGetTopicType, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents, IDiffEvents, EventDiffRequest, EventDiffResult, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IDiffObjects, ObjectDiffRequest, ObjectDiffResult, IReadIdempotencyEntry, IWriteIdempotencyEntry, TopicStats, Subscription, EventEntry, ReadEventOptions, ObjectEntry } from "../capabilities.ts";
+import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IGetTopicType, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents, IDiffEvents, EventDiffRequest, EventDiffResult, UpdateEventTimestamps, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IDiffObjects, ObjectDiffRequest, ObjectDiffResult, IReadIdempotencyEntry, IWriteIdempotencyEntry, TopicStats, Subscription, EventEntry, ReadEventOptions, ObjectEntry } from "../capabilities.ts";
 import type { TopicConfig } from "../../../commons/config.ts";
 import { DenoAtomicWriter } from "./atomic.ts";
 import * as Topics from "./topics.ts";
@@ -131,9 +131,9 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
 
   // -- IUpdateEvent --
 
-  async updateEvent(topic: string, id: number, payload: unknown): Promise<EventEntry | null> {
+  async updateEvent(topic: string, id: number, payload: unknown, timestamps?: UpdateEventTimestamps): Promise<{ entry: EventEntry; created: boolean } | null> {
     this.#assertInitialised();
-    return Events.updateEvent(this.kv!, topic, id, payload);
+    return Events.updateEvent(this.kv!, topic, id, payload, timestamps);
   }
 
   // -- IDiffEvents --

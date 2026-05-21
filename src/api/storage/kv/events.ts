@@ -1,7 +1,7 @@
 // Event topic read/write — implements IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents
 // @work.md
 
-import type { EventEntry, ReadEventOptions, EventDiffRequest, EventDiffResult, EventDiffBucket } from "../capabilities.ts";
+import type { EventEntry, ReadEventOptions, EventDiffRequest, EventDiffResult, EventDiffBucket, UpdateEventTimestamps } from "../capabilities.ts";
 import { hashEventBucket, hashBucketRoot } from "./hashing.ts";
 
 // How long to wait between polls when no new entries are found
@@ -53,33 +53,44 @@ export async function readEvent(kv: Deno.Kv, topic: string, id: number): Promise
   return entry.value;
 }
 
-export async function updateEvent(kv: Deno.Kv, topic: string, id: number, payload: unknown): Promise<EventEntry | null> {
+export async function updateEvent(kv: Deno.Kv, topic: string, id: number, payload: unknown, timestamps?: UpdateEventTimestamps): Promise<{ entry: EventEntry; created: boolean } | null> {
   const meta = await kv.get<StoredTopic>([...KV_TOPIC, topic]);
-  if (!meta.value) {
-    return null;
-  }
+  if (!meta.value) return null;
 
   while (true) {
     const existing = await kv.get<StoredEvent>([...KV_EVENT, topic, id]);
-    if (!existing.value) {
-      return null;
-    }
     const stats = await kv.get<StoredTopicStats>([...KV_TOPIC_STATS, topic]);
+    const counter = await kv.get<number>([...KV_EVENT_COUNTER, topic]);
 
+    const isNew = existing.value === null;
     const now = Date.now();
-    const updated: StoredEvent = { ...existing.value, updatedAt: now, payload };
-    const newStats: StoredTopicStats = { count: stats.value?.count ?? 0, lastUpdated: now };
 
-    const result = await kv.atomic()
+    const entry: StoredEvent = {
+      id,
+      createdAt: isNew ? (timestamps?.createdAt ?? now) : existing.value!.createdAt,
+      updatedAt: timestamps?.updatedAt ?? now,
+      payload,
+    };
+    const newStats: StoredTopicStats = {
+      count: (stats.value?.count ?? 0) + (isNew ? 1 : 0),
+      lastUpdated: entry.updatedAt,
+    };
+
+    let atomic = kv.atomic()
       .check(existing)
       .check(stats)
-      .set([...KV_EVENT, topic, id], updated)
-      .set([...KV_TOPIC_STATS, topic], newStats)
-      .commit();
+      .set([...KV_EVENT, topic, id], entry)
+      .set([...KV_TOPIC_STATS, topic], newStats);
 
-    if (result.ok) {
-      return updated;
+    if (isNew) {
+      // Advance counter past this ID so future local writeEvent calls don't collide
+      atomic = atomic
+        .check(counter)
+        .set([...KV_EVENT_COUNTER, topic], Math.max(counter.value ?? 0, id));
     }
+
+    const result = await atomic.commit();
+    if (result.ok) return { entry, created: isNew };
   }
 }
 

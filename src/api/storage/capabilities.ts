@@ -49,8 +49,8 @@ export interface IWriteEvent {
 export type ReadEventOptions = {
   // First entry ID to return, inclusive; omit to start from the beginning
   start?: number;
-  // Maximum number of entries to return
-  size: number;
+  // Maximum number of entries to return; omit to return all
+  size?: number;
   // Fetch specific entries by ID; when present, start and size are ignored
   ids?: number[];
 };
@@ -71,8 +71,8 @@ export interface IReadEvent {
 }
 
 export interface IUpdateEvent {
-  // Returns null if the topic or entry does not exist
-  updateEvent(topic: string, id: number, payload: unknown): Promise<EventEntry | null>;
+  // Upserts an event at the given ID. Returns null if the topic does not exist; created is true when a new entry was written.
+  updateEvent(topic: string, id: number, payload: unknown, timestamps?: UpdateEventTimestamps): Promise<{ entry: EventEntry; created: boolean } | null>;
 }
 
 export type ObjectEntry = {
@@ -148,6 +148,13 @@ export interface IDiffObjects {
   // Returns null if the topic does not exist
   diffObjects(topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null>;
 }
+
+export type UpdateEventTimestamps = {
+  // Timestamp to use for createdAt when creating a new entry; ignored on update
+  createdAt?: number;
+  // Timestamp to use for updatedAt; defaults to now
+  updatedAt?: number;
+};
 
 // Full storage backend — intersection of all capability interfaces. Use only where all capabilities are genuinely required (e.g. AppDeps). Route deps types should remain narrow.
 export type IFullStorage =
