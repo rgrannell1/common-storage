@@ -52,8 +52,6 @@ export async function deleteObject(kv: Deno.Kv, topic: string, id: string): Prom
     const existing = await kv.get<StoredObject>([...KV_OBJECT, topic, id]);
     const stats = await kv.get<StoredTopicStats>([...KV_TOPIC_STATS, topic]);
     const now = Date.now();
-    const isNew = existing.value === null;
-
     const tombstone: StoredObject = {
       id,
       createdAt: existing.value?.createdAt ?? now,

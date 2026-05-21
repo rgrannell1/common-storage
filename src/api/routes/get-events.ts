@@ -5,7 +5,7 @@ import { z } from "zod";
 import { ok, err, type Result } from "../../commons/types/result.ts";
 import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
-import { pathParamParser, queryParser, mergeParser, mergeAll, acceptParser, abortSignalParser, responseParser } from "../parsers/combinators.ts";
+import { pathParamParser, queryParser, mergeAll, acceptParser, abortSignalParser, responseParser } from "../parsers/combinators.ts";
 import { TopicNameSchema, EventEntrySchema, QueryStartSchema, QuerySizeSchema, QueryIdsSchema, QueryFilterSchema } from "../parsers/schemas.ts";
 import { applyFilter } from "../parsers/filter.ts";
 import { DEFAULT_PAGE_SIZE } from "../../commons/constants.ts";
@@ -78,8 +78,8 @@ async function paginatedEventsResponse(deps: GetEventsDeps, params: GetEventsReq
   return ok({ entries: fetched, next });
 }
 
-async function getEvents(deps: GetEventsDeps, params: GetEventsRequest): Promise<Result<GetEventsResponse, RouteError>> {
-  if (params.stream) return streamEventsResponse(deps, params);
+function getEvents(deps: GetEventsDeps, params: GetEventsRequest): Promise<Result<GetEventsResponse, RouteError>> {
+  if (params.stream) return Promise.resolve(streamEventsResponse(deps, params));
   return paginatedEventsResponse(deps, params);
 }
 

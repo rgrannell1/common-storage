@@ -37,8 +37,8 @@ export async function getTopicType(kv: Deno.Kv, topic: string): Promise<"event" 
   return meta.value?.type ?? null;
 }
 
-export async function getSubscriptions(): Promise<Subscription[]> {
-  return [];
+export function getSubscriptions(): Promise<Subscription[]> {
+  return Promise.resolve([]);
 }
 
 export async function createTopics(kv: Deno.Kv, events: TopicConfig[], objects: TopicConfig[]): Promise<void> {

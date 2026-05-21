@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import { ok, err, type Result } from "../../commons/types/result.ts";
-import type { Route, RequestParts } from "../../commons/types/parser.ts";
+import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
 import { pathParamParser, mergeParser, rawBodyParser } from "../parsers/combinators.ts";
 import { TopicNameSchema, HexHashSchema } from "../parsers/schemas.ts";

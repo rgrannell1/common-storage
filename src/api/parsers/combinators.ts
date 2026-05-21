@@ -7,8 +7,8 @@ import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts"
 
 // Builds a RequestParser that extracts query params from the URL matching the schema's shape.
 // Boolean fields are read as flags (present = true, absent = false); all others as strings.
-export function queryParser<S extends z.ZodRawShape>(schema: z.ZodObject<S>) {
-  return (parts: RequestParts<unknown>): Result<z.infer<z.ZodObject<S>>, RouteError> => {
+export function queryParser<Shape extends z.ZodRawShape>(schema: z.ZodObject<Shape>) {
+  return (parts: RequestParts<unknown>): Result<z.infer<z.ZodObject<Shape>>, RouteError> => {
     const raw: Record<string, unknown> = {};
 
     for (const [key, fieldSchema] of Object.entries(schema.shape)) {

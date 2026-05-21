@@ -22,27 +22,28 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
     this.kv = await Deno.openKv(this.path);
   }
 
-  async close(): Promise<void> {
+  close(): Promise<void> {
     this.#assertInitialised();
     this.kv!.close();
+    return Promise.resolve();
   }
 
-  async get<StoredValue>(key: string[]): Promise<StoredValue | null> {
+  get<StoredValue>(key: string[]): Promise<StoredValue | null> {
     this.#assertInitialised();
     return kvGet<StoredValue>(this.kv!, key);
   }
 
-  async set<StoredValue>(key: string[], value: StoredValue): Promise<void> {
+  set<StoredValue>(key: string[], value: StoredValue): Promise<void> {
     this.#assertInitialised();
     return kvSet<StoredValue>(this.kv!, key, value);
   }
 
-  async setWithExpiry<StoredValue>(key: string[], value: StoredValue, expireInMs: number): Promise<void> {
+  setWithExpiry<StoredValue>(key: string[], value: StoredValue, expireInMs: number): Promise<void> {
     this.#assertInitialised();
     return kvSetWithExpiry<StoredValue>(this.kv!, key, value, expireInMs);
   }
 
-  async delete(key: string[]): Promise<void> {
+  delete(key: string[]): Promise<void> {
     this.#assertInitialised();
     return kvDelete(this.kv!, key);
   }
@@ -62,48 +63,48 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
 
   // -- IGetTopicType --
 
-  async getTopicType(topic: string): Promise<"event" | "object" | null> {
+  getTopicType(topic: string): Promise<"event" | "object" | null> {
     this.#assertInitialised();
     return Topics.getTopicType(this.kv!, topic);
   }
 
   // -- IGetTopicNames --
 
-  async getTopicNames(): Promise<string[]> {
+  getTopicNames(): Promise<string[]> {
     this.#assertInitialised();
     return Topics.getTopicNames(this.kv!);
   }
 
   // -- IGetTopicStats --
 
-  async getTopicStats(topic: string): Promise<TopicStats | null> {
+  getTopicStats(topic: string): Promise<TopicStats | null> {
     this.#assertInitialised();
     return Topics.getTopicStats(this.kv!, topic);
   }
 
   // -- IGetSubscriptions --
 
-  async getSubscriptions(): Promise<Subscription[]> {
+  getSubscriptions(): Promise<Subscription[]> {
     return Topics.getSubscriptions();
   }
 
   // -- ICreateTopics --
 
-  async createTopics(events: TopicConfig[], objects: TopicConfig[]): Promise<void> {
+  createTopics(events: TopicConfig[], objects: TopicConfig[]): Promise<void> {
     this.#assertInitialised();
     return Topics.createTopics(this.kv!, events, objects);
   }
 
   // -- IWriteEvent --
 
-  async writeEvent(topic: string, payload: unknown): Promise<EventEntry | null> {
+  writeEvent(topic: string, payload: unknown): Promise<EventEntry | null> {
     this.#assertInitialised();
     return Events.writeEvent(this.kv!, topic, payload);
   }
 
   // -- IReadEvents --
 
-  async readEvents(topic: string, opts: ReadEventOptions): Promise<EventEntry[] | null> {
+  readEvents(topic: string, opts: ReadEventOptions): Promise<EventEntry[] | null> {
     this.#assertInitialised();
     return Events.readEvents(this.kv!, topic, opts);
   }
@@ -117,70 +118,70 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
 
   // -- IReadEvent --
 
-  async readEvent(topic: string, id: number): Promise<EventEntry | null> {
+  readEvent(topic: string, id: number): Promise<EventEntry | null> {
     this.#assertInitialised();
     return Events.readEvent(this.kv!, topic, id);
   }
 
   // -- IUpdateEvent --
 
-  async updateEvent(topic: string, id: number, payload: unknown, timestamps?: UpdateEventTimestamps): Promise<{ entry: EventEntry; created: boolean } | null> {
+  updateEvent(topic: string, id: number, payload: unknown, timestamps?: UpdateEventTimestamps): Promise<{ entry: EventEntry; created: boolean } | null> {
     this.#assertInitialised();
     return Events.updateEvent(this.kv!, topic, id, payload, timestamps);
   }
 
   // -- IDiffEvents --
 
-  async diffEvents(topic: string, req: EventDiffRequest): Promise<EventDiffResult | null> {
+  diffEvents(topic: string, req: EventDiffRequest): Promise<EventDiffResult | null> {
     this.#assertInitialised();
     return Events.diffEvents(this.kv!, topic, req);
   }
 
   // -- IUpsertObject --
 
-  async upsertObject(topic: string, id: string, payload: unknown): Promise<ObjectEntry | null> {
+  upsertObject(topic: string, id: string, payload: unknown): Promise<ObjectEntry | null> {
     this.#assertInitialised();
     return Objects.upsertObject(this.kv!, topic, id, payload);
   }
 
   // -- IReadObject --
 
-  async readObject(topic: string, id: string): Promise<ObjectEntry | null> {
+  readObject(topic: string, id: string): Promise<ObjectEntry | null> {
     this.#assertInitialised();
     return Objects.readObject(this.kv!, topic, id);
   }
 
   // -- IDeleteObject --
 
-  async deleteObject(topic: string, id: string): Promise<ObjectEntry | null> {
+  deleteObject(topic: string, id: string): Promise<ObjectEntry | null> {
     this.#assertInitialised();
     return Objects.deleteObject(this.kv!, topic, id);
   }
 
   // -- IDiffObjects --
 
-  async diffObjects(topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null> {
+  diffObjects(topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null> {
     this.#assertInitialised();
     return Objects.diffObjects(this.kv!, topic, req);
   }
 
   // -- IReadObjects --
 
-  async readObjects(topic: string): Promise<ObjectEntry[] | null> {
+  readObjects(topic: string): Promise<ObjectEntry[] | null> {
     this.#assertInitialised();
     return Objects.readObjects(this.kv!, topic);
   }
 
   // -- IReadIdempotencyEntry --
 
-  async readIdempotencyEntry(topic: string, key: string): Promise<unknown | null> {
+  readIdempotencyEntry(topic: string, key: string): Promise<unknown | null> {
     this.#assertInitialised();
     return Idempotency.readIdempotencyEntry(this.kv!, topic, key);
   }
 
   // -- IWriteIdempotencyEntry --
 
-  async writeIdempotencyEntry(topic: string, key: string, entry: unknown): Promise<void> {
+  writeIdempotencyEntry(topic: string, key: string, entry: unknown): Promise<void> {
     this.#assertInitialised();
     return Idempotency.writeIdempotencyEntry(this.kv!, topic, key, entry);
   }

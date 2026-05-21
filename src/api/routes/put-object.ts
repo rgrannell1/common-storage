@@ -9,6 +9,7 @@ import { pathParamParser, bodyParser, mergeAll, idempotencyKeyParser, responsePa
 import { TopicNameSchema, ObjectEntrySchema } from "../parsers/schemas.ts";
 import type { IValidateTopicPayload } from "../parsers/payload-schema.ts";
 import type { IUpsertObject, IReadIdempotencyEntry, IWriteIdempotencyEntry, ObjectEntry } from "../storage/capabilities.ts";
+import { MAX_PAYLOAD_BYTES } from "../../commons/constants.ts";
 
 const PutObjectPathSchema = z.object({
   topic: TopicNameSchema,
@@ -36,6 +37,10 @@ async function putObject(deps: PutObjectDeps, params: PutObjectRequest): Promise
 
   const schemaError = deps.schemas.validate(params.topic, params.payload);
   if (schemaError !== null) return err({ kind: "validation_error", message: schemaError });
+
+  if ((JSON.stringify(params.payload) ?? "").length > MAX_PAYLOAD_BYTES) {
+    return err({ kind: "validation_error", message: `Payload exceeds maximum size of ${MAX_PAYLOAD_BYTES} bytes` });
+  }
 
   const entry = await deps.storage.upsertObject(params.topic, params.id, params.payload);
   if (entry === null) {

@@ -19,10 +19,10 @@ function groupIntoBuckets(entries: BucketEntry[], bucketSize: number): Map<numbe
 
 export async function buildDiffRequest(entries: EventEntry[], bucketSize: number = DEFAULT_BUCKET_SIZE): Promise<EventDiffRequest> {
   const bucketMap = groupIntoBuckets(entries, bucketSize);
-  const bucketStarts = [...bucketMap.keys()].sort((a, b) => a - b);
+  const bucketStarts = [...bucketMap.keys()].sort((first, second) => first - second);
 
   const buckets = await Promise.all(bucketStarts.map(async (start) => {
-    const sorted = (bucketMap.get(start) ?? []).sort((a, b) => a.id - b.id);
+    const sorted = (bucketMap.get(start) ?? []).sort((first, second) => first.id - second.id);
     const hash = await hashEventBucket(sorted);
     return { start, end: start + bucketSize, hash };
   }));

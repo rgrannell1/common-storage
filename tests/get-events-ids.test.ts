@@ -1,7 +1,7 @@
 // Integration tests for GET /events/:topic?ids=
 // @work.md
 
-import { makeTestContext, makePersistentServer, jsonPost } from "./helpers.ts";
+import { makeTestContext, makePersistentServer } from "./helpers.ts";
 
 Deno.test("Proves GET /events/:topic?ids= returns 404 for an unknown topic", async () => {
   const { request, cleanup } = await makeTestContext();
@@ -43,7 +43,7 @@ Deno.test("Proves GET /events/:topic?ids= returns only the requested entries", a
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     if (entries.length !== 2) throw new Error(`Expected 2 entries, got ${entries.length}`);
 
-    const ids = entries.map(entry => entry.id).sort((a, b) => a - b);
+    const ids = entries.map(entry => entry.id).sort((first, second) => first - second);
     if (ids[0] !== 1 || ids[1] !== 3) {
       throw new Error(`Expected ids [1, 3], got [${ids.join(", ")}]`);
     }

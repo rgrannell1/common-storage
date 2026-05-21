@@ -78,7 +78,27 @@ export type TokenCaveatsConfig = z.infer<typeof TokenCaveatsConfig>;
 export type SubscriptionConfig = z.infer<typeof SubscriptionConfig>;
 export type AliasConfig = z.infer<typeof AliasConfig>;
 
+// Reads config text from path: runs it as a subprocess if executable, reads it as a file otherwise.
+// Mirrors the Ansible dynamic-inventory pattern — static and generated configs share the same interface.
+export async function readConfigText(path: string): Promise<string> {
+  const info = await Deno.stat(path);
+  const isExecutable = info.mode !== null && (info.mode & 0o100) !== 0;
+
+  if (!isExecutable) {
+    return Deno.readTextFile(path);
+  }
+
+  const command = new Deno.Command(path, { stdout: "piped", stderr: "inherit" });
+  const output = await command.output();
+
+  if (!output.success) {
+    throw new Error(`Config executable '${path}' exited with code ${output.code}`);
+  }
+
+  return new TextDecoder().decode(output.stdout);
+}
+
 export async function loadConfig(path: string): Promise<Config> {
-  const text = await Deno.readTextFile(path);
+  const text = await readConfigText(path);
   return Config.parse(JSON.parse(text));
 }

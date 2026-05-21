@@ -99,6 +99,34 @@ export async function makePersistentServer(
   return { fetch, cleanup };
 }
 
+// Creates a persistent server that sends requests without adding an auth token — used to prove routes reject unauthenticated requests.
+export async function makeUnauthContext(
+  events: TopicConfig[] = [],
+  objects: TopicConfig[] = [],
+): Promise<PersistentTestContext> {
+  const tmpPath = await Deno.makeTempFile({ suffix: ".db" });
+  const storage = new DenoKVBackend(tmpPath);
+
+  await storage.init();
+  await storage.createTopics(events, objects);
+
+  const schemas = await buildSchemaRegistry(events, objects);
+  const app = createApp({ storage, collector: new MetricsCollector(), config: TEST_CONFIG, schemas });
+  const server = Deno.serve({ port: 0 }, app.fetch);
+  const { port } = server.addr;
+
+  const fetch = (url: string, init?: RequestInit) =>
+    globalThis.fetch(`http://localhost:${port}${url}`, init);
+
+  const cleanup = async () => {
+    await server.shutdown();
+    await storage.close();
+    await Deno.remove(tmpPath);
+  };
+
+  return { fetch, cleanup };
+}
+
 // Cancel a response body without reading it; prevents Deno's "body not consumed" leak detection.
 export async function discard(res: Response): Promise<void> {
   await res.body?.cancel();

@@ -24,8 +24,8 @@ type ErrorHandler<Kind extends RouteError["kind"]> = (ctx: Context, error: Extra
 const SUCCESS_HANDLERS: { [Kind in RouteSuccess["kind"]]: SuccessHandler<Kind> } = {
   ok:         (ctx, success) => ctx.json(success.body, STATUS_OK),
   created:    (ctx, success) => ctx.json(success.body, STATUS_CREATED),
-  no_content: (ctx, _success) => new Response(null, { status: STATUS_NO_CONTENT }),
-  stream:     (ctx, success) => new Response(success.stream as ReadableStream, { status: STATUS_OK, headers: { "Content-Type": NDJSON_CONTENT_TYPE } }),
+  no_content: (_ctx, _success) => new Response(null, { status: STATUS_NO_CONTENT }),
+  stream:     (_ctx, success) => new Response(success.stream as ReadableStream, { status: STATUS_OK, headers: { "Content-Type": NDJSON_CONTENT_TYPE } }),
 };
 
 const ERROR_HANDLERS: { [Kind in RouteError["kind"]]: ErrorHandler<Kind> } = {

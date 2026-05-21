@@ -9,6 +9,7 @@ import { pathParamParser, bodyParser, mergeAll, idempotencyKeyParser, responsePa
 import { TopicNameSchema, EventEntrySchema } from "../parsers/schemas.ts";
 import type { IValidateTopicPayload } from "../parsers/payload-schema.ts";
 import type { IWriteEvent, IReadIdempotencyEntry, IWriteIdempotencyEntry, EventEntry } from "../storage/capabilities.ts";
+import { MAX_PAYLOAD_BYTES } from "../../commons/constants.ts";
 
 const PostEventPathSchema = z.object({
   topic: TopicNameSchema,
@@ -35,6 +36,10 @@ async function postEvent(deps: PostEventDeps, params: PostEventRequest): Promise
 
   const schemaError = deps.schemas.validate(params.topic, params.payload);
   if (schemaError !== null) return err({ kind: "validation_error", message: schemaError });
+
+  if ((JSON.stringify(params.payload) ?? "").length > MAX_PAYLOAD_BYTES) {
+    return err({ kind: "validation_error", message: `Payload exceeds maximum size of ${MAX_PAYLOAD_BYTES} bytes` });
+  }
 
   const entry = await deps.storage.writeEvent(params.topic, params.payload);
   if (entry === null) {

@@ -21,9 +21,9 @@ export type RouteSpec = {
 };
 
 // GET and DELETE carry no body per HTTP spec; parsing one would block on an empty stream
-async function extractBody(ctx: Context, method: HttpMethod): Promise<unknown> {
+function extractBody(ctx: Context, method: HttpMethod): Promise<unknown> {
   if (method === "GET" || method === "DELETE") {
-    return null;
+    return Promise.resolve(null);
   }
   return ctx.req.json().catch(() => null);
 }

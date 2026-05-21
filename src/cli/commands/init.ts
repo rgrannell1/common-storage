@@ -1,7 +1,7 @@
 // cs init — create a config skeleton if absent, or validate the existing config
 // @work.md
 
-import { Config } from "../../commons/config.ts";
+import { Config, readConfigText } from "../../commons/config.ts";
 import { DEFAULT_PORT, ROOT_KEY_ENV_VAR } from "../../commons/constants.ts";
 import { xdgConfigHome, resolveConfigPath, parentDir } from "../paths.ts";
 
@@ -47,7 +47,7 @@ export async function init(): Promise<void> {
   }
 
   console.log(`Config: ${path}`);
-  const text = await Deno.readTextFile(path);
+  const text = await readConfigText(path);
   const errors = validateConfig(text);
 
   if (errors.length === 0) {

@@ -8,7 +8,7 @@ import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts"
 import { pathParamParser, queryParser, mergeParser, responseParser } from "../parsers/combinators.ts";
 import { TopicNameSchema, ObjectEntrySchema, QueryFilterSchema } from "../parsers/schemas.ts";
 import { applyFilter } from "../parsers/filter.ts";
-import type { IReadObjects, ObjectEntry } from "../storage/capabilities.ts";
+import type { IReadObjects } from "../storage/capabilities.ts";
 
 const GetObjectsPathSchema = z.object({
   topic: TopicNameSchema,

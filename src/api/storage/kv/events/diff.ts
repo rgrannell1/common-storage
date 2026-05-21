@@ -12,8 +12,8 @@ function bucketStartFor(id: number, bucketSize: number): number {
   return Math.floor((id - 1) / bucketSize) * bucketSize;
 }
 
-function byIdAscending(a: BucketEntry, b: BucketEntry): number {
-  return a.id - b.id;
+function byIdAscending(first: BucketEntry, second: BucketEntry): number {
+  return first.id - second.id;
 }
 
 // Scans all events in the topic and groups them by bucket start offset.
@@ -29,7 +29,7 @@ async function buildBucketMap(kv: Deno.Kv, topic: string, bucketSize: number): P
 }
 
 // Computes a SHA-256 hash for each client bucket against the server's entries.
-async function computeBucketHashes(bucketMap: Map<number, BucketEntry[]>, buckets: EventDiffBucket[]): Promise<string[]> {
+function computeBucketHashes(bucketMap: Map<number, BucketEntry[]>, buckets: EventDiffBucket[]): Promise<string[]> {
   return Promise.all(buckets.map(bucket => {
     const entries = (bucketMap.get(bucket.start) ?? []).sort(byIdAscending);
     return hashEventBucket(entries);

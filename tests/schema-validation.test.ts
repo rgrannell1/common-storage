@@ -1,7 +1,7 @@
 // Schema validation tests — proves that topic payload schemas are enforced on writes
 // @work.md
 
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { makeTestContext, jsonPost, jsonPut } from "./helpers.ts";
 
 const SCHEMA_PATH = await Deno.makeTempFile({ suffix: ".json" });

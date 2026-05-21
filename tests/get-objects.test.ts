@@ -1,7 +1,7 @@
 // Integration tests for GET /objects/:topic
 // @work.md
 
-import { makeTestContext, makePersistentServer, jsonPut } from "./helpers.ts";
+import { makeTestContext, makePersistentServer } from "./helpers.ts";
 
 Deno.test("Proves GET /objects/:topic returns 404 for an unknown topic", async () => {
   const { request, cleanup } = await makeTestContext();

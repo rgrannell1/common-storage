@@ -1,7 +1,7 @@
 // Integration tests for GET /feed
 // @work.md
 
-import { makeTestContext, makePersistentServer, discard, jsonPost } from "./helpers.ts";
+import { makeTestContext, makePersistentServer, discard } from "./helpers.ts";
 
 Deno.test("Proves GET /feed returns empty topics when no topics are configured", async () => {
   const { request, cleanup } = await makeTestContext();

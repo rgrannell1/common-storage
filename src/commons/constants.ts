@@ -47,3 +47,6 @@ export const DEFAULT_BUCKET_SIZE = 100;
 
 // Environment variable name holding the Macaroon root key
 export const ROOT_KEY_ENV_VAR = "COMMON_STORAGE_ROOT_KEY";
+
+// Maximum JSON-encoded payload size in bytes; Deno KV hard-limits stored values at 65536 bytes
+export const MAX_PAYLOAD_BYTES = 60_000;
