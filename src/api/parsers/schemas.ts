@@ -103,6 +103,9 @@ export const QuerySizeSchema = z.coerce.number().int().positive();
 // JMESPath filter expression applied to each entry's payload; used in ?filter= lookups
 export const QueryFilterSchema = z.string().min(1);
 
+// SHA-256 hex digest — 64 lowercase hex characters
+export const HexHashSchema = z.string().regex(/^[0-9a-f]{64}$/, "must be a 64-character lowercase hex string");
+
 // Comma-separated list of entry IDs coerced from a query string parameter; used in ?ids= lookups
 export const QueryIdsSchema = z.string()
   .transform((val) => val.split(",").map((segment) => parseInt(segment.trim(), 10)))

@@ -2,7 +2,7 @@
 // @work.md
 
 import type { IAtomicWriter, IStorageBackend } from "../backend.ts";
-import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadIdempotencyEntry, IWriteIdempotencyEntry, TopicStats, Subscription, EventEntry, ReadEventOptions, ObjectEntry } from "../capabilities.ts";
+import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IGetTopicType, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents, IDiffEvents, EventDiffRequest, EventDiffResult, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IDiffObjects, ObjectDiffRequest, ObjectDiffResult, IReadIdempotencyEntry, IWriteIdempotencyEntry, TopicStats, Subscription, EventEntry, ReadEventOptions, ObjectEntry } from "../capabilities.ts";
 import type { TopicConfig } from "../../../commons/config.ts";
 import { DenoAtomicWriter } from "./atomic.ts";
 import * as Topics from "./topics.ts";
@@ -10,7 +10,7 @@ import * as Events from "./events.ts";
 import * as Objects from "./objects.ts";
 import * as Idempotency from "./idempotency.ts";
 
-export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, ICreateTopics, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadIdempotencyEntry, IWriteIdempotencyEntry {
+export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, IGetTopicType, ICreateTopics, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents, IDiffEvents, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IDiffObjects, IReadIdempotencyEntry, IWriteIdempotencyEntry {
   private kv: Deno.Kv | null = null;
   private path: string | undefined;
 
@@ -65,6 +65,13 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
   atomic(): IAtomicWriter {
     this.#assertInitialised();
     return new DenoAtomicWriter(this.kv!.atomic());
+  }
+
+  // -- IGetTopicType --
+
+  async getTopicType(topic: string): Promise<"event" | "object" | null> {
+    this.#assertInitialised();
+    return Topics.getTopicType(this.kv!, topic);
   }
 
   // -- IGetTopicNames --
@@ -129,6 +136,13 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
     return Events.updateEvent(this.kv!, topic, id, payload);
   }
 
+  // -- IDiffEvents --
+
+  async diffEvents(topic: string, req: EventDiffRequest): Promise<EventDiffResult | null> {
+    this.#assertInitialised();
+    return Events.diffEvents(this.kv!, topic, req);
+  }
+
   // -- IUpsertObject --
 
   async upsertObject(topic: string, id: string, payload: unknown): Promise<ObjectEntry | null> {
@@ -148,6 +162,13 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
   async deleteObject(topic: string, id: string): Promise<ObjectEntry | null> {
     this.#assertInitialised();
     return Objects.deleteObject(this.kv!, topic, id);
+  }
+
+  // -- IDiffObjects --
+
+  async diffObjects(topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null> {
+    this.#assertInitialised();
+    return Objects.diffObjects(this.kv!, topic, req);
   }
 
   // -- IReadObjects --

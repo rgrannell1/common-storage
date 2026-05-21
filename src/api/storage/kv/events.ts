@@ -1,7 +1,8 @@
 // Event topic read/write — implements IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents
 // @work.md
 
-import type { EventEntry, ReadEventOptions } from "../capabilities.ts";
+import type { EventEntry, ReadEventOptions, EventDiffRequest, EventDiffResult, EventDiffBucket } from "../capabilities.ts";
+import { hashEventBucket, hashBucketRoot } from "./hashing.ts";
 
 // How long to wait between polls when no new entries are found
 const STREAM_POLL_INTERVAL_MS = 1_000;
@@ -114,6 +115,45 @@ export async function* streamEvents(kv: Deno.Kv, topic: string, startId: number,
       await waitForPoll(signal);
     }
   }
+}
+
+type BucketEntry = { id: number; updatedAt: number };
+
+async function buildBucketMap(kv: Deno.Kv, topic: string, bucketSize: number): Promise<Map<number, BucketEntry[]>> {
+  const bucketMap = new Map<number, BucketEntry[]>();
+  for await (const item of kv.list<StoredEvent>({ prefix: [...KV_EVENT, topic] })) {
+    const { id, updatedAt } = item.value;
+    const bucketStart = Math.floor((id - 1) / bucketSize) * bucketSize;
+    if (!bucketMap.has(bucketStart)) bucketMap.set(bucketStart, []);
+    bucketMap.get(bucketStart)!.push({ id, updatedAt });
+  }
+  return bucketMap;
+}
+
+async function computeBucketHashes(bucketMap: Map<number, BucketEntry[]>, buckets: EventDiffBucket[]): Promise<string[]> {
+  return Promise.all(buckets.map(bucket => {
+    const entries = (bucketMap.get(bucket.start) ?? []).sort((a, b) => a.id - b.id);
+    return hashEventBucket(entries);
+  }));
+}
+
+function differingRanges(buckets: EventDiffBucket[], serverHashes: string[]): { start: number; end: number }[] {
+  return buckets
+    .filter((bucket, idx) => serverHashes[idx] !== bucket.hash)
+    .map(bucket => ({ start: bucket.start, end: bucket.end }));
+}
+
+export async function diffEvents(kv: Deno.Kv, topic: string, req: EventDiffRequest): Promise<EventDiffResult | null> {
+  const meta = await kv.get<StoredTopic>([...KV_TOPIC, topic]);
+  if (!meta.value) return null;
+
+  const bucketMap = await buildBucketMap(kv, topic, req.bucketSize);
+  const serverHashes = await computeBucketHashes(bucketMap, req.buckets);
+  const serverRoot = await hashBucketRoot(serverHashes);
+
+  if (serverRoot === req.root) return { kind: "match" };
+
+  return { kind: "diff", ranges: differingRanges(req.buckets, serverHashes) };
 }
 
 async function readEventsByIds(kv: Deno.Kv, topic: string, ids: number[]): Promise<EventEntry[]> {

@@ -13,6 +13,7 @@ import { putObjectRoute } from "./routes/put-object.ts";
 import { getObjectRoute } from "./routes/get-object.ts";
 import { deleteObjectRoute } from "./routes/delete-object.ts";
 import { getObjectsRoute } from "./routes/get-objects.ts";
+import { postDiffRoute } from "./routes/post-diff.ts";
 import type { IFullStorage } from "./storage/capabilities.ts";
 
 export type AppDeps = {
@@ -34,6 +35,7 @@ export function createApp(deps: AppDeps): Hono {
     { method: "GET",    path: "/objects/:topic/:id",  route: getObjectRoute(deps) },
     { method: "PUT",    path: "/objects/:topic/:id",  route: putObjectRoute(deps) },
     { method: "DELETE", path: "/objects/:topic/:id",  route: deleteObjectRoute(deps) },
+    { method: "POST",   path: "/diff/:topic",          route: postDiffRoute(deps) },
   ]);
 
   return app;

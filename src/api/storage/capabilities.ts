@@ -112,20 +112,60 @@ export interface IWriteIdempotencyEntry {
   writeIdempotencyEntry(topic: string, key: string, entry: unknown): Promise<void>;
 }
 
+export interface IGetTopicType {
+  // Returns null if the topic does not exist
+  getTopicType(topic: string): Promise<"event" | "object" | null>;
+}
+
+export type EventDiffBucket = { start: number; end: number; hash: string };
+
+export type EventDiffRequest = {
+  bucketSize: number;
+  root: string;
+  buckets: EventDiffBucket[];
+};
+
+export type EventDiffResult =
+  | { kind: "match" }
+  | { kind: "diff"; ranges: { start: number; end: number }[] };
+
+export interface IDiffEvents {
+  // Returns null if the topic does not exist
+  diffEvents(topic: string, req: EventDiffRequest): Promise<EventDiffResult | null>;
+}
+
+export type ObjectDiffEntry = { id: string; hash: string };
+
+export type ObjectDiffRequest = {
+  entries: ObjectDiffEntry[];
+};
+
+export type ObjectDiffResult =
+  | { kind: "match" }
+  | { kind: "diff"; ids: string[] };
+
+export interface IDiffObjects {
+  // Returns null if the topic does not exist
+  diffObjects(topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null>;
+}
+
 // Full storage backend — intersection of all capability interfaces. Use only where all capabilities are genuinely required (e.g. AppDeps). Route deps types should remain narrow.
 export type IFullStorage =
   & IGetTopicNames
   & IGetTopicStats
   & IGetSubscriptions
+  & IGetTopicType
   & ICreateTopics
   & IWriteEvent
   & IReadEvents
   & IStreamEvents
   & IReadEvent
   & IUpdateEvent
+  & IDiffEvents
   & IUpsertObject
   & IReadObject
   & IDeleteObject
   & IReadObjects
+  & IDiffObjects
   & IReadIdempotencyEntry
   & IWriteIdempotencyEntry;

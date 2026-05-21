@@ -1,0 +1,91 @@
+// POST /diff/:topic — set reconciliation for event and object topics
+// @work.md
+
+import { z } from "zod";
+import { ok, err, type Result } from "../../commons/types/result.ts";
+import type { Route, RequestParts } from "../../commons/types/parser.ts";
+import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
+import { pathParamParser, mergeParser, rawBodyParser } from "../parsers/combinators.ts";
+import { TopicNameSchema, HexHashSchema } from "../parsers/schemas.ts";
+import type { IGetTopicType, IDiffEvents, IDiffObjects, EventDiffRequest, ObjectDiffRequest } from "../storage/capabilities.ts";
+
+const PostDiffPathSchema = z.object({
+  topic: TopicNameSchema,
+});
+
+const EventDiffBodySchema = z.object({
+  bucketSize: z.number().int().positive(),
+  root: HexHashSchema,
+  buckets: z.array(z.object({
+    start: z.number().int().nonnegative(),
+    end: z.number().int().positive(),
+    hash: HexHashSchema,
+  })),
+});
+
+const ObjectDiffBodySchema = z.object({
+  entries: z.array(z.object({
+    id: z.string().min(1),
+    hash: HexHashSchema,
+  })),
+});
+
+type PostDiffRequest = z.infer<typeof PostDiffPathSchema> & { body: unknown };
+
+type PostDiffDeps = {
+  storage: IGetTopicType & IDiffEvents & IDiffObjects;
+};
+
+type DiffResult =
+  | { kind: "match" }
+  | { kind: "event_diff"; ranges: { start: number; end: number }[] }
+  | { kind: "object_diff"; ids: string[] };
+
+function parseDiffBody<T>(schema: z.ZodType<T>, rawBody: unknown): Result<T, RouteError> {
+  const parsed = schema.safeParse(rawBody);
+  if (!parsed.success) return err({ kind: "validation_error", message: parsed.error.message });
+  return ok(parsed.data);
+}
+
+async function handleEventDiff(deps: PostDiffDeps, topic: string, rawBody: unknown): Promise<Result<DiffResult, RouteError>> {
+  const body = parseDiffBody(EventDiffBodySchema, rawBody);
+  if (!body.ok) return body;
+
+  const result = await deps.storage.diffEvents(topic, body.value as EventDiffRequest);
+  if (result === null) return err({ kind: "not_found", resource: topic });
+  if (result.kind === "match") return ok({ kind: "match" });
+  return ok({ kind: "event_diff", ranges: result.ranges });
+}
+
+async function handleObjectDiff(deps: PostDiffDeps, topic: string, rawBody: unknown): Promise<Result<DiffResult, RouteError>> {
+  const body = parseDiffBody(ObjectDiffBodySchema, rawBody);
+  if (!body.ok) return body;
+
+  const result = await deps.storage.diffObjects(topic, body.value as ObjectDiffRequest);
+  if (result === null) return err({ kind: "not_found", resource: topic });
+  if (result.kind === "match") return ok({ kind: "match" });
+  return ok({ kind: "object_diff", ids: result.ids });
+}
+
+async function postDiff(deps: PostDiffDeps, params: PostDiffRequest): Promise<Result<DiffResult, RouteError>> {
+  const topicType = await deps.storage.getTopicType(params.topic);
+  if (topicType === null) return err({ kind: "not_found", resource: params.topic });
+
+  if (topicType === "event") return handleEventDiff(deps, params.topic, params.body);
+  return handleObjectDiff(deps, params.topic, params.body);
+}
+
+function diffResponseParser(value: unknown): Result<RouteSuccess, RouteError> {
+  const result = value as DiffResult;
+  if (result.kind === "match") return ok({ kind: "no_content" });
+  if (result.kind === "event_diff") return ok({ kind: "ok", body: { ranges: result.ranges } });
+  return ok({ kind: "ok", body: { ids: result.ids } });
+}
+
+export function postDiffRoute(deps: PostDiffDeps): Route<unknown, PostDiffRequest, DiffResult, RouteSuccess, RouteError> {
+  return {
+    parseRequest: mergeParser(pathParamParser(PostDiffPathSchema), rawBodyParser),
+    handle: postDiff.bind(null, deps),
+    parseResponse: diffResponseParser,
+  };
+}

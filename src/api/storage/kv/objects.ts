@@ -1,7 +1,8 @@
 // Object topic read/write — implements IUpsertObject, IReadObject, IDeleteObject, IReadObjects
 // @work.md
 
-import type { ObjectEntry } from "../capabilities.ts";
+import type { ObjectEntry, ObjectDiffRequest, ObjectDiffResult } from "../capabilities.ts";
+import { hashUpdatedAt } from "./hashing.ts";
 import type { StoredTopic, StoredTopicStats, StoredObject } from "../types/stored-types.ts";
 import { KV_TOPIC, KV_TOPIC_STATS, KV_OBJECT } from "../keys.ts";
 
@@ -76,6 +77,33 @@ export async function deleteObject(kv: Deno.Kv, topic: string, id: string): Prom
       return tombstone;
     }
   }
+}
+
+function buildClientHashMap(entries: ObjectDiffRequest["entries"]): Map<string, string> {
+  return new Map(entries.map(entry => [entry.id, entry.hash]));
+}
+
+async function findDifferingIds(kv: Deno.Kv, topic: string, clientMap: Map<string, string>): Promise<string[]> {
+  const entries: StoredObject[] = [];
+  for await (const item of kv.list<StoredObject>({ prefix: [...KV_OBJECT, topic] })) {
+    entries.push(item.value);
+  }
+
+  const serverHashes = await Promise.all(entries.map(entry => hashUpdatedAt(entry.updatedAt)));
+
+  return entries
+    .filter((entry, idx) => clientMap.get(entry.id) !== serverHashes[idx])
+    .map(entry => entry.id);
+}
+
+export async function diffObjects(kv: Deno.Kv, topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null> {
+  const meta = await kv.get<StoredTopic>([...KV_TOPIC, topic]);
+  if (!meta.value) return null;
+
+  const clientMap = buildClientHashMap(req.entries);
+  const ids = await findDifferingIds(kv, topic, clientMap);
+
+  return ids.length === 0 ? { kind: "match" } : { kind: "diff", ids };
 }
 
 export async function readObjects(kv: Deno.Kv, topic: string): Promise<ObjectEntry[] | null> {

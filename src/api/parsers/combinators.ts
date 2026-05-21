@@ -102,6 +102,11 @@ export function acceptParser(mediaType: string) {
   };
 }
 
+// Captures the raw request body without validation; for routes that defer body parsing until the topic type is known.
+export function rawBodyParser(parts: RequestParts<unknown>): Result<{ body: unknown }, RouteError> {
+  return ok({ body: parts.body });
+}
+
 // Extracts the request AbortSignal so handlers can cancel work when the client disconnects.
 export function abortSignalParser() {
   return (parts: RequestParts<unknown>): Result<{ signal: AbortSignal }, RouteError> => {

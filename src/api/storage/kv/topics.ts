@@ -32,6 +32,11 @@ export async function getTopicStats(kv: Deno.Kv, topic: string): Promise<TopicSt
   };
 }
 
+export async function getTopicType(kv: Deno.Kv, topic: string): Promise<"event" | "object" | null> {
+  const meta = await kv.get<StoredTopic>([...KV_TOPIC, topic]);
+  return meta.value?.type ?? null;
+}
+
 export async function getSubscriptions(): Promise<Subscription[]> {
   return [];
 }
