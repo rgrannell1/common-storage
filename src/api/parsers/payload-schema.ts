@@ -2,12 +2,12 @@
 // @work.md
 
 // deno-lint-ignore-file no-explicit-any
-import AjvModule from "ajv";
+import Ajv2020Module from "ajv/dist/2020";
 import type { ValidateFunction } from "ajv";
 import type { TopicConfig } from "../../commons/config.ts";
 
-const Ajv = (AjvModule as any).default ?? AjvModule;
-const ajv = new Ajv();
+const Ajv2020 = (Ajv2020Module as any).default ?? Ajv2020Module;
+const ajv = new Ajv2020();
 
 export interface IValidateTopicPayload {
   validate(topic: string, payload: unknown): string | null;

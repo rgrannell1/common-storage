@@ -2,7 +2,7 @@
 // @work.md
 
 import { DEFAULT_PORT, ROOT_KEY_ENV_VAR } from "../../commons/constants.ts";
-import { xdgConfigHome, resolveConfigPath, parentDir } from "../paths.ts";
+import { resolveConfigFilePath, parentDir } from "../paths.ts";
 
 const CONFIG_SKELETON = JSON.stringify({
   server: { port: DEFAULT_PORT },
@@ -23,8 +23,8 @@ async function createSkeleton(path: string): Promise<void> {
   await Deno.writeTextFile(path, CONFIG_SKELETON);
 }
 
-export async function init(): Promise<void> {
-  const path = resolveConfigPath(xdgConfigHome());
+export async function init(cfgArg: string | null): Promise<void> {
+  const path = resolveConfigFilePath(cfgArg);
 
   if (await configExists(path)) {
     console.log(`Config already exists: ${path}`);

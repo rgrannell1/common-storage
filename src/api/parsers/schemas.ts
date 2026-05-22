@@ -103,6 +103,12 @@ export const QuerySizeSchema = z.coerce.number().int().positive();
 // JMESPath filter expression applied to each entry's payload; used in ?filter= lookups
 export const QueryFilterSchema = z.string().min(1);
 
+// Any JSON-serialisable value that is explicitly provided; rejects undefined (missing key) and null
+export const JsonPayloadSchema = z.unknown().refine(
+  (val) => val !== undefined && val !== null,
+  { message: "payload must be a non-null JSON value" },
+);
+
 // SHA-256 hex digest — 64 lowercase hex characters
 export const HexHashSchema = z.string().regex(/^[0-9a-f]{64}$/, "must be a 64-character lowercase hex string");
 

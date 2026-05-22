@@ -3,6 +3,28 @@
 
 import { makeTestContext, makePersistentServer, discard, jsonPut } from "./helpers.ts";
 
+type InvalidPayloadCase = {
+  label: string;
+  body: unknown;
+};
+
+const INVALID_PUT_OBJECT_PAYLOAD_CASES: InvalidPayloadCase[] = [
+  { label: "missing payload key", body: {} },
+  { label: "null payload",        body: { payload: null } },
+];
+
+for (const { label, body } of INVALID_PUT_OBJECT_PAYLOAD_CASES) {
+  Deno.test(`Proves PUT /objects/:topic/:id rejects ${label} with 400`, async () => {
+    const { request, cleanup } = await makeTestContext([], [{ name: "things" }]);
+    try {
+      const res = await request("/objects/things/key1", jsonPut(body));
+      res.expectStatus(400);
+    } finally {
+      await cleanup();
+    }
+  });
+}
+
 Deno.test("Proves PUT /objects/:topic/:id returns 404 for an unknown topic", async () => {
   const { request, cleanup } = await makeTestContext();
   try {

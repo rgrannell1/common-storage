@@ -52,6 +52,8 @@ const AliasConfig = z.object({
   name: z.string().min(1).max(64),
   // Base URL of the remote common-storage server
   url: z.string().url(),
+  // Env var name holding the bearer token for this remote server; omit for local alias
+  token: z.string().optional(),
 });
 
 export const Config = z.object({
@@ -69,6 +71,8 @@ export const Config = z.object({
   tokens: z.array(TokenConfig).optional(),
   // Named server URL aliases for the CLI client
   aliases: z.array(AliasConfig).optional(),
+  // Default alias used by `cs http` when --server is not given; falls back to "local" if omitted
+  defaultServer: z.string().min(1).max(64).optional(),
 });
 
 export type Config = z.infer<typeof Config>;

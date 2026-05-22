@@ -6,7 +6,7 @@ import { ok, err, type Result } from "../../commons/types/result.ts";
 import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
 import { pathParamParser, bodyParser, mergeAll, idempotencyKeyParser } from "../parsers/combinators.ts";
-import { TopicNameSchema, EventEntrySchema, TimestampSchema } from "../parsers/schemas.ts";
+import { TopicNameSchema, EventEntrySchema, TimestampSchema, JsonPayloadSchema } from "../parsers/schemas.ts";
 import type { IValidateTopicPayload } from "../parsers/payload-schema.ts";
 import type { IUpdateEvent, IReadIdempotencyEntry, IWriteIdempotencyEntry, EventEntry } from "../storage/capabilities.ts";
 import { MAX_PAYLOAD_BYTES, IDEMPOTENCY_NS_PUT_EVENT } from "../../commons/constants.ts";
@@ -17,7 +17,7 @@ const PutEventPathSchema = z.object({
 });
 
 const PutEventBodySchema = z.object({
-  payload: z.unknown(),
+  payload: JsonPayloadSchema,
   createdAt: TimestampSchema.optional(),
   updatedAt: TimestampSchema.optional(),
 });

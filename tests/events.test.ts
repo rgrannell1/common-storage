@@ -212,6 +212,28 @@ Deno.test("Proves GET /events/:topic next id can be used to continue pagination"
   }
 });
 
+type InvalidPayloadCase = {
+  label: string;
+  body: unknown;
+};
+
+const INVALID_POST_EVENT_PAYLOAD_CASES: InvalidPayloadCase[] = [
+  { label: "missing payload key", body: {} },
+  { label: "null payload",        body: { payload: null } },
+];
+
+for (const { label, body } of INVALID_POST_EVENT_PAYLOAD_CASES) {
+  Deno.test(`Proves POST /events/:topic rejects ${label} with 400`, async () => {
+    const { request, cleanup } = await makeTestContext([{ name: "logs" }]);
+    try {
+      const res = await request("/events/logs", jsonPost(body));
+      res.expectStatus(400);
+    } finally {
+      await cleanup();
+    }
+  });
+}
+
 Deno.test("Proves POST /events/:topic never returns 5xx for arbitrary JSON payloads", async () => {
   const { request, cleanup } = await makeTestContext([{ name: "logs" }]);
   try {

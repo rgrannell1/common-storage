@@ -2,7 +2,7 @@
 // @work.md
 
 import { validateConfigText, readConfigText } from "../../commons/config.ts";
-import { xdgConfigHome, resolveConfigPath } from "../paths.ts";
+import { resolveConfigFilePath } from "../paths.ts";
 
 async function readOrExit(path: string): Promise<string> {
   try {
@@ -14,8 +14,8 @@ async function readOrExit(path: string): Promise<string> {
   }
 }
 
-export async function validate(): Promise<void> {
-  const path = resolveConfigPath(xdgConfigHome());
+export async function validate(cfgArg: string | null): Promise<void> {
+  const path = resolveConfigFilePath(cfgArg);
   const text = await readOrExit(path);
   const errors = validateConfigText(text);
 

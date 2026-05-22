@@ -2,7 +2,7 @@
 
 import { loadConfig } from "../../commons/config.ts";
 import { mintToken } from "../../commons/auth.ts";
-import { xdgConfigHome, resolveConfigPath } from "../paths.ts";
+import { resolveConfigFilePath } from "../paths.ts";
 
 function resolveRootKey(envVarName: string): string {
   const rootKey = Deno.env.get(envVarName);
@@ -14,8 +14,8 @@ function resolveRootKey(envVarName: string): string {
 }
 
 // Prints a token for the named definition, or all name/token pairs if name is undefined
-export async function mint(name: string | undefined): Promise<void> {
-  const config = await loadConfig(resolveConfigPath(xdgConfigHome()));
+export async function mint(name: string | undefined, cfgArg: string | null): Promise<void> {
+  const config = await loadConfig(resolveConfigFilePath(cfgArg));
   const rootKey = resolveRootKey(config.rootKey);
   const tokens = config.tokens ?? [];
 

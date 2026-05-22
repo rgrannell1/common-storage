@@ -4,27 +4,29 @@ import { docopt } from "docopt";
 import { init } from "./commands/init.ts";
 import { mint } from "./commands/mint.ts";
 import { validate } from "./commands/validate.ts";
+import { httpCommand } from "./commands/client/mod.ts";
 
 const DOC = `
 cs - common-storage CLI
 
 Usage:
-  cs init
-  cs validate
-  cs mint [<name>]
-  cs http get feed                                   [--server <alias>]
-  cs http get content  -p topic=<topic>              [--server <alias>] [-p start=<id>] [-p size=<n>]
-  cs http get entry    -p topic=<topic> -p id=<id>   [--server <alias>]
-  cs http post content -p topic=<topic>              [--server <alias>] [<payload>]
-  cs http put entry    -p topic=<topic> -p id=<id>   [--server <alias>] [<payload>]
-  cs http get objects  -p topic=<topic>              [--server <alias>]
-  cs http get object   -p topic=<topic> -p id=<id>   [--server <alias>]
-  cs http put object   -p topic=<topic> -p id=<id>   [--server <alias>] [<payload>]
-  cs http delete object -p topic=<topic> -p id=<id>  [--server <alias>]
+  cs init                                            [--cfg <path>]
+  cs validate                                        [--cfg <path>]
+  cs mint [<name>]                                   [--cfg <path>]
+  cs http get feed                                   [--cfg <path>] [--server <alias>]
+  cs http get content  -p topic=<topic>              [--cfg <path>] [--server <alias>] [-p start=<id>] [-p size=<n>]
+  cs http get entry    -p topic=<topic> -p id=<id>   [--cfg <path>] [--server <alias>]
+  cs http post content -p topic=<topic>              [--cfg <path>] [--server <alias>] [<payload>]
+  cs http put entry    -p topic=<topic> -p id=<id>   [--cfg <path>] [--server <alias>] [<payload>]
+  cs http get objects  -p topic=<topic>              [--cfg <path>] [--server <alias>]
+  cs http get object   -p topic=<topic> -p id=<id>   [--cfg <path>] [--server <alias>]
+  cs http put object   -p topic=<topic> -p id=<id>   [--cfg <path>] [--server <alias>] [<payload>]
+  cs http delete object -p topic=<topic> -p id=<id>  [--cfg <path>] [--server <alias>]
   cs (-h | --help)
 
 Options:
-  --server <alias>  Server alias from config to target [default: local]
+  --cfg <path>      Path to config file; defaults to XDG config dir
+  --server <alias>  Server alias from config to target; defaults to defaultServer in config, then "local"
   -p <param>        Key=value parameter (topic, id, start, size)
   -h --help         Show this help
 
@@ -37,10 +39,14 @@ Commands:
 
 const args = docopt(DOC, { argv: Deno.args });
 
+const cfgArg = args["--cfg"] as string | null;
+
 if (args["init"]) {
-  await init();
+  await init(cfgArg);
 } else if (args["validate"]) {
-  await validate();
+  await validate(cfgArg);
 } else if (args["mint"]) {
-  await mint(args["<name>"] ?? undefined);
+  await mint(args["<name>"] ?? undefined, cfgArg);
+} else if (args["http"]) {
+  await httpCommand(args as Record<string, unknown>);
 }
