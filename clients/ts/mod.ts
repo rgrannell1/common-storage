@@ -2,16 +2,6 @@
 // @work.md
 
 import { CmstrError } from "./error.ts";
-import {
-  GetEventsInputSchema,
-  GetEventInputSchema,
-  PostEventInputSchema,
-  PutEventInputSchema,
-  GetObjectsInputSchema,
-  GetObjectInputSchema,
-  PutObjectInputSchema,
-  DeleteObjectInputSchema,
-} from "./schemas.ts";
 import type {
   CmstrClientConfig,
   FeedResponse,
@@ -105,59 +95,50 @@ export class CmstrClient {
   }
 
   async getEvents(input: GetEventsInput): Promise<EventsResponse> {
-    const parsed = GetEventsInputSchema.parse(input);
     const query: Record<string, string | undefined> = {
-      start: parsed.start?.toString(),
-      size: parsed.size?.toString(),
-      ids: parsed.ids?.join(","),
-      filter: parsed.filter,
+      start: input.start?.toString(),
+      size: input.size?.toString(),
+      ids: input.ids?.join(","),
+      filter: input.filter,
     };
-    return await this.request("GET", `/events/${encodeURIComponent(parsed.topic)}`, { query }) as EventsResponse;
+    return await this.request("GET", `/events/${encodeURIComponent(input.topic)}`, { query }) as EventsResponse;
   }
 
   async getEvent(input: GetEventInput): Promise<EventEntry> {
-    const parsed = GetEventInputSchema.parse(input);
-    return await this.request("GET", `/events/${encodeURIComponent(parsed.topic)}/${parsed.id}`) as EventEntry;
+    return await this.request("GET", `/events/${encodeURIComponent(input.topic)}/${input.id}`) as EventEntry;
   }
 
   async postEvent(input: PostEventInput): Promise<EventEntry> {
-    const parsed = PostEventInputSchema.parse(input);
-    return await this.request("POST", `/events/${encodeURIComponent(parsed.topic)}`, {
-      body: { payload: parsed.payload },
-      idempotencyKey: parsed.idempotencyKey,
+    return await this.request("POST", `/events/${encodeURIComponent(input.topic)}`, {
+      body: { payload: input.payload },
+      idempotencyKey: input.idempotencyKey,
     }) as EventEntry;
   }
 
   async putEvent(input: PutEventInput): Promise<EventEntry> {
-    const parsed = PutEventInputSchema.parse(input);
-    return await this.request("PUT", `/events/${encodeURIComponent(parsed.topic)}/${parsed.id}`, {
-      body: { payload: parsed.payload },
-      idempotencyKey: parsed.idempotencyKey,
+    return await this.request("PUT", `/events/${encodeURIComponent(input.topic)}/${input.id}`, {
+      body: { payload: input.payload },
+      idempotencyKey: input.idempotencyKey,
     }) as EventEntry;
   }
 
   async getObjects(input: GetObjectsInput): Promise<ObjectEntry[]> {
-    const parsed = GetObjectsInputSchema.parse(input);
-    const query: Record<string, string | undefined> = { filter: parsed.filter };
-    return await this.request("GET", `/objects/${encodeURIComponent(parsed.topic)}`, { query }) as ObjectEntry[];
+    const query: Record<string, string | undefined> = { filter: input.filter };
+    return await this.request("GET", `/objects/${encodeURIComponent(input.topic)}`, { query }) as ObjectEntry[];
   }
 
   async getObject(input: GetObjectInput): Promise<ObjectEntry> {
-    const parsed = GetObjectInputSchema.parse(input);
-    return await this.request("GET", `/objects/${encodeURIComponent(parsed.topic)}/${encodeURIComponent(parsed.id)}`) as ObjectEntry;
+    return await this.request("GET", `/objects/${encodeURIComponent(input.topic)}/${encodeURIComponent(input.id)}`) as ObjectEntry;
   }
 
   async putObject(input: PutObjectInput): Promise<ObjectEntry> {
-    const parsed = PutObjectInputSchema.parse(input);
-    return await this.request("PUT", `/objects/${encodeURIComponent(parsed.topic)}/${encodeURIComponent(parsed.id)}`, {
-      body: { payload: parsed.payload },
-      idempotencyKey: parsed.idempotencyKey,
+    return await this.request("PUT", `/objects/${encodeURIComponent(input.topic)}/${encodeURIComponent(input.id)}`, {
+      body: { payload: input.payload },
+      idempotencyKey: input.idempotencyKey,
     }) as ObjectEntry;
   }
 
   async deleteObject(input: DeleteObjectInput): Promise<ObjectEntry> {
-    const parsed = DeleteObjectInputSchema.parse(input);
-    return await this.request("DELETE", `/objects/${encodeURIComponent(parsed.topic)}/${encodeURIComponent(parsed.id)}`) as ObjectEntry;
+    return await this.request("DELETE", `/objects/${encodeURIComponent(input.topic)}/${encodeURIComponent(input.id)}`) as ObjectEntry;
   }
-
 }

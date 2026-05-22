@@ -1,28 +1,32 @@
 // Public types for CmstrClient — response shapes and input types
 // @work.md
 
-import { z } from "zod";
-import {
-  EventEntrySchema,
-  ObjectEntrySchema,
-  TopicSummarySchema,
-  SubscriptionSummarySchema,
-} from "../../src/api/parsers/schemas.ts";
-import {
-  GetEventsInputSchema,
-  GetEventInputSchema,
-  PostEventInputSchema,
-  PutEventInputSchema,
-  GetObjectsInputSchema,
-  GetObjectInputSchema,
-  PutObjectInputSchema,
-  DeleteObjectInputSchema,
-} from "./schemas.ts";
+export type TopicSummary = {
+  topic: string;
+  count: number;
+  lastUpdated: number | string;
+};
 
-export type TopicSummary = z.infer<typeof TopicSummarySchema>;
-export type SubscriptionSummary = z.infer<typeof SubscriptionSummarySchema>;
-export type EventEntry = z.infer<typeof EventEntrySchema>;
-export type ObjectEntry = z.infer<typeof ObjectEntrySchema>;
+export type SubscriptionSummary = {
+  source: string;
+  topic: string;
+  frequency: number;
+  created: number | string;
+};
+
+export type EventEntry = {
+  id: number;
+  createdAt: number;
+  updatedAt: number;
+  payload: unknown;
+};
+
+export type ObjectEntry = {
+  id: string;
+  createdAt: number;
+  updatedAt: number;
+  payload: unknown;
+};
 
 export type FeedResponse = {
   topics: TopicSummary[];
@@ -34,14 +38,53 @@ export type EventsResponse = {
   next: number | null;
 };
 
-export type GetEventsInput = z.infer<typeof GetEventsInputSchema>;
-export type GetEventInput = z.infer<typeof GetEventInputSchema>;
-export type PostEventInput = z.infer<typeof PostEventInputSchema>;
-export type PutEventInput = z.infer<typeof PutEventInputSchema>;
-export type GetObjectsInput = z.infer<typeof GetObjectsInputSchema>;
-export type GetObjectInput = z.infer<typeof GetObjectInputSchema>;
-export type PutObjectInput = z.infer<typeof PutObjectInputSchema>;
-export type DeleteObjectInput = z.infer<typeof DeleteObjectInputSchema>;
+export type GetEventsInput = {
+  topic: string;
+  start?: number;
+  size?: number;
+  ids?: number[];
+  filter?: string;
+};
+
+export type GetEventInput = {
+  topic: string;
+  id: number;
+};
+
+export type PostEventInput = {
+  topic: string;
+  payload: unknown;
+  idempotencyKey?: string;
+};
+
+export type PutEventInput = {
+  topic: string;
+  id: number;
+  payload: unknown;
+  idempotencyKey?: string;
+};
+
+export type GetObjectsInput = {
+  topic: string;
+  filter?: string;
+};
+
+export type GetObjectInput = {
+  topic: string;
+  id: string;
+};
+
+export type PutObjectInput = {
+  topic: string;
+  id: string;
+  payload: unknown;
+  idempotencyKey?: string;
+};
+
+export type DeleteObjectInput = {
+  topic: string;
+  id: string;
+};
 
 export type CmstrClientConfig = {
   url: string;
