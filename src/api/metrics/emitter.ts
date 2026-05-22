@@ -10,6 +10,6 @@ import { startCron } from "../commons/cron.ts";
 // Returns a cleanup function that cancels the cron.
 export function startMetricsLoop(storage: IUpsertObject, collector: MetricsCollector): () => void {
   return startCron("cmstr-metrics", METRICS_CRON, async () => {
-    await storage.upsertObject(METRICS_TOPIC, METRICS_OBJECT_ID, collector.snapshot());
+    await storage.upsertObject(METRICS_TOPIC, METRICS_OBJECT_ID, await collector.snapshot());
   });
 }

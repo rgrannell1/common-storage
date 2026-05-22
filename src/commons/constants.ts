@@ -66,6 +66,15 @@ export const GC_CRON = "0 0 * * *";
 // Env var name to override the config file path; useful on Deno Deploy where XDG paths do not exist
 export const CMSTR_CONFIG_PATH_ENV_VAR = "CMSTR_CONFIG_PATH";
 
+// KV key prefix for persisted metrics counters (total, byMethod, byStatus)
+export const METRICS_COUNTERS_KEY = ["metrics", "counters"];
+
+// KV key prefix for per-minute request count buckets; suffixed with the minute timestamp
+export const METRICS_BUCKET_PREFIX = ["metrics", "bucket"];
+
+// TTL for per-minute metric buckets — 1 day in milliseconds
+export const METRICS_BUCKET_TTL_MS = 24 * 60 * 60 * 1_000;
+
 // Idempotency cache namespace for POST /events/:topic
 export const IDEMPOTENCY_NS_POST_EVENT = "post-event";
 

@@ -4,9 +4,9 @@ import { CONFIG_DIR_NAME, CONFIG_FILE_NAME } from "../commons/constants.ts";
 
 const SYSTEMD_SERVICE_NAME = "common-storage";
 
-// Expands a leading ~ to the user's home directory
+// Expands a leading ~ or ~/ to the user's home directory; ~username forms are left unchanged
 export function expandHome(path: string): string {
-  if (!path.startsWith("~")) return path;
+  if (path !== "~" && !path.startsWith("~/")) return path;
   const home = Deno.env.get("HOME") ?? "/root";
   return `${home}${path.slice(1)}`;
 }

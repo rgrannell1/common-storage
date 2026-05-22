@@ -6,28 +6,11 @@ import { ok, err, type Result } from "../../commons/types/result.ts";
 import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
 import { pathParamParser, mergeParser, rawBodyParser } from "../parsers/combinators.ts";
-import { TopicNameSchema, HexHashSchema } from "../parsers/schemas.ts";
+import { TopicNameSchema, EventDiffBodySchema, ObjectDiffBodySchema } from "../parsers/schemas.ts";
 import type { IGetTopicType, IDiffEvents, IDiffObjects, EventDiffRequest, ObjectDiffRequest } from "../storage/capabilities.ts";
 
 const PostDiffPathSchema = z.object({
   topic: TopicNameSchema,
-});
-
-const EventDiffBodySchema = z.object({
-  bucketSize: z.number().int().positive(),
-  root: HexHashSchema,
-  buckets: z.array(z.object({
-    start: z.number().int().nonnegative(),
-    end: z.number().int().positive(),
-    hash: HexHashSchema,
-  })),
-});
-
-const ObjectDiffBodySchema = z.object({
-  entries: z.array(z.object({
-    id: z.string().min(1),
-    hash: HexHashSchema,
-  })),
 });
 
 type PostDiffRequest = z.infer<typeof PostDiffPathSchema> & { body: unknown };

@@ -330,7 +330,13 @@ Deno.test("Proves GET routes never crash on arbitrary query parameter values", a
   const { fetch, cleanup } = await makePersistentServer([{ name: "events" }], [{ name: "objects" }]);
   try {
     for (const rawVal of FUZZ_QUERY_VALUES) {
-      const encoded = encodeURIComponent(rawVal);
+      let encoded: string;
+      try {
+        encoded = encodeURIComponent(rawVal);
+      } catch {
+        // lone surrogates from the unicode generator cannot be percent-encoded — skip
+        continue;
+      }
 
       const feedRes = await fetch(`/feed?human=${encoded}`);
       await assertNoCrash(feedRes, `GET /feed?human=${rawVal}`);

@@ -160,6 +160,25 @@ Deno.test("Proves POST /diff/:topic returns only the differing range among multi
   }
 });
 
+Deno.test("Proves POST /diff/:topic returns server-only ranges when client sends no buckets covering them", async () => {
+  const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
+  try {
+    const entry = await (await fetch("/events/logs", jsonPost({ payload: {} }))).json() as EventEntry;
+
+    // Client claims it is in sync (matching root over zero buckets) but has never seen any events
+    const root = await hashBucketRoot([]);
+    const res = await post(fetch, "/diff/logs", { bucketSize: 100, root, buckets: [] });
+
+    if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+    const body = await res.json() as DiffResponse;
+    if (!body.ranges || body.ranges.length !== 1) throw new Error(`Expected 1 range, got ${JSON.stringify(body.ranges)}`);
+    const bucketStart = Math.floor((entry.id - 1) / 100) * 100;
+    if (body.ranges[0].start !== bucketStart) throw new Error(`Expected start ${bucketStart}, got ${body.ranges[0].start}`);
+  } finally {
+    await cleanup();
+  }
+});
+
 Deno.test("Proves POST /diff/:topic returns 422 for a malformed event diff body", async () => {
   const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   try {

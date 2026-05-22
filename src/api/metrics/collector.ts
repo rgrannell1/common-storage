@@ -1,16 +1,27 @@
-// In-memory request metrics collector and Hono middleware for aspect-oriented stat gathering.
-// Tracks ever-accumulating counters and a per-minute bucket ring for sliding-window rates.
+// KV-backed request metrics collector and Hono middleware for aspect-oriented stat gathering.
+// Counters and per-minute buckets are persisted to KV so they survive isolate restarts on Deno Deploy.
 // Storage concerns live in emitter.ts.
 
 import type { MiddlewareHandler } from "hono";
-
-// Maximum age of rate buckets kept in memory
-const MAX_BUCKET_AGE_MINUTES = 1440;
+import type { IStorageBackend } from "../storage/backend.ts";
+import {
+  METRICS_COUNTERS_KEY,
+  METRICS_BUCKET_PREFIX,
+  METRICS_BUCKET_TTL_MS,
+} from "../../commons/constants.ts";
 
 // Milliseconds per minute, used to map timestamps to minute-aligned bucket starts
 const MS_PER_MINUTE = 60_000;
 
-type MinuteBucket = { minuteStart: number; count: number };
+type MetricsCounters = {
+  total: number;
+  byMethod: Record<string, number>;
+  byStatus: Record<string, number>;
+  // Epoch ms when this counter key was first created; persists across isolate restarts
+  startedAt: number;
+};
+
+type MinuteBucket = { count: number };
 
 type RateWindows = {
   "1m": number;
@@ -20,82 +31,88 @@ type RateWindows = {
 };
 
 export type MetricsSnapshot = {
-  counters: {
-    total: number;
-    byMethod: Record<string, number>;
-    byStatus: Record<string, number>;
-  };
+  counters: MetricsCounters;
   rates: RateWindows;
-  uptimeMs: number;
+  // Epoch ms when KV counters were first initialised; replaces the old in-memory uptimeMs origin
+  startedAt: number;
   timestamp: number;
 };
 
+// Returns a fresh zero-value counters object with no shared references between calls
+function emptyCounters(): MetricsCounters {
+  return { total: 0, byMethod: {}, byStatus: {}, startedAt: Date.now() };
+}
+
 export class MetricsCollector {
-  #total = 0;
-  #byMethod: Record<string, number> = {};
-  #byStatus: Record<string, number> = {};
-  #buckets: MinuteBucket[] = [];
-  #startedAt = Date.now();
+  #storage: IStorageBackend;
 
-  record(method: string, status: number): void {
-    this.#total++;
-    this.#byMethod[method] = (this.#byMethod[method] ?? 0) + 1;
+  constructor(storage: IStorageBackend) {
+    this.#storage = storage;
+  }
+
+  // Increments the persisted counters and the current minute's bucket.
+  // Non-atomic read-modify-write is intentional — approximate counts are acceptable for metrics.
+  // Under concurrent Deno Deploy isolates, counts may be under-reported by up to N-1 per burst.
+  async record(method: string, status: number): Promise<void> {
     const statusKey = String(status);
-    this.#byStatus[statusKey] = (this.#byStatus[statusKey] ?? 0) + 1;
-    this.#recordBucket();
+    const counters = await this.#storage.get<MetricsCounters>(METRICS_COUNTERS_KEY) ?? emptyCounters();
+
+    counters.total++;
+    counters.byMethod[method] = (counters.byMethod[method] ?? 0) + 1;
+    counters.byStatus[statusKey] = (counters.byStatus[statusKey] ?? 0) + 1;
+
+    const minuteStart = Math.floor(Date.now() / MS_PER_MINUTE) * MS_PER_MINUTE;
+    const bucketKey = [...METRICS_BUCKET_PREFIX, String(minuteStart)];
+    const bucket = await this.#storage.get<MinuteBucket>(bucketKey) ?? { count: 0 };
+    bucket.count++;
+
+    await Promise.all([
+      this.#storage.set(METRICS_COUNTERS_KEY, counters),
+      this.#storage.setWithExpiry(bucketKey, bucket, METRICS_BUCKET_TTL_MS),
+    ]);
   }
 
-  // Increments the active minute bucket, creating a new one when the minute rolls over.
-  #recordBucket(): void {
-    const now = Date.now();
-    const minuteStart = Math.floor(now / MS_PER_MINUTE) * MS_PER_MINUTE;
-    const last = this.#buckets.at(-1);
-    if (last?.minuteStart === minuteStart) {
-      last.count++;
-    } else {
-      this.#buckets.push({ minuteStart, count: 1 });
-      this.#trimBuckets(now);
-    }
-  }
-
-  // Drops buckets older than MAX_BUCKET_AGE_MINUTES from the head of the ring.
-  #trimBuckets(now: number): void {
-    const cutoff = now - MAX_BUCKET_AGE_MINUTES * MS_PER_MINUTE;
-    const firstValid = this.#buckets.findIndex(bucket => bucket.minuteStart >= cutoff);
-    if (firstValid > 0) this.#buckets.splice(0, firstValid);
-  }
-
-  // Sums all request counts within the given number of minutes from now.
-  #rateForMinutes(minutes: number): number {
+  // Sums bucket counts within the given number of minutes from now.
+  // Skips buckets with non-numeric keys to guard against corrupted or unexpected KV entries.
+  async #rateForMinutes(minutes: number): Promise<number> {
     const cutoff = Date.now() - minutes * MS_PER_MINUTE;
-    return this.#buckets
-      .filter(bucket => bucket.minuteStart >= cutoff)
-      .reduce((sum, bucket) => sum + bucket.count, 0);
+    let total = 0;
+    for await (const { key, value } of this.#storage.list<MinuteBucket>(METRICS_BUCKET_PREFIX)) {
+      const minuteStart = Number(key.at(-1));
+      if (!Number.isFinite(minuteStart)) continue;
+      if (minuteStart >= cutoff) total += value.count;
+    }
+    return total;
   }
 
-  snapshot(): MetricsSnapshot {
+  async snapshot(): Promise<MetricsSnapshot> {
+    const counters = await this.#storage.get<MetricsCounters>(METRICS_COUNTERS_KEY) ?? emptyCounters();
+    const [rate1m, rate5m, rate1h, rate1d] = await Promise.all([
+      this.#rateForMinutes(1),
+      this.#rateForMinutes(5),
+      this.#rateForMinutes(60),
+      this.#rateForMinutes(1440),
+    ]);
+
     return {
-      counters: {
-        total: this.#total,
-        byMethod: { ...this.#byMethod },
-        byStatus: { ...this.#byStatus },
-      },
-      rates: {
-        "1m": this.#rateForMinutes(1),
-        "5m": this.#rateForMinutes(5),
-        "1h": this.#rateForMinutes(60),
-        "1d": this.#rateForMinutes(1440),
-      },
-      uptimeMs: Date.now() - this.#startedAt,
+      counters,
+      rates: { "1m": rate1m, "5m": rate5m, "1h": rate1h, "1d": rate1d },
+      startedAt: counters.startedAt,
       timestamp: Date.now(),
     };
   }
 }
 
 // Hono middleware that records method and response status into the collector after each request.
+// Awaited so the KV write completes before the isolate exits on Deno Deploy.
+// Errors from record() are swallowed — a KV failure must not convert a successful response into 500.
 export function metricsMiddleware(collector: MetricsCollector): MiddlewareHandler {
   return async (ctx, next) => {
     await next();
-    collector.record(ctx.req.method, ctx.res.status);
+    try {
+      await collector.record(ctx.req.method, ctx.res.status);
+    } catch {
+      // intentionally swallowed — metrics errors are non-fatal
+    }
   };
 }

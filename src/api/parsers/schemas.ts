@@ -103,7 +103,8 @@ export const QuerySizeSchema = z.coerce.number().int().positive();
 // JMESPath filter expression applied to each entry's payload; used in ?filter= lookups
 export const QueryFilterSchema = z.string().min(1);
 
-// Any JSON-serialisable value that is explicitly provided; rejects undefined (missing key) and null
+// Any JSON value except null; rejects undefined (missing key) and null.
+// Falsy-but-valid JSON values (false, 0, "", []) are accepted — "non-null" means not JSON null.
 export const JsonPayloadSchema = z.unknown().refine(
   (val) => val !== undefined && val !== null,
   { message: "payload must be a non-null JSON value" },
@@ -111,6 +112,33 @@ export const JsonPayloadSchema = z.unknown().refine(
 
 // SHA-256 hex digest — 64 lowercase hex characters
 export const HexHashSchema = z.string().regex(/^[0-9a-f]{64}$/, "must be a 64-character lowercase hex string");
+
+// Single bucket in an event diff request — covers IDs [start, end); end must exceed start
+export const EventDiffBucketSchema = z.object({
+  start: z.number().int().nonnegative(),
+  end: z.number().int().positive(),
+  hash: HexHashSchema,
+}).refine((bucket) => bucket.end > bucket.start, {
+  message: "end must be greater than start",
+});
+
+// Event diff request body — flat bucket hash tree for event topics
+export const EventDiffBodySchema = z.object({
+  bucketSize: z.number().int().positive(),
+  root: HexHashSchema,
+  buckets: z.array(EventDiffBucketSchema),
+});
+
+// Single entry in an object diff request — carries the entry ID and hash of its updatedAt
+export const ObjectDiffEntrySchema = z.object({
+  id: z.string().min(1),
+  hash: HexHashSchema,
+});
+
+// Object diff request body — flat entry map for object topics
+export const ObjectDiffBodySchema = z.object({
+  entries: z.array(ObjectDiffEntrySchema),
+});
 
 // Comma-separated list of entry IDs coerced from a query string parameter; used in ?ids= lookups
 export const QueryIdsSchema = z.string()
