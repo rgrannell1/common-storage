@@ -1,0 +1,163 @@
+// CmstrClient — typed HTTP client for the cmstr API
+// @work.md
+
+import { CmstrError } from "./error.ts";
+import {
+  GetEventsInputSchema,
+  GetEventInputSchema,
+  PostEventInputSchema,
+  PutEventInputSchema,
+  GetObjectsInputSchema,
+  GetObjectInputSchema,
+  PutObjectInputSchema,
+  DeleteObjectInputSchema,
+} from "./schemas.ts";
+import type {
+  CmstrClientConfig,
+  FeedResponse,
+  EventsResponse,
+  EventEntry,
+  ObjectEntry,
+  GetEventsInput,
+  GetEventInput,
+  PostEventInput,
+  PutEventInput,
+  GetObjectsInput,
+  GetObjectInput,
+  PutObjectInput,
+  DeleteObjectInput,
+} from "./types.ts";
+
+export { CmstrError } from "./error.ts";
+export type {
+  CmstrClientConfig,
+  FeedResponse,
+  EventsResponse,
+  EventEntry,
+  ObjectEntry,
+  TopicSummary,
+  SubscriptionSummary,
+  GetEventsInput,
+  GetEventInput,
+  PostEventInput,
+  PutEventInput,
+  GetObjectsInput,
+  GetObjectInput,
+  PutObjectInput,
+  DeleteObjectInput,
+} from "./types.ts";
+
+type RequestOptions = {
+  query?: Record<string, string | undefined>;
+  body?: unknown;
+  idempotencyKey?: string;
+};
+
+export class CmstrClient {
+  private readonly url: string;
+  private readonly token: string;
+
+  constructor(config: CmstrClientConfig) {
+    this.url = config.url.replace(/\/$/, "");
+    this.token = config.token;
+  }
+
+  private async request(method: string, path: string, options?: RequestOptions): Promise<unknown> {
+    const fullUrl = new URL(`${this.url}${path}`);
+
+    if (options?.query) {
+      for (const [key, value] of Object.entries(options.query)) {
+        if (value !== undefined) fullUrl.searchParams.set(key, value);
+      }
+    }
+
+    const serialisedBody = options?.body !== undefined ? JSON.stringify(options.body) : undefined;
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${this.token}`,
+      Accept: "application/json",
+    };
+
+    if (serialisedBody !== undefined) {
+      headers["Content-Type"] = "application/json";
+    }
+
+    if (options?.idempotencyKey !== undefined) {
+      headers["Idempotency-Key"] = options.idempotencyKey;
+    }
+
+    const response = await fetch(fullUrl, {
+      method,
+      headers,
+      body: serialisedBody,
+    });
+
+    if (response.status === 204) return null;
+
+    const responseBody = await response.json();
+    if (!response.ok) throw new CmstrError(response.status, responseBody);
+
+    return responseBody;
+  }
+
+  async getFeed(): Promise<FeedResponse> {
+    return await this.request("GET", "/feed") as FeedResponse;
+  }
+
+  async getEvents(input: GetEventsInput): Promise<EventsResponse> {
+    const parsed = GetEventsInputSchema.parse(input);
+    const query: Record<string, string | undefined> = {
+      start: parsed.start?.toString(),
+      size: parsed.size?.toString(),
+      ids: parsed.ids?.join(","),
+      filter: parsed.filter,
+    };
+    return await this.request("GET", `/events/${encodeURIComponent(parsed.topic)}`, { query }) as EventsResponse;
+  }
+
+  async getEvent(input: GetEventInput): Promise<EventEntry> {
+    const parsed = GetEventInputSchema.parse(input);
+    return await this.request("GET", `/events/${encodeURIComponent(parsed.topic)}/${parsed.id}`) as EventEntry;
+  }
+
+  async postEvent(input: PostEventInput): Promise<EventEntry> {
+    const parsed = PostEventInputSchema.parse(input);
+    return await this.request("POST", `/events/${encodeURIComponent(parsed.topic)}`, {
+      body: { payload: parsed.payload },
+      idempotencyKey: parsed.idempotencyKey,
+    }) as EventEntry;
+  }
+
+  async putEvent(input: PutEventInput): Promise<EventEntry> {
+    const parsed = PutEventInputSchema.parse(input);
+    return await this.request("PUT", `/events/${encodeURIComponent(parsed.topic)}/${parsed.id}`, {
+      body: { payload: parsed.payload },
+      idempotencyKey: parsed.idempotencyKey,
+    }) as EventEntry;
+  }
+
+  async getObjects(input: GetObjectsInput): Promise<ObjectEntry[]> {
+    const parsed = GetObjectsInputSchema.parse(input);
+    const query: Record<string, string | undefined> = { filter: parsed.filter };
+    return await this.request("GET", `/objects/${encodeURIComponent(parsed.topic)}`, { query }) as ObjectEntry[];
+  }
+
+  async getObject(input: GetObjectInput): Promise<ObjectEntry> {
+    const parsed = GetObjectInputSchema.parse(input);
+    return await this.request("GET", `/objects/${encodeURIComponent(parsed.topic)}/${encodeURIComponent(parsed.id)}`) as ObjectEntry;
+  }
+
+  async putObject(input: PutObjectInput): Promise<ObjectEntry> {
+    const parsed = PutObjectInputSchema.parse(input);
+    return await this.request("PUT", `/objects/${encodeURIComponent(parsed.topic)}/${encodeURIComponent(parsed.id)}`, {
+      body: { payload: parsed.payload },
+      idempotencyKey: parsed.idempotencyKey,
+    }) as ObjectEntry;
+  }
+
+  async deleteObject(input: DeleteObjectInput): Promise<ObjectEntry> {
+    const parsed = DeleteObjectInputSchema.parse(input);
+    return await this.request("DELETE", `/objects/${encodeURIComponent(parsed.topic)}/${encodeURIComponent(parsed.id)}`) as ObjectEntry;
+  }
+
+}
