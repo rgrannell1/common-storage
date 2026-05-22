@@ -7,3 +7,9 @@ Common-storage defines an API server for intercommunicating data between servers
 - Topics: appendable event storage.
 
 ## Routes
+
+
+## Licence 
+
+MIT Róisín Grannell
+
