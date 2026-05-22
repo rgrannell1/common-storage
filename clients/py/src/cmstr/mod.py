@@ -1,5 +1,6 @@
 """Sync and async HTTP clients for the cmstr API."""
 
+from collections.abc import AsyncGenerator, Generator
 from typing import Any
 from urllib.parse import quote
 
@@ -16,6 +17,7 @@ from .schemas import (
     PostEventParams,
     PutEventParams,
     PutObjectParams,
+    StreamEventsParams,
 )
 from .types import (
     EventEntry,
@@ -154,6 +156,31 @@ class CmstrClient:
         raise_for_status(response)
         return ObjectEntry.model_validate(response.json())
 
+    def stream_events(self, *, topic: str, start: int | None = None) -> Generator[EventEntry, None, None]:
+        """GET /events/:topic as NDJSON — yields entries as they arrive; streams indefinitely until disconnected."""
+        params = StreamEventsParams(topic=topic, start=start)
+        query: dict[str, str] = {}
+        if params.start is not None:
+            query["start"] = str(params.start)
+        with self.http.stream(
+            "GET",
+            f"/events/{quote(params.topic, safe='')}",
+            params=query,
+            headers={"Accept": "application/x-ndjson"},
+        ) as response:
+            raise_for_status(response)
+            remainder = ""
+            for chunk in response.iter_text():
+                combined = remainder + chunk
+                lines = combined.split("\n")
+                remainder = lines.pop()
+                for line in lines:
+                    trimmed = line.strip()
+                    if trimmed:
+                        yield EventEntry.model_validate_json(trimmed)
+            if remainder.strip():
+                yield EventEntry.model_validate_json(remainder.strip())
+
     def close(self) -> None:
         """Close the underlying HTTP client."""
         self.http.close()
@@ -248,6 +275,31 @@ class AsyncCmstrClient:
         response = await self.http.delete(f"/objects/{quote(params.topic, safe='')}/{quote(params.id, safe='')}")
         raise_for_status(response)
         return ObjectEntry.model_validate(response.json())
+
+    async def stream_events(self, *, topic: str, start: int | None = None) -> AsyncGenerator[EventEntry, None]:
+        """GET /events/:topic as NDJSON — yields entries as they arrive; streams indefinitely until disconnected."""
+        params = StreamEventsParams(topic=topic, start=start)
+        query: dict[str, str] = {}
+        if params.start is not None:
+            query["start"] = str(params.start)
+        async with self.http.stream(
+            "GET",
+            f"/events/{quote(params.topic, safe='')}",
+            params=query,
+            headers={"Accept": "application/x-ndjson"},
+        ) as response:
+            raise_for_status(response)
+            remainder = ""
+            async for chunk in response.aiter_text():
+                combined = remainder + chunk
+                lines = combined.split("\n")
+                remainder = lines.pop()
+                for line in lines:
+                    trimmed = line.strip()
+                    if trimmed:
+                        yield EventEntry.model_validate_json(trimmed)
+            if remainder.strip():
+                yield EventEntry.model_validate_json(remainder.strip())
 
     async def close(self) -> None:
         """Close the underlying HTTP client."""

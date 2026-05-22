@@ -84,3 +84,10 @@ class DeleteObjectParams(BaseModel):
 
     topic: str = Field(min_length=1, max_length=128)
     id: str = Field(min_length=1)
+
+
+class StreamEventsParams(BaseModel):
+    """Validated parameters for GET /events/:topic NDJSON stream."""
+
+    topic: str = Field(min_length=1, max_length=128)
+    start: int | None = Field(default=None, ge=0)

@@ -86,6 +86,12 @@ export type DeleteObjectInput = {
   id: string;
 };
 
+export type StreamEventsInput = {
+  topic: string;
+  start?: number;
+  signal?: AbortSignal;
+};
+
 export type CmstrClientConfig = {
   url: string;
   token: string;
