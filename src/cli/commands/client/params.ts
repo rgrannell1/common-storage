@@ -13,14 +13,6 @@ export function parseParams(rawParams: string | string[] | null): Record<string,
   return result;
 }
 
-// Builds a query string from a record, omitting undefined values
-export function buildQuery(params: Record<string, string | undefined>): string {
-  const parts = Object.entries(params)
-    .filter(([, value]) => value !== undefined)
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value!)}`);
-  return parts.length > 0 ? `?${parts.join("&")}` : "";
-}
-
 // Returns a required param value or exits with an error
 export function requireParam(params: Record<string, string>, name: string): string {
   const value = params[name];
