@@ -9,6 +9,7 @@ import type { Config, TopicConfig } from "../src/commons/config.ts";
 import type { RateLimitConfig } from "../src/api/middleware/rate-limit.ts";
 import { mintToken } from "../src/commons/auth.ts";
 import { buildSchemaRegistry } from "../src/api/parsers/payload-schema.ts";
+import { NoopLogger } from "../src/commons/logger.ts";
 
 const TEST_ROOT_KEY_VAR = "CS_TEST_ROOT_KEY";
 
@@ -51,7 +52,7 @@ export async function makeTestContext(
   await storage.createTopics(events, objects);
 
   const schemas = await buildSchemaRegistry(events, objects);
-  const app = createApp({ storage, collector: new MetricsCollector(), config: TEST_CONFIG, schemas, rateLimits });
+  const app = createApp({ storage, collector: new MetricsCollector(storage), config: TEST_CONFIG, schemas, rateLimits, logger: new NoopLogger() });
 
   const request = (url: string, init?: RequestInit) => makeFetch(app.fetch)(url, withAuth(init));
 
@@ -88,7 +89,7 @@ async function spawnServer(
   await storage.createTopics(events, objects);
 
   const schemas = await buildSchemaRegistry(events, objects);
-  const app = createApp({ storage, collector: new MetricsCollector(), config: TEST_CONFIG, schemas, rateLimits });
+  const app = createApp({ storage, collector: new MetricsCollector(storage), config: TEST_CONFIG, schemas, rateLimits, logger: new NoopLogger() });
   const server = Deno.serve({ port: 0 }, app.fetch);
   const { port } = server.addr;
 

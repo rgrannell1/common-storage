@@ -45,6 +45,34 @@ Minting must be cheap. If producing a token requires navigating a UI or running 
 
 The server emits diagnostic and tracking statistics periodically as content entries into a reserved topic named `common-storage`. Metrics are queryable through the same content API as any other topic, with no separate metrics infrastructure required.
 
+`MetricsCollector` must persist counters to Deno KV on every increment and read from KV when computing rates. In-memory counters are not acceptable — Deno Deploy cold-starts a fresh isolate per request, so any state held in memory resets immediately and metrics never accumulate. The `IStorageBackend` interface already includes a metrics sub-interface; the KV implementation of that interface is the correct home for counter persistence.
+
+## Logging
+
+The server logs to stderr only. There is no console logger and no storage logger — stderr is what systemd and Docker capture, and it does not pollute stdout with operational noise.
+
+The logger is an `ILogger` interface with two methods:
+
+```typescript
+interface ILogger {
+  info(message: string, request: Request | undefined, data: Record<string, unknown>): void;
+  error(message: string, request: Request | undefined, data: Record<string, unknown>): void;
+}
+```
+
+Log line format follows the old common-storage convention:
+- With a request: `METHOD URL | message | data={"key":"value"}`
+- Without a request: `message | data={"key":"value"}`
+
+The logger is injected into every component that needs it — middleware, route handlers, subscription scheduler — and never imported directly. Tests pass a no-op logger; no log output appears in test runs.
+
+Log sites mirror the old system:
+- Every inbound request (method, URL) — in request-logging middleware
+- Unhandled errors during request processing (method, URL, error message and stack)
+- Subscription lifecycle: sync start (source, topic, frequency), fetch (nextId, topic), sync complete (nextId, topic), overdue check, sync failure (error message, stack, source)
+
+`StorageLogger` is explicitly out of scope.
+
 ## Testing
 
 The server is fuzz-tested using `../peach.ts` and integration-tested using `@deno-libs/superfetch`, which spins up a real HTTP server and tests against it over the network. Unit tests are not the primary concern; the integration tests are the source of truth for correctness.

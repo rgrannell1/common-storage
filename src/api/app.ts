@@ -18,6 +18,7 @@ import { metricsMiddleware } from "./metrics/collector.ts";
 import { authMiddleware } from "./middleware/auth.ts";
 import { rateLimitMiddleware } from "./middleware/rate-limit.ts";
 import { securityHeaders } from "./middleware/security-headers.ts";
+import { loggingMiddleware } from "./middleware/logging.ts";
 import type { AppDeps } from "./types.ts";
 
 export type { AppDeps };
@@ -26,6 +27,7 @@ export function createApp(deps: AppDeps): Hono {
   const app = new Hono();
 
   app.use("*", cors());
+  app.use("*", loggingMiddleware(deps.logger));
   app.use("*", securityHeaders);
   app.use("*", rateLimitMiddleware(deps.storage, deps.rateLimits));
   app.use("*", authMiddleware(deps.config));
