@@ -91,3 +91,26 @@ class StreamEventsParams(BaseModel):
 
     topic: str = Field(min_length=1, max_length=128)
     start: int | None = Field(default=None, ge=0)
+
+
+class StreamObjectsParams(BaseModel):
+    """Validated parameters for GET /objects/:topic NDJSON stream."""
+
+    topic: str = Field(min_length=1, max_length=128)
+    start: int | None = Field(default=None, ge=0)
+
+
+class DiffBucket(BaseModel):
+    """A single bucket in a diff request body."""
+
+    start: int = Field(ge=0)
+    end: int = Field(gt=0)
+    hash: str = Field(min_length=64, max_length=64)
+
+
+class PostDiffParams(BaseModel):
+    """Validated parameters for POST /diff/:topic — works for both event and object topics."""
+
+    topic: str = Field(min_length=1, max_length=128)
+    root: str = Field(min_length=64, max_length=64)
+    buckets: list[DiffBucket]

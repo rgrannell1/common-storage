@@ -23,6 +23,7 @@ export type EventEntry = {
 
 export type ObjectEntry = {
   id: string;
+  seq: number;
   createdAt: number;
   updatedAt: number;
   payload: unknown;
@@ -91,6 +92,22 @@ export type StreamEventsInput = {
   start?: number;
   signal?: AbortSignal;
 };
+
+export type StreamObjectsInput = {
+  topic: string;
+  start?: number;
+  signal?: AbortSignal;
+};
+
+export type EventDiffBucket = { start: number; end: number; hash: string };
+
+export type PostDiffInput = {
+  topic: string;
+  root: string;
+  buckets: EventDiffBucket[];
+};
+
+export type PostDiffResult = { ranges: { start: number; end: number }[] } | null;
 
 export type CmstrClientConfig = {
   url: string;

@@ -251,3 +251,14 @@ Deno.test("Proves POST /events/:topic never returns 5xx for arbitrary JSON paylo
     await cleanup();
   }
 });
+
+Deno.test("Proves GET /events/:topic returns 400 for start=0", async () => {
+  const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
+  try {
+    const res = await fetch("/events/logs?start=0");
+    await res.body?.cancel();
+    if (res.status !== 400) throw new Error(`Expected 400, got ${res.status}`);
+  } finally {
+    await cleanup();
+  }
+});

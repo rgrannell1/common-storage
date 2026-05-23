@@ -6,7 +6,7 @@ import type { IReadEvents, IUpdateEvent, EventEntry } from "../storage/capabilit
 import type { ILogger } from "../../commons/logger.ts";
 import { buildDiffRequest } from "./diff.ts";
 import { postDiff, fetchRange, tailEvents } from "./client.ts";
-import { DEFAULT_BUCKET_SIZE } from "../../commons/constants.ts";
+import { DEFAULT_EVENT_BUCKET_SIZE } from "../../commons/constants.ts";
 
 type SyncStorage = IReadEvents & IUpdateEvent;
 
@@ -34,15 +34,15 @@ async function fetchAndReplicate(
   return entries.length > 0 ? entries[entries.length - 1].id : start - 1;
 }
 
-async function fullFetch(storage: SyncStorage, topic: string, baseUrl: string, token: string, bucketSize: number, logger: ILogger): Promise<void> {
+async function fullFetch(storage: SyncStorage, topic: string, baseUrl: string, token: string, logger: ILogger): Promise<void> {
   let start = 1;
   while (true) {
     logger.info("subscription fetch", undefined, { topic, start, source: baseUrl });
-    const entries = await fetchRange(baseUrl, topic, token, start, bucketSize);
+    const entries = await fetchRange(baseUrl, topic, token, start, DEFAULT_EVENT_BUCKET_SIZE);
     for (const entry of entries) {
       await replicateEntry(storage, topic, entry);
     }
-    if (entries.length < bucketSize) break;
+    if (entries.length < DEFAULT_EVENT_BUCKET_SIZE) break;
     start = entries[entries.length - 1].id + 1;
   }
 }
@@ -55,7 +55,7 @@ export async function syncOnce(config: SubscriptionConfig, storage: SyncStorage,
   if (local === null) return;
 
   if (local.length === 0) {
-    await fullFetch(storage, config.topic, config.source, token, DEFAULT_BUCKET_SIZE, logger);
+    await fullFetch(storage, config.topic, config.source, token, logger);
     logger.info("subscription sync complete", undefined, { source: config.source, topic: config.topic });
     return;
   }
@@ -68,7 +68,7 @@ export async function syncOnce(config: SubscriptionConfig, storage: SyncStorage,
   }
 
   const initialMaxId = local.length > 0 ? local[local.length - 1].id : 0;
-  await applyDiffAndTail(storage, config, token, diffResult.ranges, diffReq.bucketSize, initialMaxId, logger);
+  await applyDiffAndTail(storage, config, token, diffResult.ranges, initialMaxId, logger);
   logger.info("subscription sync complete", undefined, { source: config.source, topic: config.topic });
 }
 
@@ -78,13 +78,12 @@ async function applyDiffAndTail(
   config: SubscriptionConfig,
   token: string,
   ranges: { start: number; end: number }[],
-  bucketSize: number,
   initialMaxId: number,
   logger: ILogger,
 ): Promise<void> {
   let maxId = initialMaxId;
   for (const range of ranges) {
-    const lastId = await fetchAndReplicate(storage, config.topic, config.source, token, range.start + 1, bucketSize, logger);
+    const lastId = await fetchAndReplicate(storage, config.topic, config.source, token, range.start + 1, DEFAULT_EVENT_BUCKET_SIZE, logger);
     maxId = Math.max(maxId, lastId);
   }
 

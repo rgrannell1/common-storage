@@ -78,6 +78,8 @@ export interface IUpdateEvent {
 
 export type ObjectEntry = {
   id: string;
+  // Server-assigned monotonic write position; used for diff buckets and streaming cursor
+  seq: number;
   createdAt: number;
   updatedAt: number;
   // null indicates a tombstone (deleted entry)
@@ -104,6 +106,16 @@ export interface IReadObjects {
   readObjects(topic: string): Promise<ObjectEntry[] | null>;
 }
 
+export interface IReadObjectsBySeq {
+  // Returns null if topic does not exist; returns objects ordered by seq from opts.start onward
+  readObjectsBySeq(topic: string, opts: { start?: number; size?: number }): Promise<ObjectEntry[] | null>;
+}
+
+export interface IStreamObjects {
+  // Yields objects from startSeq onward indefinitely, polling for new writes; terminates when signal is aborted or topic does not exist
+  streamObjects(topic: string, startSeq: number, signal: AbortSignal): AsyncGenerator<ObjectEntry>;
+}
+
 export interface IReadIdempotencyEntry {
   // Returns null if no cached entry exists for the (namespace, topic, key) triple
   readIdempotencyEntry(namespace: string, topic: string, key: string): Promise<unknown | null>;
@@ -121,7 +133,6 @@ export interface IGetTopicType {
 export type EventDiffBucket = { start: number; end: number; hash: string };
 
 export type EventDiffRequest = {
-  bucketSize: number;
   root: string;
   buckets: EventDiffBucket[];
 };
@@ -135,15 +146,9 @@ export interface IDiffEvents {
   diffEvents(topic: string, req: EventDiffRequest): Promise<EventDiffResult | null>;
 }
 
-export type ObjectDiffEntry = { id: string; hash: string };
-
-export type ObjectDiffRequest = {
-  entries: ObjectDiffEntry[];
-};
-
-export type ObjectDiffResult =
-  | { kind: "match" }
-  | { kind: "diff"; ids: string[] };
+// Object diff uses the same bucket hash protocol as event diff, over the seq dimension
+export type ObjectDiffRequest = EventDiffRequest;
+export type ObjectDiffResult = EventDiffResult;
 
 export interface IDiffObjects {
   // Returns null if the topic does not exist
@@ -151,7 +156,8 @@ export interface IDiffObjects {
 }
 
 export interface ISweepTombstones {
-  sweepTombstones(topic: string): Promise<void>;
+  // cutoff defaults to now - TOMBSTONE_RETENTION_MS; pass an explicit value in tests
+  sweepTombstones(topic: string, cutoff?: number): Promise<void>;
 }
 
 export type UpdateEventTimestamps = {
@@ -179,6 +185,8 @@ export type IFullStorage =
   & IReadObject
   & IDeleteObject
   & IReadObjects
+  & IReadObjectsBySeq
+  & IStreamObjects
   & IDiffObjects
   & ISweepTombstones
   & IReadIdempotencyEntry

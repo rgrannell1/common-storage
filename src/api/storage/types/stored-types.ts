@@ -24,6 +24,7 @@ export type StoredEvent = {
 // A single object topic entry as stored in KV; payload null indicates a tombstone
 export type StoredObject = {
   id: string;
+  seq: number;
   createdAt: number;
   updatedAt: number;
   payload: unknown;

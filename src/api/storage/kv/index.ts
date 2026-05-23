@@ -2,7 +2,7 @@
 // @work.md
 
 import type { IAtomicWriter, IStorageBackend } from "../backend.ts";
-import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IGetTopicType, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents, IDiffEvents, EventDiffRequest, EventDiffResult, UpdateEventTimestamps, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IDiffObjects, ISweepTombstones, ObjectDiffRequest, ObjectDiffResult, IReadIdempotencyEntry, IWriteIdempotencyEntry, TopicStats, Subscription, EventEntry, ReadEventOptions, ObjectEntry } from "../capabilities.ts";
+import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IGetTopicType, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents, IDiffEvents, EventDiffRequest, EventDiffResult, UpdateEventTimestamps, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadObjectsBySeq, IStreamObjects, IDiffObjects, ISweepTombstones, ObjectDiffRequest, ObjectDiffResult, IReadIdempotencyEntry, IWriteIdempotencyEntry, TopicStats, Subscription, EventEntry, ReadEventOptions, ObjectEntry } from "../capabilities.ts";
 import type { TopicConfig } from "../../../commons/config.ts";
 import { kvGet, kvSet, kvSetWithExpiry, kvDelete, kvList, kvAtomic } from "./base.ts";
 import * as Topics from "./topics.ts";
@@ -10,7 +10,7 @@ import * as Events from "./events/index.ts";
 import * as Objects from "./objects.ts";
 import * as Idempotency from "./idempotency.ts";
 
-export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, IGetTopicType, ICreateTopics, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents, IDiffEvents, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IDiffObjects, ISweepTombstones, IReadIdempotencyEntry, IWriteIdempotencyEntry {
+export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, IGetTopicType, ICreateTopics, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents, IDiffEvents, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadObjectsBySeq, IStreamObjects, IDiffObjects, ISweepTombstones, IReadIdempotencyEntry, IWriteIdempotencyEntry {
   private kv: Deno.Kv | null = null;
   private path: string | undefined;
 
@@ -172,11 +172,25 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
     return Objects.readObjects(this.kv!, topic);
   }
 
+  // -- IReadObjectsBySeq --
+
+  readObjectsBySeq(topic: string, opts: { start?: number; size?: number }): Promise<ObjectEntry[] | null> {
+    this.#assertInitialised();
+    return Objects.readObjectsBySeq(this.kv!, topic, opts);
+  }
+
+  // -- IStreamObjects --
+
+  async *streamObjects(topic: string, startSeq: number, signal: AbortSignal): AsyncGenerator<ObjectEntry> {
+    this.#assertInitialised();
+    yield* Objects.streamObjects(this.kv!, topic, startSeq, signal);
+  }
+
   // -- ISweepTombstones --
 
-  sweepTombstones(topic: string): Promise<void> {
+  sweepTombstones(topic: string, cutoff?: number): Promise<void> {
     this.#assertInitialised();
-    return Objects.sweepTombstones(this.kv!, topic);
+    return Objects.sweepTombstones(this.kv!, topic, cutoff);
   }
 
   // -- IReadIdempotencyEntry --

@@ -3,6 +3,15 @@
 
 import type { IAtomicWriter } from "../backend.ts";
 import { DenoAtomicWriter } from "./atomic.ts";
+import { STREAM_POLL_INTERVAL_MS } from "../../../commons/constants.ts";
+
+// Waits for the poll interval, resolving early if the signal is aborted.
+export function waitForPoll(signal: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, STREAM_POLL_INTERVAL_MS);
+    signal.addEventListener("abort", () => { clearTimeout(timer); resolve(); }, { once: true });
+  });
+}
 
 export async function kvGet<StoredValue>(kv: Deno.Kv, key: string[]): Promise<StoredValue | null> {
   const entry = await kv.get<StoredValue>(key);

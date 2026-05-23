@@ -18,6 +18,8 @@ from .schemas import (
     PutEventParams,
     PutObjectParams,
     StreamEventsParams,
+    StreamObjectsParams,
+    PostDiffParams,
 )
 from .types import (
     EventEntry,
@@ -181,6 +183,39 @@ class CmstrClient:
             if remainder.strip():
                 yield EventEntry.model_validate_json(remainder.strip())
 
+    def stream_objects(self, *, topic: str, start: int | None = None) -> Generator[ObjectEntry, None, None]:
+        """GET /objects/:topic as NDJSON — yields entries as they arrive; streams indefinitely until disconnected."""
+        params = StreamObjectsParams(topic=topic, start=start)
+        query: dict[str, str] = {}
+        if params.start is not None:
+            query["start"] = str(params.start)
+        with self.http.stream(
+            "GET",
+            f"/objects/{quote(params.topic, safe='')}",
+            params=query,
+            headers={"Accept": "application/x-ndjson"},
+        ) as response:
+            raise_for_status(response)
+            remainder = ""
+            for chunk in response.iter_text():
+                combined = remainder + chunk
+                lines = combined.split("\n")
+                remainder = lines.pop()
+                for line in lines:
+                    trimmed = line.strip()
+                    if trimmed:
+                        yield ObjectEntry.model_validate_json(trimmed)
+            if remainder.strip():
+                yield ObjectEntry.model_validate_json(remainder.strip())
+
+    def post_diff(self, *, topic: str, root: str, buckets: list[dict]) -> dict | None:
+        """POST /diff/:topic — returns diverging ranges, or None if in sync."""
+        params = PostDiffParams(topic=topic, root=root, buckets=buckets)
+        body = {"root": params.root, "buckets": [b.model_dump() for b in params.buckets]}
+        response = self.http.post(f"/diff/{quote(params.topic, safe='')}", json=body)
+        raise_for_status(response)
+        return None if response.status_code == 204 else response.json()
+
     def close(self) -> None:
         """Close the underlying HTTP client."""
         self.http.close()
@@ -300,6 +335,39 @@ class AsyncCmstrClient:
                         yield EventEntry.model_validate_json(trimmed)
             if remainder.strip():
                 yield EventEntry.model_validate_json(remainder.strip())
+
+    async def stream_objects(self, *, topic: str, start: int | None = None) -> AsyncGenerator[ObjectEntry, None]:
+        """GET /objects/:topic as NDJSON — yields entries as they arrive; streams indefinitely until disconnected."""
+        params = StreamObjectsParams(topic=topic, start=start)
+        query: dict[str, str] = {}
+        if params.start is not None:
+            query["start"] = str(params.start)
+        async with self.http.stream(
+            "GET",
+            f"/objects/{quote(params.topic, safe='')}",
+            params=query,
+            headers={"Accept": "application/x-ndjson"},
+        ) as response:
+            raise_for_status(response)
+            remainder = ""
+            async for chunk in response.aiter_text():
+                combined = remainder + chunk
+                lines = combined.split("\n")
+                remainder = lines.pop()
+                for line in lines:
+                    trimmed = line.strip()
+                    if trimmed:
+                        yield ObjectEntry.model_validate_json(trimmed)
+            if remainder.strip():
+                yield ObjectEntry.model_validate_json(remainder.strip())
+
+    async def post_diff(self, *, topic: str, root: str, buckets: list[dict]) -> dict | None:
+        """POST /diff/:topic — returns diverging ranges, or None if in sync."""
+        params = PostDiffParams(topic=topic, root=root, buckets=buckets)
+        body = {"root": params.root, "buckets": [b.model_dump() for b in params.buckets]}
+        response = await self.http.post(f"/diff/{quote(params.topic, safe='')}", json=body)
+        raise_for_status(response)
+        return None if response.status_code == 204 else response.json()
 
     async def close(self) -> None:
         """Close the underlying HTTP client."""

@@ -1,7 +1,18 @@
 // Integration tests for GET /objects/:topic
 // @work.md
 
-import { makeTestContext, makePersistentServer } from "./helpers.ts";
+import { makeTestContext, makePersistentServer, discard } from "./helpers.ts";
+
+Deno.test("Proves GET /objects/:topic returns 400 for start=0", async () => {
+  const { fetch, cleanup } = await makePersistentServer([], [{ name: "things" }]);
+  try {
+    const res = await fetch("/objects/things?start=0");
+    await discard(res);
+    if (res.status !== 400) throw new Error(`Expected 400, got ${res.status}`);
+  } finally {
+    await cleanup();
+  }
+});
 
 Deno.test("Proves GET /objects/:topic returns 404 for an unknown topic", async () => {
   const { request, cleanup } = await makeTestContext();

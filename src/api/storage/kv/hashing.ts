@@ -27,8 +27,13 @@ export function hashUpdatedAt(updatedAt: number): Promise<string> {
   return sha256Hex(uint64ToBytes(updatedAt));
 }
 
-// SHA-256 over concatenated id||updatedAt pairs (8 bytes each, big-endian) sorted ascending by id; used for event bucket hashes.
-export function hashEventBucket(entries: Array<{ id: number; updatedAt: number }>): Promise<string> {
+// Bucket start position for a given entry position and bucket size.
+export function bucketStartFor(position: number, bucketSize: number): number {
+  return Math.floor((position - 1) / bucketSize) * bucketSize;
+}
+
+// SHA-256 over concatenated id||updatedAt pairs (8 bytes each, big-endian) sorted ascending by id; used for bucket hashes over any integer-ordered dimension.
+export function hashBucket(entries: Array<{ id: number; updatedAt: number }>): Promise<string> {
   // Layout: each entry occupies 16 bytes — 8 bytes (id) followed by 8 bytes (updatedAt),
   // both big-endian uint64. This matches the spec: SHA-256 of id||updatedAt pairs sorted by id.
   const buf = new Uint8Array(entries.length * UINT64_BYTES * 2);

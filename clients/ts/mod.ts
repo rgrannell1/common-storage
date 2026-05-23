@@ -17,6 +17,9 @@ import type {
   PutObjectInput,
   DeleteObjectInput,
   StreamEventsInput,
+  StreamObjectsInput,
+  PostDiffInput,
+  PostDiffResult,
 } from "./types.ts";
 
 export { CmstrError } from "./error.ts";
@@ -37,6 +40,10 @@ export type {
   PutObjectInput,
   DeleteObjectInput,
   StreamEventsInput,
+  StreamObjectsInput,
+  PostDiffInput,
+  PostDiffResult,
+  EventDiffBucket,
 } from "./types.ts";
 
 type RequestOptions = {
@@ -144,6 +151,13 @@ export class CmstrClient {
     return await this.request("DELETE", `/objects/${encodeURIComponent(input.topic)}/${encodeURIComponent(input.id)}`) as ObjectEntry;
   }
 
+  async postDiff(input: PostDiffInput): Promise<PostDiffResult> {
+    const { topic, ...body } = input;
+    const result = await this.request("POST", `/diff/${encodeURIComponent(topic)}`, { body });
+    if (result === null) return null;
+    return result as PostDiffResult;
+  }
+
   async *streamEvents(input: StreamEventsInput): AsyncGenerator<EventEntry> {
     const url = new URL(`${this.url}/events/${encodeURIComponent(input.topic)}`);
     if (input.start !== undefined) url.searchParams.set("start", input.start.toString());
@@ -173,6 +187,40 @@ export class CmstrClient {
         }
       }
       if (remainder.trim()) yield JSON.parse(remainder.trim()) as EventEntry;
+    } finally {
+      reader.cancel().catch(() => {});
+    }
+  }
+
+  async *streamObjects(input: StreamObjectsInput): AsyncGenerator<ObjectEntry> {
+    const url = new URL(`${this.url}/objects/${encodeURIComponent(input.topic)}`);
+    if (input.start !== undefined) url.searchParams.set("start", input.start.toString());
+
+    const response = await fetch(url, {
+      signal: input.signal,
+      headers: { Authorization: `Bearer ${this.token}`, Accept: "application/x-ndjson" },
+    });
+
+    if (!response.ok || !response.body) throw new CmstrError(response.status, await response.json());
+
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    let remainder = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = remainder + value;
+        const lines = chunk.split("\n");
+        remainder = lines.pop() ?? "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed) yield JSON.parse(trimmed) as ObjectEntry;
+        }
+      }
+      if (remainder.trim()) yield JSON.parse(remainder.trim()) as ObjectEntry;
     } finally {
       reader.cancel().catch(() => {});
     }

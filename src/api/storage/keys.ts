@@ -15,6 +15,12 @@ export const KV_EVENT_COUNTER = ["event-counter"];
 // Prefix for object topic entries: ["object", <topic>, <id>]
 export const KV_OBJECT = ["object"];
 
+// Prefix for per-topic monotonic seq counters: ["object-counter", <topic>]
+export const KV_OBJECT_COUNTER = ["object-counter"];
+
+// Prefix for object seq index: ["object-seq", <topic>, <seq>] → StoredObject
+export const KV_OBJECT_SEQ = ["object-seq"];
+
 // Prefix for idempotency cache entries: ["idempotency", <topic>, <key>]
 export const KV_IDEMPOTENCY = ["idempotency"];
 

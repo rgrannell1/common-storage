@@ -42,8 +42,11 @@ export const STREAM_POLL_INTERVAL_MS = 1_000;
 // Duration to tail remote NDJSON stream after a diff round-trip, in milliseconds
 export const TAIL_DURATION_MS = 5_000;
 
-// Bucket width used when building diff requests for set reconciliation
-export const DEFAULT_BUCKET_SIZE = 100;
+// Bucket width for event topic diff requests; integer ID space divided into fixed ranges
+export const DEFAULT_EVENT_BUCKET_SIZE = 500;
+
+// Bucket width for object topic diff requests; seq space divided into fixed ranges
+export const DEFAULT_OBJECT_BUCKET_SIZE = 50;
 
 // Environment variable name holding the Macaroon root key
 export const ROOT_KEY_ENV_VAR = "COMMON_STORAGE_ROOT_KEY";

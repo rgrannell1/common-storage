@@ -352,6 +352,9 @@ Deno.test("Proves GET routes never crash on arbitrary query parameter values", a
 
       const objectsFilterRes = await fetch(`/objects/objects?filter=${encoded}`);
       await assertNoCrash(objectsFilterRes, `GET /objects/objects?filter=${rawVal}`);
+
+      const objectsPagRes = await fetch(`/objects/objects?start=${encoded}&size=${encoded}`);
+      await assertNoCrash(objectsPagRes, `GET /objects/objects?start=${rawVal}&size=${rawVal}`);
     }
   } finally {
     await cleanup();
@@ -550,6 +553,30 @@ Deno.test("Proves GET /events/:topic?start= never crashes on extreme start value
   }
 });
 
+Deno.test("Proves GET /objects/:topic?size= never crashes on extreme size values", async () => {
+  const { fetch, cleanup } = await makePersistentServer([], [{ name: "objects" }]);
+  try {
+    for (const sizeVal of FUZZ_SIZE_PARAMS) {
+      const res = await fetch(`/objects/objects?size=${encodeURIComponent(sizeVal)}`);
+      await assertNoCrash(res, `GET /objects/objects?size=${sizeVal}`);
+    }
+  } finally {
+    await cleanup();
+  }
+});
+
+Deno.test("Proves GET /objects/:topic?start= never crashes on extreme start values", async () => {
+  const { fetch, cleanup } = await makePersistentServer([], [{ name: "objects" }]);
+  try {
+    for (const startVal of FUZZ_START_PARAMS) {
+      const res = await fetch(`/objects/objects?start=${encodeURIComponent(startVal)}`);
+      await assertNoCrash(res, `GET /objects/objects?start=${startVal}`);
+    }
+  } finally {
+    await cleanup();
+  }
+});
+
 // JMESPath-specific adversarial inputs — patterns that exercise the parser's error handling,
 // deep recursion, and long expression paths rather than just schema validation.
 const FUZZ_FILTER_PARAMS = [
@@ -591,31 +618,32 @@ Deno.test("Proves ?filter= param never crashes on adversarial JMESPath expressio
 
 // Valid-shape diff bodies with semantically wrong content — these pass the Zod schema check
 // and reach business logic, where wrong hash lengths, non-hex chars, or huge arrays may crash.
+// bucketSize is not accepted by the schema (server-side constant); all bodies use {root, buckets}.
 const VALID_HEX_64 = "a".repeat(64);
 
 const STRUCTURED_DIFF_BODIES = [
-  // Event diff: hash too short (32 chars instead of 64)
-  { bucketSize: 500, root: "a".repeat(32), buckets: [] },
-  // Event diff: non-hex characters in root and bucket hash
-  { bucketSize: 500, root: "z".repeat(64), buckets: [{ start: 0, end: 500, hash: "z".repeat(64) }] },
-  // Event diff: bucketSize of zero
-  { bucketSize: 0, root: VALID_HEX_64, buckets: [] },
-  // Event diff: negative bucketSize
-  { bucketSize: -1, root: VALID_HEX_64, buckets: [] },
-  // Event diff: 5000 buckets — exercises unbounded array handling
-  { bucketSize: 1, root: VALID_HEX_64, buckets: Array.from({ length: 5000 }, (_, idx) => ({ start: idx, end: idx + 1, hash: VALID_HEX_64 })) },
-  // Event diff: overlapping bucket ranges
-  { bucketSize: 100, root: VALID_HEX_64, buckets: [{ start: 0, end: 100, hash: VALID_HEX_64 }, { start: 50, end: 150, hash: VALID_HEX_64 }] },
-  // Event diff: start > end
-  { bucketSize: 100, root: VALID_HEX_64, buckets: [{ start: 500, end: 0, hash: VALID_HEX_64 }] },
-  // Object diff: hash too short
-  { entries: [{ id: "abc", hash: "a".repeat(32) }] },
-  // Object diff: empty id
-  { entries: [{ id: "", hash: VALID_HEX_64 }] },
-  // Object diff: non-hex hash
-  { entries: [{ id: "abc", hash: "not-hex-at-all-padding-to-64-chars-xxxxxxxxxxxxxxxxxx" }] },
-  // Object diff: 5000 entries — exercises unbounded array handling
-  { entries: Array.from({ length: 5000 }, (_, idx) => ({ id: `id-${idx}`, hash: VALID_HEX_64 })) },
+  // Root hash too short (32 chars instead of 64)
+  { root: "a".repeat(32), buckets: [] },
+  // Non-hex characters in root and bucket hash
+  { root: "z".repeat(64), buckets: [{ start: 0, end: 500, hash: "z".repeat(64) }] },
+  // Bucket hash too short
+  { root: VALID_HEX_64, buckets: [{ start: 0, end: 500, hash: "a".repeat(32) }] },
+  // 5000 buckets — exercises unbounded array handling
+  { root: VALID_HEX_64, buckets: Array.from({ length: 5000 }, (_, idx) => ({ start: idx * 500, end: (idx + 1) * 500, hash: VALID_HEX_64 })) },
+  // Overlapping bucket ranges
+  { root: VALID_HEX_64, buckets: [{ start: 0, end: 500, hash: VALID_HEX_64 }, { start: 250, end: 750, hash: VALID_HEX_64 }] },
+  // start > end in a bucket
+  { root: VALID_HEX_64, buckets: [{ start: 500, end: 0, hash: VALID_HEX_64 }] },
+  // Zero-width bucket (start === end)
+  { root: VALID_HEX_64, buckets: [{ start: 500, end: 500, hash: VALID_HEX_64 }] },
+  // Negative start
+  { root: VALID_HEX_64, buckets: [{ start: -1, end: 499, hash: VALID_HEX_64 }] },
+  // Very large start/end values
+  { root: VALID_HEX_64, buckets: [{ start: Number.MAX_SAFE_INTEGER - 500, end: Number.MAX_SAFE_INTEGER, hash: VALID_HEX_64 }] },
+  // Correct root shape but missing buckets field entirely
+  { root: VALID_HEX_64 },
+  // Spurious field that schema should strip, not crash on
+  { root: VALID_HEX_64, buckets: [], bucketSize: 1, entries: [] },
 ];
 
 Deno.test("Proves POST /diff/:topic never crashes on structurally valid but semantically wrong bodies", async () => {

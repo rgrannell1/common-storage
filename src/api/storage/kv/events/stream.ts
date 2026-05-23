@@ -4,15 +4,7 @@
 import type { EventEntry } from "../../capabilities.ts";
 import type { StoredTopic, StoredEvent } from "../../types/stored-types.ts";
 import { KV_TOPIC, KV_EVENT } from "../../keys.ts";
-import { STREAM_POLL_INTERVAL_MS } from "../../../../commons/constants.ts";
-
-// Waits for the poll interval, resolving early if the signal is aborted.
-function waitForPoll(signal: AbortSignal): Promise<void> {
-  return new Promise<void>((resolve) => {
-    const timer = setTimeout(resolve, STREAM_POLL_INTERVAL_MS);
-    signal.addEventListener("abort", () => { clearTimeout(timer); resolve(); }, { once: true });
-  });
-}
+import { waitForPoll } from "../base.ts";
 
 export async function* streamEvents(kv: Deno.Kv, topic: string, startId: number, signal: AbortSignal): AsyncGenerator<EventEntry> {
   const meta = await kv.get<StoredTopic>([...KV_TOPIC, topic]);

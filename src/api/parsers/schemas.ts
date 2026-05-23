@@ -68,6 +68,8 @@ export const SubscriptionSummarySchema = z.object({
 export const ObjectEntrySchema = z.object({
   // Client-supplied string ID
   id: z.string().min(1),
+  // Server-assigned monotonic write position; used for diff buckets and streaming cursor
+  seq: z.number().int().positive(),
   // Timestamp when this entry was first written
   createdAt: TimestampSchema,
   // Timestamp of the most recent update to this entry
@@ -95,7 +97,7 @@ export const PaginationSchema = z.object({
 });
 
 // Entry ID coerced from a query string parameter; used in paginated endpoints
-export const QueryStartSchema = z.coerce.number().int().nonnegative();
+export const QueryStartSchema = z.coerce.number().int().positive();
 
 // Page size coerced from a query string parameter; used in paginated endpoints
 export const QuerySizeSchema = z.coerce.number().int().positive();
@@ -122,23 +124,14 @@ export const EventDiffBucketSchema = z.object({
   message: "end must be greater than start",
 });
 
-// Event diff request body — flat bucket hash tree for event topics
+// Event diff request body — flat bucket hash tree for event topics; bucket size is fixed server-side
 export const EventDiffBodySchema = z.object({
-  bucketSize: z.number().int().positive(),
   root: HexHashSchema,
   buckets: z.array(EventDiffBucketSchema),
 });
 
-// Single entry in an object diff request — carries the entry ID and hash of its updatedAt
-export const ObjectDiffEntrySchema = z.object({
-  id: z.string().min(1),
-  hash: HexHashSchema,
-});
-
-// Object diff request body — flat entry map for object topics
-export const ObjectDiffBodySchema = z.object({
-  entries: z.array(ObjectDiffEntrySchema),
-});
+// Object diff request body — same bucket hash protocol as events, over the seq dimension
+export const ObjectDiffBodySchema = EventDiffBodySchema;
 
 // Comma-separated list of entry IDs coerced from a query string parameter; used in ?ids= lookups
 export const QueryIdsSchema = z.string()
