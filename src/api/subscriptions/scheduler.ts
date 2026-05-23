@@ -3,6 +3,7 @@
 
 import type { SubscriptionConfig } from "../../commons/config.ts";
 import type { IReadEvents, IUpdateEvent } from "../storage/capabilities.ts";
+import type { ILogger } from "../../commons/logger.ts";
 import { syncOnce } from "./sync.ts";
 import { startCron } from "../commons/cron.ts";
 
@@ -19,13 +20,19 @@ function frequencyToCron(frequencySeconds: number): string {
   return hours === 1 ? "0 * * * *" : `0 */${hours} * * *`;
 }
 
-export function startSubscriptions(configs: SubscriptionConfig[], storage: SchedulerStorage): () => void {
+export function startSubscriptions(configs: SubscriptionConfig[], storage: SchedulerStorage, logger: ILogger): () => void {
   const cleanups = configs.map(config =>
     startCron(`cmstr-sub-${config.topic}`, frequencyToCron(config.frequency), async () => {
       try {
-        await syncOnce(config, storage);
+        await syncOnce(config, storage, logger);
       } catch (err) {
-        console.error(`Subscription sync failed for topic "${config.topic}":`, err);
+        const error = err instanceof Error ? err : new Error(String(err));
+        logger.error("subscription sync failed", undefined, {
+          source: config.source,
+          topic: config.topic,
+          message: error.message,
+          stack: error.stack,
+        });
       }
     })
   );

@@ -25,12 +25,11 @@ await storage.createTopics([], [{ name: METRICS_TOPIC }]);
 
 const schemas = await buildSchemaRegistry(config.events ?? [], config.objects ?? []);
 
+const logger = new StderrLogger();
 const collector = new MetricsCollector(storage);
 startMetricsLoop(storage, collector);
-startSubscriptions(config.subscriptions ?? [], storage);
+startSubscriptions(config.subscriptions ?? [], storage, logger);
 startGcLoop(storage, (config.objects ?? []).map(topic => topic.name));
-
-const logger = new StderrLogger();
 const app = createApp({ storage, collector, config, schemas, logger });
 
 // Deno Deploy uses the default export; local dev uses Deno.serve via `deno run`

@@ -18,6 +18,12 @@ export const KV_OBJECT = ["object"];
 // Prefix for idempotency cache entries: ["idempotency", <topic>, <key>]
 export const KV_IDEMPOTENCY = ["idempotency"];
 
+// Prefix for cached bucket hash entries: ["bucket-hash", <topic>, <bucketSize>, <bucketStart>]
+export const KV_BUCKET_HASH = ["bucket-hash"];
+
+// Prefix for bucket existence index entries: ["bucket-index", <topic>, <bucketSize>, <bucketStart>] -> 1
+export const KV_BUCKET_INDEX = ["bucket-index"];
+
 // Prefix for per-IP rate-limit bucket counters: ["rate-limit", "ip", <ip>, <bucket-minute>]
 export const KV_RATE_LIMIT_IP = ["rate-limit", "ip"];
 

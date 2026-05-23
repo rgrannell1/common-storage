@@ -3,7 +3,12 @@
 
 import type { EventEntry, UpdateEventTimestamps } from "../../capabilities.ts";
 import type { StoredTopic, StoredTopicStats, StoredEvent } from "../../types/stored-types.ts";
-import { KV_TOPIC, KV_TOPIC_STATS, KV_EVENT, KV_EVENT_COUNTER } from "../../keys.ts";
+import { KV_TOPIC, KV_TOPIC_STATS, KV_EVENT, KV_EVENT_COUNTER, KV_BUCKET_HASH, KV_BUCKET_INDEX } from "../../keys.ts";
+import { DEFAULT_BUCKET_SIZE } from "../../../../commons/constants.ts";
+
+function bucketStartFor(id: number): number {
+  return Math.floor((id - 1) / DEFAULT_BUCKET_SIZE) * DEFAULT_BUCKET_SIZE;
+}
 
 export async function writeEvent(kv: Deno.Kv, topic: string, payload: unknown): Promise<EventEntry | null> {
   const meta = await kv.get<StoredTopic>([...KV_TOPIC, topic]);
@@ -22,6 +27,7 @@ export async function writeEvent(kv: Deno.Kv, topic: string, payload: unknown): 
 
     const entry: StoredEvent = { id, createdAt: now, updatedAt: now, payload };
     const newStats: StoredTopicStats = { count: (stats.value?.count ?? 0) + 1, lastUpdated: now };
+    const bucketStart = bucketStartFor(id);
 
     const result = await kv.atomic()
       .check(counter)
@@ -29,6 +35,8 @@ export async function writeEvent(kv: Deno.Kv, topic: string, payload: unknown): 
       .set([...KV_EVENT_COUNTER, topic], id)
       .set([...KV_EVENT, topic, id], entry)
       .set([...KV_TOPIC_STATS, topic], newStats)
+      .delete([...KV_BUCKET_HASH, topic, DEFAULT_BUCKET_SIZE, bucketStart])
+      .set([...KV_BUCKET_INDEX, topic, DEFAULT_BUCKET_SIZE, bucketStart], 1)
       .commit();
 
     if (result.ok) {
@@ -61,12 +69,15 @@ export async function updateEvent(kv: Deno.Kv, topic: string, id: number, payloa
       count: (stats.value?.count ?? 0) + (isNew ? 1 : 0),
       lastUpdated: entry.updatedAt,
     };
+    const bucketStart = bucketStartFor(id);
 
     let atomic = kv.atomic()
       .check(existing)
       .check(stats)
       .set([...KV_EVENT, topic, id], entry)
-      .set([...KV_TOPIC_STATS, topic], newStats);
+      .set([...KV_TOPIC_STATS, topic], newStats)
+      .delete([...KV_BUCKET_HASH, topic, DEFAULT_BUCKET_SIZE, bucketStart])
+      .set([...KV_BUCKET_INDEX, topic, DEFAULT_BUCKET_SIZE, bucketStart], 1);
 
     if (isNew) {
       // Advance counter past this ID so future local writeEvent calls don't collide

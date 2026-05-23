@@ -11,3 +11,6 @@ class CmstrError(Exception):
         self.status = status
         self.body = body
         super().__init__(f"cmstr API error {status}: {body}")
+
+    def __reduce__(self) -> tuple:
+        return (self.__class__, (self.status, self.body))
