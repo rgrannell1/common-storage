@@ -22,9 +22,6 @@ graph LR
 
   clients -- "events / objects" --> remote
   clients -- "diff + fetch" --> remote
-
-  clients -- "events / objects" --> local
-  clients -- "diff + fetch" --> local
 ```
 
 ## Routes
@@ -227,7 +224,7 @@ Set reconciliation. The client sends bucket hashes covering the topic's ID (even
   ]
 }
 ```
-Bucket hashes are SHA-256 over concatenated `id || updatedAt` pairs (events) or `seq || updatedAt` pairs (objects), sorted ascending.
+Bucket hashes are SHA-256 over concatenated `id || updatedAt` pairs (events) or using an internal monotone id `seq || updatedAt` pairs (objects), sorted ascending.
 
 **Response** `204` — root hashes match; no action needed.
 
@@ -299,6 +296,4 @@ The middleware performs a two-pass check:
 ## Caching
 
 ## Subscription & Syncing
-
-
 
