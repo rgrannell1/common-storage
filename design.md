@@ -1,5 +1,5 @@
 
-# common-storage
+# Common Storage
 
 Efficiently sync appendable events and object storage.
 
@@ -270,7 +270,7 @@ If the file is executable, the server runs it as a subprocess and reads its stdo
 
 ## Authorisation
 
-cmstr uses [Macaroons](https://en.wikipedia.org/wiki/Macaroons_(computer_science)) for bearer token auth. Every request must include `Authorization: Bearer <token>`.
+Common Storage uses [Macaroons](https://en.wikipedia.org/wiki/Macaroons_(computer_science)) for bearer token auth. Every request must include `Authorization: Bearer <token>`.
 
 One secret, the root key, is held in an env var named by `config.rootKey`. All tokens are HMAC-derived from it. Rotating the root key immediately invalidates all tokens.
 
@@ -286,14 +286,28 @@ Caveats reduce the power of a token.
 | `methods` | `methods = GET,POST` | Restricts allowed HTTP methods |
 | `expires` | `time < 2026-12-31T00:00` | Token invalid after this ISO 8601 datetime |
 
-The middleware performs a two-pass check:
+The middleware performs two checks:
 
 1. **HMAC pass**: satisfies all caveats vacuously and calls `isValid(rootKey)`.
 2. **Caveat pass**: re-verifies with real context (topic from the URL path, method from the request).
 
 ## Idempotency
 
+Several routes accept an `Idempotency-Key`:
+
+- `POST /events/:topic`
+- `PUT /events/:topic/:id`
+- `PUT /objects/:topic/:id` 
+
+Scoped per route and macaroon identifier. Entries expire after 24 hours. After expiry a retry is treated as a fresh request.
+
 ## Caching
+
+Common Storage caches diff hashes in KV to avoid recomputing SHA-256 over each buckets on every `POST /diff/:topic` request.
+
+On a diff request, each bucket's hash is looked up in KV first. On a miss the hash is computed from the raw entries and stored. Subsequent diff requests for the same bucket are served from the cache. The root hash (SHA-256 over all bucket hashes in order) is also cached. A client whose root hash matches the cached value gets `204` immediately.
+
+Caches are invalidated by writes; appends or updates also delete the affected bucket hash and the root topic hash.
 
 ## Subscription & Syncing
 
