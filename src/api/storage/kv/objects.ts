@@ -5,7 +5,7 @@ import type { ObjectEntry, ObjectDiffRequest, ObjectDiffResult, EventDiffBucket 
 import { hashBucket, hashBucketRoot, bucketStartFor } from "./hashing.ts";
 import { waitForPoll } from "./base.ts";
 import type { StoredTopic, StoredTopicStats, StoredObject } from "../types/stored-types.ts";
-import { KV_TOPIC, KV_TOPIC_STATS, KV_OBJECT, KV_OBJECT_SEQ, KV_OBJECT_COUNTER, KV_BUCKET_HASH, KV_BUCKET_INDEX } from "../keys.ts";
+import { KV_TOPIC, KV_TOPIC_STATS, KV_OBJECT, KV_OBJECT_SEQ, KV_OBJECT_COUNTER, KV_BUCKET_HASH, KV_BUCKET_INDEX, KV_TOPIC_ROOT_HASH } from "../keys.ts";
 import { TOMBSTONE_RETENTION_MS, DEFAULT_OBJECT_BUCKET_SIZE, DEFAULT_PAGE_SIZE } from "../../../commons/constants.ts";
 
 type BucketEntry = { id: number; updatedAt: number };
@@ -73,7 +73,8 @@ function invalidateBuckets(
   const newBucketStart = bucketStartFor(newSeq, DEFAULT_OBJECT_BUCKET_SIZE);
   atomic = atomic
     .delete([...KV_BUCKET_HASH, topic, DEFAULT_OBJECT_BUCKET_SIZE, newBucketStart])
-    .set([...KV_BUCKET_INDEX, topic, DEFAULT_OBJECT_BUCKET_SIZE, newBucketStart], 1);
+    .set([...KV_BUCKET_INDEX, topic, DEFAULT_OBJECT_BUCKET_SIZE, newBucketStart], 1)
+    .delete([...KV_TOPIC_ROOT_HASH, topic, DEFAULT_OBJECT_BUCKET_SIZE]);
 
   if (oldSeq !== undefined) {
     const oldBucketStart = bucketStartFor(oldSeq, DEFAULT_OBJECT_BUCKET_SIZE);
@@ -176,17 +177,36 @@ export async function deleteObject(kv: Deno.Kv, topic: string, id: string): Prom
   }
 }
 
+// Rolls over all bucket hashes to compute and cache the topic root hash.
+async function getOrComputeRootHash(kv: Deno.Kv, topic: string): Promise<string> {
+  const cacheKey = [...KV_TOPIC_ROOT_HASH, topic, DEFAULT_OBJECT_BUCKET_SIZE];
+  const cached = await kv.get<string>(cacheKey);
+  if (cached.value !== null) return cached.value;
+
+  const bucketStarts: number[] = [];
+  for await (const item of kv.list<1>({ prefix: [...KV_BUCKET_INDEX, topic, DEFAULT_OBJECT_BUCKET_SIZE] })) {
+    bucketStarts.push(item.key[item.key.length - 1] as number);
+  }
+  bucketStarts.sort((first, second) => first - second);
+
+  const bucketHashes = await Promise.all(bucketStarts.map(start => getCachedOrComputeBucketHash(kv, topic, start)));
+  const root = await hashBucketRoot(bucketHashes);
+  await kv.set(cacheKey, root);
+  return root;
+}
+
 export async function diffObjects(kv: Deno.Kv, topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null> {
   const meta = await kv.get([...KV_TOPIC, topic]);
   if (!meta.value) return null;
 
-  const { serverHashes, differingRanges } = await computeClientBucketDiffs(kv, topic, req.buckets);
-  const serverRoot = await hashBucketRoot(serverHashes);
+  const serverRoot = await getOrComputeRootHash(kv, topic);
+  if (serverRoot === req.root) return { kind: "match" };
 
+  const { differingRanges } = await computeClientBucketDiffs(kv, topic, req.buckets);
   const uncoveredStarts = await serverOnlyBucketStarts(kv, topic, req.buckets);
   const serverOnlyRanges = uncoveredStarts.map(start => ({ start, end: start + DEFAULT_OBJECT_BUCKET_SIZE }));
 
-  if (serverRoot === req.root && serverOnlyRanges.length === 0) return { kind: "match" };
+  if (differingRanges.length === 0 && serverOnlyRanges.length === 0) return { kind: "match" };
   return { kind: "diff", ranges: [...differingRanges, ...serverOnlyRanges] };
 }
 
@@ -269,6 +289,7 @@ export async function sweepTombstones(kv: Deno.Kv, topic: string, cutoff?: numbe
         .delete(item.key)
         .delete([...KV_OBJECT_SEQ, topic, item.value.seq])
         .delete([...KV_BUCKET_HASH, topic, DEFAULT_OBJECT_BUCKET_SIZE, bucketStart])
+        .delete([...KV_TOPIC_ROOT_HASH, topic, DEFAULT_OBJECT_BUCKET_SIZE])
         .commit();
       // If the check fails a concurrent upsert replaced the tombstone — skip it safely.
     }

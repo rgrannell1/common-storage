@@ -5,20 +5,16 @@
 import type { MiddlewareHandler } from "hono";
 import type { IStorageBackend } from "../storage/backend.ts";
 import { KV_RATE_LIMIT_IP, KV_RATE_LIMIT_GLOBAL } from "../storage/keys.ts";
-
-// Per-IP request limit per 60-second sliding window
-const DEFAULT_IP_LIMIT = 180;
-
-// Global request limit per 60-second sliding window
-const DEFAULT_GLOBAL_LIMIT = 10_000;
+import {
+  DEFAULT_IP_LIMIT,
+  DEFAULT_GLOBAL_LIMIT,
+  RATE_LIMIT_BUCKET_MS,
+} from "../../commons/constants.ts";
 
 export type RateLimitConfig = {
   ipLimit: number;
   globalLimit: number;
 };
-
-// Width of each time bucket in milliseconds
-const BUCKET_MS = 60_000;
 
 type BucketCounts = {
   current: number;
@@ -27,7 +23,7 @@ type BucketCounts = {
 
 // Return the current and previous bucket keys for a given KV prefix and timestamp.
 function bucketKeys(prefix: string[], nowMs: number): { currentKey: string[]; previousKey: string[] } {
-  const currentMinute = Math.floor(nowMs / BUCKET_MS);
+  const currentMinute = Math.floor(nowMs / RATE_LIMIT_BUCKET_MS);
   return {
     currentKey: [...prefix, String(currentMinute)],
     previousKey: [...prefix, String(currentMinute - 1)],
@@ -51,13 +47,13 @@ async function readBuckets(storage: IStorageBackend, prefix: string[], nowMs: nu
 async function incrementBucket(storage: IStorageBackend, prefix: string[], nowMs: number): Promise<void> {
   const { currentKey } = bucketKeys(prefix, nowMs);
   const current = await storage.get<number>(currentKey);
-  await storage.setWithExpiry(currentKey, (current ?? 0) + 1, BUCKET_MS * 2);
+  await storage.setWithExpiry(currentKey, (current ?? 0) + 1, RATE_LIMIT_BUCKET_MS * 2);
 }
 
 // Weighted sliding window estimate: current bucket + decayed previous bucket.
 function slidingWindowCount(counts: BucketCounts, nowMs: number): number {
-  const elapsed = nowMs % BUCKET_MS;
-  const previousWeight = (BUCKET_MS - elapsed) / BUCKET_MS;
+  const elapsed = nowMs % RATE_LIMIT_BUCKET_MS;
+  const previousWeight = (RATE_LIMIT_BUCKET_MS - elapsed) / RATE_LIMIT_BUCKET_MS;
   return counts.current + counts.previous * previousWeight;
 }
 

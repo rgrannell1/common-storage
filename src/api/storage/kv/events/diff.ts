@@ -4,7 +4,7 @@
 import type { EventDiffRequest, EventDiffResult, EventDiffBucket } from "../../capabilities.ts";
 import type { StoredEvent } from "../../types/stored-types.ts";
 import { hashBucket, hashBucketRoot } from "../hashing.ts";
-import { KV_TOPIC, KV_EVENT, KV_BUCKET_HASH, KV_BUCKET_INDEX } from "../../keys.ts";
+import { KV_TOPIC, KV_EVENT, KV_BUCKET_HASH, KV_BUCKET_INDEX, KV_TOPIC_ROOT_HASH } from "../../keys.ts";
 import { DEFAULT_EVENT_BUCKET_SIZE } from "../../../../commons/constants.ts";
 
 type BucketEntry = { id: number; updatedAt: number };
@@ -50,6 +50,24 @@ async function computeClientBucketDiffs(
   return { serverHashes, differingRanges };
 }
 
+// Rolls over all bucket hashes to compute and cache the topic root hash.
+async function getOrComputeRootHash(kv: Deno.Kv, topic: string): Promise<string> {
+  const cacheKey = [...KV_TOPIC_ROOT_HASH, topic, DEFAULT_EVENT_BUCKET_SIZE];
+  const cached = await kv.get<string>(cacheKey);
+  if (cached.value !== null) return cached.value;
+
+  const bucketStarts: number[] = [];
+  for await (const item of kv.list<1>({ prefix: [...KV_BUCKET_INDEX, topic, DEFAULT_EVENT_BUCKET_SIZE] })) {
+    bucketStarts.push(item.key[item.key.length - 1] as number);
+  }
+  bucketStarts.sort((first, second) => first - second);
+
+  const bucketHashes = await Promise.all(bucketStarts.map(start => getCachedOrComputeBucketHash(kv, topic, start)));
+  const root = await hashBucketRoot(bucketHashes);
+  await kv.set(cacheKey, root);
+  return root;
+}
+
 // Returns bucket starts on the server that the client did not include.
 async function serverOnlyBucketStarts(kv: Deno.Kv, topic: string, clientBuckets: EventDiffBucket[]): Promise<number[]> {
   const clientStarts = new Set(clientBuckets.map(bucket => bucket.start));
@@ -65,13 +83,13 @@ export async function diffEvents(kv: Deno.Kv, topic: string, req: EventDiffReque
   const meta = await kv.get([...KV_TOPIC, topic]);
   if (!meta.value) return null;
 
-  const { serverHashes, differingRanges } = await computeClientBucketDiffs(kv, topic, req.buckets);
-  const serverRoot = await hashBucketRoot(serverHashes);
+  const serverRoot = await getOrComputeRootHash(kv, topic);
+  if (serverRoot === req.root) return { kind: "match" };
 
+  const { differingRanges } = await computeClientBucketDiffs(kv, topic, req.buckets);
   const uncoveredStarts = await serverOnlyBucketStarts(kv, topic, req.buckets);
   const serverOnlyRanges = uncoveredStarts.map(start => ({ start, end: start + DEFAULT_EVENT_BUCKET_SIZE }));
 
-  if (serverRoot === req.root && serverOnlyRanges.length === 0) return { kind: "match" };
-
+  if (differingRanges.length === 0 && serverOnlyRanges.length === 0) return { kind: "match" };
   return { kind: "diff", ranges: [...differingRanges, ...serverOnlyRanges] };
 }

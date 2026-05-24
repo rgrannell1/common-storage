@@ -8,10 +8,8 @@ import {
   METRICS_COUNTERS_KEY,
   METRICS_BUCKET_PREFIX,
   METRICS_BUCKET_TTL_MS,
+  MS_PER_MINUTE,
 } from "../../commons/constants.ts";
-
-// Milliseconds per minute, used to map timestamps to minute-aligned bucket starts
-const MS_PER_MINUTE = 60_000;
 
 type MetricsCounters = {
   total: number;

@@ -3,6 +3,7 @@
 
 import type { EventEntry, EventDiffRequest } from "../storage/capabilities.ts";
 import { TAIL_DURATION_MS } from "../../commons/constants.ts";
+import { STATUS_NO_CONTENT } from "../commons/statuses.ts";
 
 type DiffResponse =
   | { kind: "match" }
@@ -19,7 +20,7 @@ export async function postDiff(baseUrl: string, topic: string, token: string, re
     body: JSON.stringify(req),
   });
 
-  if (res.status === 204) return { kind: "match" };
+  if (res.status === STATUS_NO_CONTENT) return { kind: "match" };
 
   const body = await res.json() as { ranges: { start: number; end: number }[] };
   return { kind: "diff", ranges: body.ranges };

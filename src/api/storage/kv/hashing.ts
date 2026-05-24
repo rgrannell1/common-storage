@@ -1,7 +1,6 @@
 // Shared hashing utilities for diff computation — SHA-256 over big-endian uint64 values
 
-const UINT64_BYTES = 8;
-const SHA256_BYTES = 32;
+import { UINT64_BYTES, SHA256_BYTES } from "../../../commons/constants.ts";
 
 function uint64ToBytes(value: number): Uint8Array {
   const buf = new Uint8Array(8);

@@ -86,3 +86,24 @@ export const IDEMPOTENCY_NS_PUT_EVENT = "put-event";
 
 // Idempotency cache namespace for PUT /objects/:topic/:id
 export const IDEMPOTENCY_NS_PUT_OBJECT = "put-object";
+
+// Milliseconds per minute — used to map timestamps to minute-aligned bucket starts
+export const MS_PER_MINUTE = 60_000;
+
+// Content-Type header value for NDJSON streaming responses
+export const NDJSON_CONTENT_TYPE = "application/x-ndjson";
+
+// Byte width of a uint64 value in packed big-endian hashing buffers
+export const UINT64_BYTES = 8;
+
+// Byte width of a SHA-256 digest — used when packing bucket hashes into a root hash buffer
+export const SHA256_BYTES = 32;
+
+// Default per-IP request limit per rate-limit sliding window
+export const DEFAULT_IP_LIMIT = 180;
+
+// Default global request limit per rate-limit sliding window
+export const DEFAULT_GLOBAL_LIMIT = 10_000;
+
+// Width of each rate-limit time bucket in milliseconds
+export const RATE_LIMIT_BUCKET_MS = 60_000;

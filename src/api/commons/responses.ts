@@ -12,8 +12,7 @@ import {
   STATUS_UNPROCESSABLE,
   STATUS_INTERNAL_ERROR,
 } from "./statuses.ts";
-
-const NDJSON_CONTENT_TYPE = "application/x-ndjson";
+import { NDJSON_CONTENT_TYPE } from "../../commons/constants.ts";
 
 // Maps a discriminated success kind to a function that serialises it into an HTTP Response.
 type SuccessHandler<Kind extends RouteSuccess["kind"]> = (ctx: Context, success: Extract<RouteSuccess, { kind: Kind }>) => Response;

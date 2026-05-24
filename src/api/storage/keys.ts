@@ -30,6 +30,9 @@ export const KV_BUCKET_HASH = ["bucket-hash"];
 // Prefix for bucket existence index entries: ["bucket-index", <topic>, <bucketSize>, <bucketStart>] -> 1
 export const KV_BUCKET_INDEX = ["bucket-index"];
 
+// Prefix for cached topic root hash: ["topic-root-hash", <topic>, <bucketSize>]
+export const KV_TOPIC_ROOT_HASH = ["topic-root-hash"];
+
 // Prefix for per-IP rate-limit bucket counters: ["rate-limit", "ip", <ip>, <bucket-minute>]
 export const KV_RATE_LIMIT_IP = ["rate-limit", "ip"];
 

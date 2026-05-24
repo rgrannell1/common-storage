@@ -3,7 +3,7 @@
 
 import type { EventEntry, UpdateEventTimestamps } from "../../capabilities.ts";
 import type { StoredTopic, StoredTopicStats, StoredEvent } from "../../types/stored-types.ts";
-import { KV_TOPIC, KV_TOPIC_STATS, KV_EVENT, KV_EVENT_COUNTER, KV_BUCKET_HASH, KV_BUCKET_INDEX } from "../../keys.ts";
+import { KV_TOPIC, KV_TOPIC_STATS, KV_EVENT, KV_EVENT_COUNTER, KV_BUCKET_HASH, KV_BUCKET_INDEX, KV_TOPIC_ROOT_HASH } from "../../keys.ts";
 import { DEFAULT_EVENT_BUCKET_SIZE } from "../../../../commons/constants.ts";
 import { bucketStartFor } from "../hashing.ts";
 
@@ -34,6 +34,7 @@ export async function writeEvent(kv: Deno.Kv, topic: string, payload: unknown): 
       .set([...KV_TOPIC_STATS, topic], newStats)
       .delete([...KV_BUCKET_HASH, topic, DEFAULT_EVENT_BUCKET_SIZE, bucketStart])
       .set([...KV_BUCKET_INDEX, topic, DEFAULT_EVENT_BUCKET_SIZE, bucketStart], 1)
+      .delete([...KV_TOPIC_ROOT_HASH, topic, DEFAULT_EVENT_BUCKET_SIZE])
       .commit();
 
     if (result.ok) {
@@ -74,7 +75,8 @@ export async function updateEvent(kv: Deno.Kv, topic: string, id: number, payloa
       .set([...KV_EVENT, topic, id], entry)
       .set([...KV_TOPIC_STATS, topic], newStats)
       .delete([...KV_BUCKET_HASH, topic, DEFAULT_EVENT_BUCKET_SIZE, bucketStart])
-      .set([...KV_BUCKET_INDEX, topic, DEFAULT_EVENT_BUCKET_SIZE, bucketStart], 1);
+      .set([...KV_BUCKET_INDEX, topic, DEFAULT_EVENT_BUCKET_SIZE, bucketStart], 1)
+      .delete([...KV_TOPIC_ROOT_HASH, topic, DEFAULT_EVENT_BUCKET_SIZE]);
 
     if (isNew) {
       // Advance counter past this ID so future local writeEvent calls don't collide
