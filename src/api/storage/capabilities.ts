@@ -167,20 +167,25 @@ export type UpdateEventTimestamps = {
   updatedAt?: number;
 };
 
-// Full storage backend — intersection of all capability interfaces. Use only where all capabilities are genuinely required (e.g. AppDeps). Route deps types should remain narrow.
-export type IFullStorage =
-  & IStorageBackend
+// Logical service groupings — use these for mocking or injecting subsets of storage in tests.
+// Route handler deps should stay narrower still (individual capability interfaces).
+
+export type ITopicService =
   & IGetTopicNames
   & IGetTopicStats
   & IGetSubscriptions
   & IGetTopicType
-  & ICreateTopics
+  & ICreateTopics;
+
+export type IEventService =
   & IWriteEvent
   & IReadEvents
-  & IStreamEvents
   & IReadEvent
   & IUpdateEvent
-  & IDiffEvents
+  & IStreamEvents
+  & IDiffEvents;
+
+export type IObjectService =
   & IUpsertObject
   & IReadObject
   & IDeleteObject
@@ -188,6 +193,16 @@ export type IFullStorage =
   & IReadObjectsBySeq
   & IStreamObjects
   & IDiffObjects
-  & ISweepTombstones
+  & ISweepTombstones;
+
+export type IIdempotencyService =
   & IReadIdempotencyEntry
   & IWriteIdempotencyEntry;
+
+// Full storage backend — use only where all capabilities are genuinely required (e.g. AppDeps).
+export type IFullStorage =
+  & IStorageBackend
+  & ITopicService
+  & IEventService
+  & IObjectService
+  & IIdempotencyService;

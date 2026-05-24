@@ -75,7 +75,7 @@ export class MetricsCollector {
   async #rateForMinutes(minutes: number): Promise<number> {
     const cutoff = Date.now() - minutes * MS_PER_MINUTE;
     let total = 0;
-    for await (const { key, value } of this.#storage.list<MinuteBucket>(METRICS_BUCKET_PREFIX)) {
+    for await (const { key, value } of this.#storage.list<MinuteBucket>({ prefix: METRICS_BUCKET_PREFIX })) {
       const minuteStart = Number(key.at(-1));
       if (!Number.isFinite(minuteStart)) continue;
       if (minuteStart >= cutoff) total += value.count;

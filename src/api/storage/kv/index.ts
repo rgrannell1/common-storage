@@ -25,7 +25,8 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage {
   constructor(path?: string, ops?: KvOpsCounter) {
     this.path = path;
     this.ops = ops ?? null;
-    // Sub-stores receive `this` as IStorageBackend; methods are only called after init() resolves.
+    // Sub-stores receive `this` as IStorageBackend. Their constructors must not call any storage
+    // method — this.kv is null until init() resolves, so any early call would throw.
     this.topicStore = new KvTopicStore(this);
     this.eventStore = new KvEventStore(this);
     this.objectStore = new KvObjectStore(this);

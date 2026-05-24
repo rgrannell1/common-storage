@@ -1,6 +1,7 @@
 // Object topic read/write — implements IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadObjectsBySeq, IStreamObjects, IDiffObjects
 // @work.md
 
+import type { IStorageBackend, IAtomicWriter } from "../backend.ts";
 import type { ObjectEntry, ObjectDiffRequest, ObjectDiffResult, EventDiffBucket } from "../capabilities.ts";
 import { hashBucket, hashBucketRoot, bucketStartFor } from "./hashing.ts";
 import { waitForPoll } from "./base.ts";
@@ -15,9 +16,9 @@ function byIdAscending(first: BucketEntry, second: BucketEntry): number {
 }
 
 // Scans the seq index within one bucket's range and hashes the entries.
-async function computeObjectBucketHashFromRange(kv: Deno.Kv, topic: string, bucketStart: number): Promise<string> {
+async function computeObjectBucketHashFromRange(storage: IStorageBackend, topic: string, bucketStart: number): Promise<string> {
   const entries: BucketEntry[] = [];
-  for await (const item of kv.list<StoredObject>({
+  for await (const item of storage.list<StoredObject>({
     start: [...KV_OBJECT_SEQ, topic, bucketStart + 1],
     end: [...KV_OBJECT_SEQ, topic, bucketStart + DEFAULT_OBJECT_BUCKET_SIZE + 1],
   })) {
@@ -28,35 +29,35 @@ async function computeObjectBucketHashFromRange(kv: Deno.Kv, topic: string, buck
 }
 
 // Returns the cached bucket hash, computing and caching it on a miss.
-async function getCachedOrComputeBucketHash(kv: Deno.Kv, topic: string, bucketStart: number): Promise<string> {
+async function getCachedOrComputeBucketHash(storage: IStorageBackend, topic: string, bucketStart: number): Promise<string> {
   const cacheKey = [...KV_BUCKET_HASH, topic, DEFAULT_OBJECT_BUCKET_SIZE, bucketStart];
-  const cached = await kv.get<string>(cacheKey);
-  if (cached.value !== null) return cached.value;
-  const hash = await computeObjectBucketHashFromRange(kv, topic, bucketStart);
-  await kv.set(cacheKey, hash);
+  const cached = await storage.get<string>(cacheKey);
+  if (cached !== null) return cached;
+  const hash = await computeObjectBucketHashFromRange(storage, topic, bucketStart);
+  await storage.set(cacheKey, hash);
   return hash;
 }
 
 // Computes server hashes for every client bucket and identifies which differ.
 async function computeClientBucketDiffs(
-  kv: Deno.Kv,
+  storage: IStorageBackend,
   topic: string,
   buckets: EventDiffBucket[],
-): Promise<{ serverHashes: string[]; differingRanges: { start: number; end: number }[] }> {
+): Promise<{ differingRanges: { start: number; end: number }[] }> {
   const serverHashes = await Promise.all(
-    buckets.map(bucket => getCachedOrComputeBucketHash(kv, topic, bucket.start)),
+    buckets.map(bucket => getCachedOrComputeBucketHash(storage, topic, bucket.start)),
   );
   const differingRanges = buckets
     .filter((bucket, idx) => serverHashes[idx] !== bucket.hash)
     .map(bucket => ({ start: bucket.start, end: bucket.end }));
-  return { serverHashes, differingRanges };
+  return { differingRanges };
 }
 
 // Returns seq bucket starts on the server that the client did not include.
-async function serverOnlyBucketStarts(kv: Deno.Kv, topic: string, clientBuckets: EventDiffBucket[]): Promise<number[]> {
+async function serverOnlyBucketStarts(storage: IStorageBackend, topic: string, clientBuckets: EventDiffBucket[]): Promise<number[]> {
   const clientStarts = new Set(clientBuckets.map(bucket => bucket.start));
   const result: number[] = [];
-  for await (const item of kv.list<1>({ prefix: [...KV_BUCKET_INDEX, topic, DEFAULT_OBJECT_BUCKET_SIZE] })) {
+  for await (const item of storage.list<1>({ prefix: [...KV_BUCKET_INDEX, topic, DEFAULT_OBJECT_BUCKET_SIZE] })) {
     const start = item.key[item.key.length - 1] as number;
     if (!clientStarts.has(start)) result.push(start);
   }
@@ -65,11 +66,11 @@ async function serverOnlyBucketStarts(kv: Deno.Kv, topic: string, clientBuckets:
 
 // Invalidates bucket hash caches for the given seq positions and updates the bucket existence index.
 function invalidateBuckets(
-  atomic: Deno.AtomicOperation,
+  atomic: IAtomicWriter,
   topic: string,
   newSeq: number,
   oldSeq: number | undefined,
-): Deno.AtomicOperation {
+): IAtomicWriter {
   const newBucketStart = bucketStartFor(newSeq, DEFAULT_OBJECT_BUCKET_SIZE);
   atomic = atomic
     .delete([...KV_BUCKET_HASH, topic, DEFAULT_OBJECT_BUCKET_SIZE, newBucketStart])
@@ -85,15 +86,15 @@ function invalidateBuckets(
   return atomic;
 }
 
-export async function upsertObject(kv: Deno.Kv, topic: string, id: string, payload: unknown): Promise<ObjectEntry | null> {
-  const meta = await kv.get<StoredTopic>([...KV_TOPIC, topic]);
-  if (!meta.value) return null;
+export async function upsertObject(storage: IStorageBackend, topic: string, id: string, payload: unknown): Promise<ObjectEntry | null> {
+  const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
+  if (!meta) return null;
 
   while (true) {
     const [existing, stats, counter] = await Promise.all([
-      kv.get<StoredObject>([...KV_OBJECT, topic, id]),
-      kv.get<StoredTopicStats>([...KV_TOPIC_STATS, topic]),
-      kv.get<number>([...KV_OBJECT_COUNTER, topic]),
+      storage.getEntry<StoredObject>([...KV_OBJECT, topic, id]),
+      storage.getEntry<StoredTopicStats>([...KV_TOPIC_STATS, topic]),
+      storage.getEntry<number>([...KV_OBJECT_COUNTER, topic]),
     ]);
     const now = Date.now();
     const isNew = existing.value === null;
@@ -112,7 +113,7 @@ export async function upsertObject(kv: Deno.Kv, topic: string, id: string, paylo
       lastUpdated: now,
     };
 
-    let atomic = kv.atomic()
+    let atomic = storage.atomic()
       .check(existing)
       .check(stats)
       .check(counter)
@@ -131,15 +132,15 @@ export async function upsertObject(kv: Deno.Kv, topic: string, id: string, paylo
   }
 }
 
-export async function deleteObject(kv: Deno.Kv, topic: string, id: string): Promise<ObjectEntry | null> {
-  const meta = await kv.get<StoredTopic>([...KV_TOPIC, topic]);
-  if (!meta.value) return null;
+export async function deleteObject(storage: IStorageBackend, topic: string, id: string): Promise<ObjectEntry | null> {
+  const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
+  if (!meta) return null;
 
   while (true) {
     const [existing, stats, counter] = await Promise.all([
-      kv.get<StoredObject>([...KV_OBJECT, topic, id]),
-      kv.get<StoredTopicStats>([...KV_TOPIC_STATS, topic]),
-      kv.get<number>([...KV_OBJECT_COUNTER, topic]),
+      storage.getEntry<StoredObject>([...KV_OBJECT, topic, id]),
+      storage.getEntry<StoredTopicStats>([...KV_TOPIC_STATS, topic]),
+      storage.getEntry<number>([...KV_OBJECT_COUNTER, topic]),
     ]);
     const now = Date.now();
     const newSeq = (counter.value ?? 0) + 1;
@@ -158,7 +159,7 @@ export async function deleteObject(kv: Deno.Kv, topic: string, id: string): Prom
       lastUpdated: now,
     };
 
-    let atomic = kv.atomic()
+    let atomic = storage.atomic()
       .check(existing)
       .check(stats)
       .check(counter)
@@ -178,41 +179,41 @@ export async function deleteObject(kv: Deno.Kv, topic: string, id: string): Prom
 }
 
 // Rolls over all bucket hashes to compute and cache the topic root hash.
-async function getOrComputeRootHash(kv: Deno.Kv, topic: string): Promise<string> {
+async function getOrComputeRootHash(storage: IStorageBackend, topic: string): Promise<string> {
   const cacheKey = [...KV_TOPIC_ROOT_HASH, topic, DEFAULT_OBJECT_BUCKET_SIZE];
-  const cached = await kv.get<string>(cacheKey);
-  if (cached.value !== null) return cached.value;
+  const cached = await storage.get<string>(cacheKey);
+  if (cached !== null) return cached;
 
   const bucketStarts: number[] = [];
-  for await (const item of kv.list<1>({ prefix: [...KV_BUCKET_INDEX, topic, DEFAULT_OBJECT_BUCKET_SIZE] })) {
+  for await (const item of storage.list<1>({ prefix: [...KV_BUCKET_INDEX, topic, DEFAULT_OBJECT_BUCKET_SIZE] })) {
     bucketStarts.push(item.key[item.key.length - 1] as number);
   }
   bucketStarts.sort((first, second) => first - second);
 
-  const bucketHashes = await Promise.all(bucketStarts.map(start => getCachedOrComputeBucketHash(kv, topic, start)));
+  const bucketHashes = await Promise.all(bucketStarts.map(start => getCachedOrComputeBucketHash(storage, topic, start)));
   const root = await hashBucketRoot(bucketHashes);
-  await kv.set(cacheKey, root);
+  await storage.set(cacheKey, root);
   return root;
 }
 
-export async function diffObjects(kv: Deno.Kv, topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null> {
-  const meta = await kv.get([...KV_TOPIC, topic]);
-  if (!meta.value) return null;
+export async function diffObjects(storage: IStorageBackend, topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null> {
+  const meta = await storage.get([...KV_TOPIC, topic]);
+  if (!meta) return null;
 
-  const serverRoot = await getOrComputeRootHash(kv, topic);
+  const serverRoot = await getOrComputeRootHash(storage, topic);
   if (serverRoot === req.root) return { kind: "match" };
 
-  const { differingRanges } = await computeClientBucketDiffs(kv, topic, req.buckets);
-  const uncoveredStarts = await serverOnlyBucketStarts(kv, topic, req.buckets);
+  const { differingRanges } = await computeClientBucketDiffs(storage, topic, req.buckets);
+  const uncoveredStarts = await serverOnlyBucketStarts(storage, topic, req.buckets);
   const serverOnlyRanges = uncoveredStarts.map(start => ({ start, end: start + DEFAULT_OBJECT_BUCKET_SIZE }));
 
   if (differingRanges.length === 0 && serverOnlyRanges.length === 0) return { kind: "match" };
   return { kind: "diff", ranges: [...differingRanges, ...serverOnlyRanges] };
 }
 
-export async function* streamObjects(kv: Deno.Kv, topic: string, startSeq: number, signal: AbortSignal): AsyncGenerator<ObjectEntry> {
-  const meta = await kv.get<StoredTopic>([...KV_TOPIC, topic]);
-  if (!meta.value) return;
+export async function* streamObjects(storage: IStorageBackend, topic: string, startSeq: number, signal: AbortSignal): AsyncGenerator<ObjectEntry> {
+  const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
+  if (!meta) return;
 
   let nextSeq = startSeq;
 
@@ -223,7 +224,7 @@ export async function* streamObjects(kv: Deno.Kv, topic: string, startSeq: numbe
       : { prefix };
 
     let yieldedAny = false;
-    for await (const item of kv.list<StoredObject>(selector)) {
+    for await (const item of storage.list<StoredObject>(selector)) {
       if (signal.aborted) return;
       const seq = item.key[item.key.length - 1] as number;
       yield item.value;
@@ -237,20 +238,20 @@ export async function* streamObjects(kv: Deno.Kv, topic: string, startSeq: numbe
   }
 }
 
-export async function readObjects(kv: Deno.Kv, topic: string): Promise<ObjectEntry[] | null> {
-  const meta = await kv.get<StoredTopic>([...KV_TOPIC, topic]);
-  if (!meta.value) return null;
+export async function readObjects(storage: IStorageBackend, topic: string): Promise<ObjectEntry[] | null> {
+  const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
+  if (!meta) return null;
 
   const entries: ObjectEntry[] = [];
-  for await (const item of kv.list<StoredObject>({ prefix: [...KV_OBJECT, topic] })) {
+  for await (const item of storage.list<StoredObject>({ prefix: [...KV_OBJECT, topic] })) {
     entries.push(item.value);
   }
   return entries;
 }
 
-export async function readObjectsBySeq(kv: Deno.Kv, topic: string, opts: { start?: number; size?: number }): Promise<ObjectEntry[] | null> {
-  const meta = await kv.get<StoredTopic>([...KV_TOPIC, topic]);
-  if (!meta.value) return null;
+export async function readObjectsBySeq(storage: IStorageBackend, topic: string, opts: { start?: number; size?: number }): Promise<ObjectEntry[] | null> {
+  const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
+  if (!meta) return null;
 
   const limit = opts.size ?? DEFAULT_PAGE_SIZE;
   const prefix = [...KV_OBJECT_SEQ, topic];
@@ -259,39 +260,55 @@ export async function readObjectsBySeq(kv: Deno.Kv, topic: string, opts: { start
     : { prefix };
 
   const entries: ObjectEntry[] = [];
-  for await (const item of kv.list<StoredObject>(selector, { limit })) {
+  for await (const item of storage.list<StoredObject>(selector, { limit })) {
     entries.push(item.value);
   }
   return entries;
 }
 
-export async function readObject(kv: Deno.Kv, topic: string, id: string): Promise<ObjectEntry | null> {
-  const meta = await kv.get<StoredTopic>([...KV_TOPIC, topic]);
-  if (!meta.value) return null;
+export async function readObject(storage: IStorageBackend, topic: string, id: string): Promise<ObjectEntry | null> {
+  const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
+  if (!meta) return null;
 
-  const entry = await kv.get<StoredObject>([...KV_OBJECT, topic, id]);
-  if (!entry.value) return null;
-
-  return entry.value;
+  return storage.get<StoredObject>([...KV_OBJECT, topic, id]);
 }
 
 // Deletes tombstones (payload: null) older than cutoff. Uses .check() on each entry so a
 // concurrent resurrection (upsert after delete) causes the atomic to fail safely — the entry
 // is no longer a tombstone and should not be swept. Also invalidates the bucket hash cache so
-// the next diff recomputes the bucket rather than returning a stale match.
-export async function sweepTombstones(kv: Deno.Kv, topic: string, cutoff?: number): Promise<void> {
+// the next diff recomputes the bucket rather than returning a stale match. After a successful
+// sweep, if the bucket is now empty its KV_BUCKET_INDEX entry is removed so serverOnlyBucketStarts
+// does not permanently report the emptied bucket as divergent on every subsequent diff.
+export async function sweepTombstones(storage: IStorageBackend, topic: string, cutoff?: number): Promise<void> {
   const effectiveCutoff = cutoff ?? Date.now() - TOMBSTONE_RETENTION_MS;
-  for await (const item of kv.list<StoredObject>({ prefix: [...KV_OBJECT, topic] })) {
+  for await (const item of storage.list<StoredObject>({ prefix: [...KV_OBJECT, topic] })) {
     if (item.value.payload === null && item.value.updatedAt < effectiveCutoff) {
       const bucketStart = bucketStartFor(item.value.seq, DEFAULT_OBJECT_BUCKET_SIZE);
-      await kv.atomic()
+      const result = await storage.atomic()
         .check(item)
         .delete(item.key)
         .delete([...KV_OBJECT_SEQ, topic, item.value.seq])
         .delete([...KV_BUCKET_HASH, topic, DEFAULT_OBJECT_BUCKET_SIZE, bucketStart])
         .delete([...KV_TOPIC_ROOT_HASH, topic, DEFAULT_OBJECT_BUCKET_SIZE])
         .commit();
-      // If the check fails a concurrent upsert replaced the tombstone — skip it safely.
+
+      // { ok: false } means a concurrent upsert replaced the tombstone — skip it safely.
+      if (!result.ok) continue;
+
+      // If the bucket is now empty, remove its index entry so it no longer appears as server-only
+      // in future diffs. A limit:1 scan is sufficient — any entry means the bucket is non-empty.
+      const bucketEnd = bucketStart + DEFAULT_OBJECT_BUCKET_SIZE;
+      let bucketEmpty = true;
+      for await (const _ of storage.list<StoredObject>({
+        prefix: [...KV_OBJECT_SEQ, topic],
+        start: [...KV_OBJECT_SEQ, topic, bucketStart],
+        end: [...KV_OBJECT_SEQ, topic, bucketEnd],
+      }, { limit: 1 })) {
+        bucketEmpty = false;
+      }
+      if (bucketEmpty) {
+        await storage.delete([...KV_BUCKET_INDEX, topic, DEFAULT_OBJECT_BUCKET_SIZE, bucketStart]);
+      }
     }
   }
 }
