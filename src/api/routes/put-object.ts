@@ -5,7 +5,7 @@ import { z } from "zod";
 import { ok, err, type Result } from "../../commons/types/result.ts";
 import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
-import { pathParamParser, bodyParser, mergeAll, idempotencyKeyParser, responseParser } from "../parsers/combinators.ts";
+import { pathParamParser, bodyParser, mergeAll, idempotencyKeyParser, tokenIdParser, responseParser } from "../parsers/combinators.ts";
 import { TopicNameSchema, ObjectEntrySchema, JsonPayloadSchema } from "../parsers/schemas.ts";
 import type { IValidateTopicPayload } from "../parsers/payload-schema.ts";
 import type { IUpsertObject, IReadIdempotencyEntry, IWriteIdempotencyEntry, ObjectEntry } from "../storage/capabilities.ts";
@@ -20,7 +20,7 @@ const PutObjectBodySchema = z.object({
   payload: JsonPayloadSchema,
 });
 
-type PutObjectRequest = z.infer<typeof PutObjectPathSchema> & z.infer<typeof PutObjectBodySchema> & { idempotencyKey: string | undefined };
+type PutObjectRequest = z.infer<typeof PutObjectPathSchema> & z.infer<typeof PutObjectBodySchema> & { idempotencyKey: string | undefined; tokenId: string };
 
 type PutObjectDeps = {
   storage: IUpsertObject & IReadIdempotencyEntry & IWriteIdempotencyEntry;
@@ -29,7 +29,7 @@ type PutObjectDeps = {
 
 async function putObject(deps: PutObjectDeps, params: PutObjectRequest): Promise<Result<ObjectEntry, RouteError>> {
   if (params.idempotencyKey !== undefined) {
-    const cached = await deps.storage.readIdempotencyEntry(IDEMPOTENCY_NS_PUT_OBJECT, params.topic, params.idempotencyKey);
+    const cached = await deps.storage.readIdempotencyEntry(`${IDEMPOTENCY_NS_PUT_OBJECT}:${params.tokenId}`, params.topic, params.idempotencyKey);
     if (cached !== null) {
       return ok(cached as ObjectEntry);
     }
@@ -48,7 +48,7 @@ async function putObject(deps: PutObjectDeps, params: PutObjectRequest): Promise
   }
 
   if (params.idempotencyKey !== undefined) {
-    await deps.storage.writeIdempotencyEntry(IDEMPOTENCY_NS_PUT_OBJECT, params.topic, params.idempotencyKey, entry);
+    await deps.storage.writeIdempotencyEntry(`${IDEMPOTENCY_NS_PUT_OBJECT}:${params.tokenId}`, params.topic, params.idempotencyKey, entry);
   }
 
   return ok(entry);
@@ -56,7 +56,7 @@ async function putObject(deps: PutObjectDeps, params: PutObjectRequest): Promise
 
 export function putObjectRoute(deps: PutObjectDeps): Route<unknown, PutObjectRequest, ObjectEntry, RouteSuccess, RouteError> {
   return {
-    parseRequest: mergeAll(pathParamParser(PutObjectPathSchema), bodyParser(PutObjectBodySchema), idempotencyKeyParser()),
+    parseRequest: mergeAll(pathParamParser(PutObjectPathSchema), bodyParser(PutObjectBodySchema), idempotencyKeyParser(), tokenIdParser()),
     handle: putObject.bind(null, deps),
     parseResponse: responseParser(ObjectEntrySchema),
   };

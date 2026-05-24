@@ -3,6 +3,7 @@
 
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { bodyLimit } from "hono/body-limit";
 import { registerRoutes } from "./routes/router.ts";
 import { getFeedRoute } from "./routes/get-feed.ts";
 import { postEventRoute } from "./routes/post-event.ts";
@@ -19,6 +20,7 @@ import { authMiddleware } from "./middleware/auth.ts";
 import { rateLimitMiddleware } from "./middleware/rate-limit.ts";
 import { securityHeaders } from "./middleware/security-headers.ts";
 import { loggingMiddleware } from "./middleware/logging.ts";
+import { MAX_REQUEST_BODY_BYTES } from "../commons/constants.ts";
 import type { AppDeps } from "./types.ts";
 
 export type { AppDeps };
@@ -27,6 +29,7 @@ export function createApp(deps: AppDeps): Hono {
   const app = new Hono();
 
   app.use("*", cors());
+  app.use("*", bodyLimit({ maxSize: MAX_REQUEST_BODY_BYTES, onError: (ctx) => ctx.json({ error: "Request body too large" }, 413) }));
   app.use("*", loggingMiddleware(deps.logger));
   app.use("*", securityHeaders);
   app.use("*", rateLimitMiddleware(deps.storage, deps.rateLimits));

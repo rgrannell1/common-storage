@@ -107,3 +107,9 @@ export const DEFAULT_GLOBAL_LIMIT = 10_000;
 
 // Width of each rate-limit time bucket in milliseconds
 export const RATE_LIMIT_BUCKET_MS = 60_000;
+
+// Maximum request body size in bytes accepted by the body-limit middleware; bodies exceeding this are rejected with 413
+export const MAX_REQUEST_BODY_BYTES = 128 * 1_024;
+
+// TTL for idempotency cache entries in KV; after this window a retry key may re-execute the operation
+export const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1_000;

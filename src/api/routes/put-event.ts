@@ -5,7 +5,7 @@ import { z } from "zod";
 import { ok, err, type Result } from "../../commons/types/result.ts";
 import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
-import { pathParamParser, bodyParser, mergeAll, idempotencyKeyParser } from "../parsers/combinators.ts";
+import { pathParamParser, bodyParser, mergeAll, idempotencyKeyParser, tokenIdParser } from "../parsers/combinators.ts";
 import { TopicNameSchema, EventEntrySchema, TimestampSchema, JsonPayloadSchema } from "../parsers/schemas.ts";
 import type { IValidateTopicPayload } from "../parsers/payload-schema.ts";
 import type { IUpdateEvent, IReadIdempotencyEntry, IWriteIdempotencyEntry, EventEntry } from "../storage/capabilities.ts";
@@ -22,7 +22,7 @@ const PutEventBodySchema = z.object({
   updatedAt: TimestampSchema.optional(),
 });
 
-type PutEventRequest = z.infer<typeof PutEventPathSchema> & z.infer<typeof PutEventBodySchema> & { idempotencyKey: string | undefined };
+type PutEventRequest = z.infer<typeof PutEventPathSchema> & z.infer<typeof PutEventBodySchema> & { idempotencyKey: string | undefined; tokenId: string };
 type PutEventResult = { entry: EventEntry; created: boolean };
 
 type PutEventDeps = {
@@ -32,7 +32,7 @@ type PutEventDeps = {
 
 async function putEvent(deps: PutEventDeps, params: PutEventRequest): Promise<Result<PutEventResult, RouteError>> {
   if (params.idempotencyKey !== undefined) {
-    const cached = await deps.storage.readIdempotencyEntry(IDEMPOTENCY_NS_PUT_EVENT, params.topic, params.idempotencyKey);
+    const cached = await deps.storage.readIdempotencyEntry(`${IDEMPOTENCY_NS_PUT_EVENT}:${params.tokenId}`, params.topic, params.idempotencyKey);
     if (cached !== null) {
       return ok(cached as PutEventResult);
     }
@@ -54,7 +54,7 @@ async function putEvent(deps: PutEventDeps, params: PutEventRequest): Promise<Re
   }
 
   if (params.idempotencyKey !== undefined) {
-    await deps.storage.writeIdempotencyEntry(IDEMPOTENCY_NS_PUT_EVENT, params.topic, params.idempotencyKey, result);
+    await deps.storage.writeIdempotencyEntry(`${IDEMPOTENCY_NS_PUT_EVENT}:${params.tokenId}`, params.topic, params.idempotencyKey, result);
   }
 
   return ok(result);
@@ -69,7 +69,7 @@ function putEventResponseParser(value: unknown): Result<RouteSuccess, RouteError
 
 export function putEventRoute(deps: PutEventDeps): Route<unknown, PutEventRequest, PutEventResult, RouteSuccess, RouteError> {
   return {
-    parseRequest: mergeAll(pathParamParser(PutEventPathSchema), bodyParser(PutEventBodySchema), idempotencyKeyParser()),
+    parseRequest: mergeAll(pathParamParser(PutEventPathSchema), bodyParser(PutEventBodySchema), idempotencyKeyParser(), tokenIdParser()),
     handle: putEvent.bind(null, deps),
     parseResponse: putEventResponseParser,
   };

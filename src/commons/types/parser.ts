@@ -8,6 +8,8 @@ export type RequestParts<Body> = {
   body: Body;
   params: Record<string, string>;
   signal: AbortSignal;
+  // Macaroon identifier of the verified token; set by auth middleware; used to scope idempotency caches per caller
+  tokenId: string;
 };
 
 export type RequestParser<Parsed, Body, Failure> = (parts: RequestParts<Body>) => Result<Parsed, Failure>;

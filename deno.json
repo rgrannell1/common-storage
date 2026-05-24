@@ -11,6 +11,7 @@
     "@deno-libs/superfetch": "jsr:@deno-libs/superfetch@^3.0.0",
     "hono": "npm:hono@^4",
     "hono/cors": "npm:hono@^4/cors",
+    "hono/body-limit": "npm:hono@^4/body-limit",
     "@hono/zod-validator": "npm:@hono/zod-validator@^0.4",
     "zod": "npm:zod@^3",
     "ajv": "npm:ajv@^8",

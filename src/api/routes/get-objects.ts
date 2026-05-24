@@ -8,7 +8,7 @@ import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts"
 import { pathParamParser, queryParser, mergeAll, acceptParser, abortSignalParser, responseParser } from "../parsers/combinators.ts";
 import { TopicNameSchema, ObjectEntrySchema, QueryStartSchema, QuerySizeSchema, QueryFilterSchema } from "../parsers/schemas.ts";
 import { applyFilter } from "../parsers/filter.ts";
-import type { IReadObjects, IReadObjectsBySeq, IStreamObjects, ObjectEntry } from "../storage/capabilities.ts";
+import type { IReadObjectsBySeq, IStreamObjects, ObjectEntry } from "../storage/capabilities.ts";
 
 const GetObjectsPathSchema = z.object({
   topic: TopicNameSchema,
@@ -23,7 +23,7 @@ const GetObjectsQuerySchema = z.object({
 type GetObjectsRequest = z.infer<typeof GetObjectsPathSchema> & z.infer<typeof GetObjectsQuerySchema> & { stream: boolean; signal: AbortSignal };
 
 type GetObjectsDeps = {
-  storage: IReadObjects & IReadObjectsBySeq & IStreamObjects;
+  storage: IReadObjectsBySeq & IStreamObjects;
 };
 
 const GetObjectsPageSchema = z.object({
@@ -33,7 +33,7 @@ const GetObjectsPageSchema = z.object({
 
 type GetObjectsPaginated = z.infer<typeof GetObjectsPageSchema>;
 type GetObjectsStream = { kind: "stream"; stream: ReadableStream<Uint8Array> };
-type GetObjectsResponse = ObjectEntry[] | GetObjectsPaginated | GetObjectsStream;
+type GetObjectsResponse = GetObjectsPaginated | GetObjectsStream;
 
 // Wraps an async generator of object entries into a UTF-8 NDJSON ReadableStream.
 function buildNdjsonStream(generator: AsyncGenerator<ObjectEntry>): ReadableStream<Uint8Array> {
@@ -69,31 +69,16 @@ async function seqPaginatedResponse(deps: GetObjectsDeps, params: GetObjectsRequ
   return ok({ entries: fetched, next });
 }
 
-async function allObjectsResponse(deps: GetObjectsDeps, params: GetObjectsRequest): Promise<Result<GetObjectsResponse, RouteError>> {
-  const entries = await deps.storage.readObjects(params.topic);
-
-  if (entries === null) return err({ kind: "not_found", resource: params.topic });
-
-  if (params.filter !== undefined) {
-    return applyFilter(entries, params.filter);
-  }
-
-  return ok(entries);
-}
-
+// All reads go through seqPaginatedResponse to bound memory usage.
+// Clients wanting the full topic can stream via Accept: application/x-ndjson.
 function getObjects(deps: GetObjectsDeps, params: GetObjectsRequest): Promise<Result<GetObjectsResponse, RouteError>> {
   if (params.stream) return Promise.resolve(streamObjectsResponse(deps, params));
-  if (params.start !== undefined || params.size !== undefined) return seqPaginatedResponse(deps, params);
-  return allObjectsResponse(deps, params);
+  return seqPaginatedResponse(deps, params);
 }
 
 function objectsResponseParser(value: unknown): Result<RouteSuccess, RouteError> {
   if (value !== null && typeof value === "object" && "kind" in value && (value as GetObjectsStream).kind === "stream") {
     return ok(value as RouteSuccess);
-  }
-  // All-objects response (plain array) — checked before paginated to avoid Array.prototype.entries false-positive
-  if (Array.isArray(value)) {
-    return responseParser(z.array(ObjectEntrySchema))(value);
   }
   // Paginated response (has entries + next)
   if (value !== null && typeof value === "object" && "entries" in value) {

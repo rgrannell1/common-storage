@@ -48,7 +48,11 @@ async function fullFetch(storage: SyncStorage, topic: string, baseUrl: string, t
 }
 
 export async function syncOnce(config: SubscriptionConfig, storage: SyncStorage, logger: ILogger): Promise<void> {
-  const token = Deno.env.get(config.token) ?? "";
+  const token = Deno.env.get(config.token);
+  if (token === undefined) {
+    logger.error(`subscription token env var '${config.token}' is not set — skipping sync`, undefined, { topic: config.topic, source: config.source });
+    return;
+  }
   logger.info("subscription sync start", undefined, { source: config.source, topic: config.topic, frequency: config.frequency });
 
   const local = await storage.readEvents(config.topic, {});

@@ -38,12 +38,13 @@ export function mintToken(rootKey: string, name: string, caveats: TokenCaveatsCo
 // Verifies a serialised Macaroon token against the root key and request context.
 // Two-pass: first satisfies all caveats to isolate the HMAC check (→ invalid),
 // then re-verifies with real context to distinguish caveat failures (→ forbidden).
+// Returns the Macaroon identifier (the name used at mint time) on success; used to scope idempotency caches per caller.
 export function verifyToken(
   rootKey: string,
   token: string,
   method: string,
   topic: string | undefined,
-): Result<void, AuthError> {
+): Result<string, AuthError> {
   let macaroon;
   try {
     macaroon = MacaroonsBuilder.deserialize(token);
@@ -72,5 +73,5 @@ export function verifyToken(
     return err({ kind: "forbidden", reason: "token caveats not satisfied" });
   }
 
-  return ok(undefined);
+  return ok(macaroon.identifier as string);
 }

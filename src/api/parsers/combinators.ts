@@ -115,6 +115,13 @@ export function rawBodyParser(parts: RequestParts<unknown>): Result<{ body: unkn
   return ok({ body: parts.body });
 }
 
+// Extracts the verified Macaroon identifier from RequestParts so handlers can scope caches per caller.
+export function tokenIdParser() {
+  return (parts: RequestParts<unknown>): Result<{ tokenId: string }, RouteError> => {
+    return ok({ tokenId: parts.tokenId });
+  };
+}
+
 // Extracts the request AbortSignal so handlers can cancel work when the client disconnects.
 export function abortSignalParser() {
   return (parts: RequestParts<unknown>): Result<{ signal: AbortSignal }, RouteError> => {

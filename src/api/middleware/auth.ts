@@ -50,6 +50,8 @@ export function authMiddleware(config: Config): MiddlewareHandler {
       return ctx.json({ error: result.error.reason }, STATUS_FORBIDDEN);
     }
 
+    // Store the Macaroon identifier so route handlers can scope idempotency caches per caller.
+    ctx.set("tokenId", result.value);
     await next();
   };
 }

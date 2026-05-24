@@ -38,6 +38,8 @@ function buildHandler(route: BoundRoute, method: HttpMethod) {
       body,
       params: ctx.req.param(),
       signal: ctx.req.raw.signal,
+      // auth middleware always sets tokenId before the handler runs
+      tokenId: (ctx.get("tokenId") as string) ?? "unknown",
     };
 
     const parsed = route.parseRequest(parts);

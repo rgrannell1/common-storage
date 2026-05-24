@@ -2,7 +2,7 @@
 // with a bloom filter to bound KV growth for unseen IPs.
 // @work.md
 
-import type { MiddlewareHandler } from "hono";
+import type { MiddlewareHandler, Context } from "hono";
 import type { IStorageBackend } from "../storage/backend.ts";
 import { KV_RATE_LIMIT_IP, KV_RATE_LIMIT_GLOBAL } from "../storage/keys.ts";
 import {
@@ -10,6 +10,7 @@ import {
   DEFAULT_GLOBAL_LIMIT,
   RATE_LIMIT_BUCKET_MS,
 } from "../../commons/constants.ts";
+import { STATUS_TOO_MANY_REQUESTS } from "../commons/statuses.ts";
 
 export type RateLimitConfig = {
   ipLimit: number;
@@ -78,32 +79,30 @@ async function checkIpLimit(storage: IStorageBackend, ip: string, limit: number,
   return false;
 }
 
-function tooManyRequests(): Response {
-  return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-    status: 429,
-    headers: { "Content-Type": "application/json" },
-  });
+// Uses ctx.json so that security headers applied earlier in the chain are included on 429 responses.
+function tooManyRequests(ctx: Context): Response {
+  return ctx.json({ error: "Rate limit exceeded" }, STATUS_TOO_MANY_REQUESTS);
 }
 
 // Hono middleware factory. Applies per-IP and global sliding window rate limits.
+// IP is read from CF-Connecting-IP only; X-Forwarded-For is intentionally omitted as it is spoofable
+// on deployments not behind Cloudflare (e.g. cs.local). Unknown IPs share a single "unknown" bucket.
 export function rateLimitMiddleware(storage: IStorageBackend, config?: RateLimitConfig): MiddlewareHandler {
   const ipLimit = config?.ipLimit ?? DEFAULT_IP_LIMIT;
   const globalLimit = config?.globalLimit ?? DEFAULT_GLOBAL_LIMIT;
 
   return async (ctx, next) => {
-    const ip = ctx.req.header("CF-Connecting-IP")
-      ?? ctx.req.header("X-Forwarded-For")
-      ?? "unknown";
+    const ip = ctx.req.header("CF-Connecting-IP") ?? "unknown";
     const nowMs = Date.now();
 
     const globalExceeded = await checkGlobalLimit(storage, globalLimit, nowMs);
     if (globalExceeded) {
-      return tooManyRequests();
+      return tooManyRequests(ctx);
     }
 
     const ipExceeded = await checkIpLimit(storage, ip, ipLimit, nowMs);
     if (ipExceeded) {
-      return tooManyRequests();
+      return tooManyRequests(ctx);
     }
 
     await next();
