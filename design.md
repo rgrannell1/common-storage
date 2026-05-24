@@ -239,7 +239,7 @@ Bucket hashes are SHA-256 over concatenated `id || updatedAt` pairs (events) or 
 
 `IStorageBackend` and `IAtomicWriter` provide the primitives for interacting with our KV stores.
 
-`IFullStorage` implements route capabilities. We subdivide this mega-interface into smaller services:
+`IFullStorage` defines route capabilities. We subdivide this mega-interface into smaller services:
 
 - `ITopicService`
 - `IEventService`
@@ -274,7 +274,7 @@ Common Storage uses [Macaroons](https://en.wikipedia.org/wiki/Macaroons_(compute
 
 One secret, the root key, is held in an env var named by `config.rootKey`. All tokens are HMAC-derived from it. Rotating the root key immediately invalidates all tokens.
 
-`cs mint <name` looks up named entries in `config.tokens` and:
+`cs mint <name>` looks up named entries in `config.tokens` and:
 - derives a macaroon from the root key and caveats
 - prints the serialised token(s)
 
@@ -314,5 +314,16 @@ Caches are invalidated by writes; appends or updates also delete the affected bu
 Servers can subscribe to topics on other servers. We:
 
 - Sync all topics using NDJSON initially.
-- When come content already exists, build a diff and `POST /diff/:topic` to the remote. Then detch diverging ranges.
+- When some content already exists, build a diff and `POST /diff/:topic` to the remote. Then fetch diverging ranges.
 
+## Security
+
+- CORS
+- Body limit
+- Security headers
+- Auth
+- Rate limiting
+
+## Garbage Collection
+
+Object tombstones are not deleted immediated; they are retained so subscribers can observe the deletion. 24h old entries are deleted in parallel. Subscribers offline more than 24h should perform a full reconsilliation.
