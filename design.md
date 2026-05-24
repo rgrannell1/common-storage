@@ -299,7 +299,7 @@ Several routes accept an `Idempotency-Key`:
 - `PUT /events/:topic/:id`
 - `PUT /objects/:topic/:id` 
 
-Scoped per route and macaroon identifier. Entries expire after 24 hours. After expiry a retry is treated as a fresh request.
+Scoped per route and macaroon identifier. Entries expire after 24 hours. After expiry a retry is treated as a fresh request. When a request has a matching idempotency key, it repeats the prior response.
 
 ## Caching
 
