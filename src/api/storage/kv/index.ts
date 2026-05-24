@@ -1,21 +1,35 @@
-// DenoKVBackend — assembles all capability implementations; delegates to domain modules
+// DenoKVBackend — raw KV primitives + composer that wires the four service stores into IFullStorage
 // @work.md
 
 import type { IAtomicWriter, IStorageBackend } from "../backend.ts";
-import type { ICreateTopics, IGetSubscriptions, IGetTopicNames, IGetTopicStats, IGetTopicType, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents, IDiffEvents, EventDiffRequest, EventDiffResult, UpdateEventTimestamps, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadObjectsBySeq, IStreamObjects, IDiffObjects, ISweepTombstones, ObjectDiffRequest, ObjectDiffResult, IReadIdempotencyEntry, IWriteIdempotencyEntry, TopicStats, Subscription, EventEntry, ReadEventOptions, ObjectEntry } from "../capabilities.ts";
+import type { IFullStorage, TopicStats, Subscription, EventEntry, ReadEventOptions, UpdateEventTimestamps, EventDiffRequest, EventDiffResult, ObjectEntry, ObjectDiffRequest, ObjectDiffResult } from "../capabilities.ts";
 import type { TopicConfig } from "../../../commons/config.ts";
-import { kvGet, kvSet, kvSetWithExpiry, kvDelete, kvList, kvAtomic } from "./base.ts";
-import * as Topics from "./topics.ts";
-import * as Events from "./events/index.ts";
-import * as Objects from "./objects.ts";
-import * as Idempotency from "./idempotency.ts";
+import { kvGet, kvGetEntry, kvSet, kvSetWithExpiry, kvDelete, kvList, kvAtomic } from "./base.ts";
+import { KvOpsCounter } from "./ops.ts";
+import { KvTopicStore } from "./topic-store.ts";
+import { KvEventStore } from "./event-store.ts";
+import { KvObjectStore } from "./object-store.ts";
+import { KvIdempotencyStore } from "./idempotency-store.ts";
 
-export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopicStats, IGetSubscriptions, IGetTopicType, ICreateTopics, IWriteEvent, IReadEvents, IReadEvent, IUpdateEvent, IStreamEvents, IDiffEvents, IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadObjectsBySeq, IStreamObjects, IDiffObjects, ISweepTombstones, IReadIdempotencyEntry, IWriteIdempotencyEntry {
+export { KvOpsCounter } from "./ops.ts";
+
+export class DenoKVBackend implements IStorageBackend, IFullStorage {
   private kv: Deno.Kv | null = null;
   private path: string | undefined;
+  private ops: KvOpsCounter | null;
+  private readonly topicStore: KvTopicStore;
+  private readonly eventStore: KvEventStore;
+  private readonly objectStore: KvObjectStore;
+  private readonly idempotencyStore: KvIdempotencyStore;
 
-  constructor(path?: string) {
+  constructor(path?: string, ops?: KvOpsCounter) {
     this.path = path;
+    this.ops = ops ?? null;
+    // Sub-stores receive `this` as IStorageBackend; methods are only called after init() resolves.
+    this.topicStore = new KvTopicStore(this);
+    this.eventStore = new KvEventStore(this);
+    this.objectStore = new KvObjectStore(this);
+    this.idempotencyStore = new KvIdempotencyStore(this);
   }
 
   async init(): Promise<void> {
@@ -28,183 +42,142 @@ export class DenoKVBackend implements IStorageBackend, IGetTopicNames, IGetTopic
     return Promise.resolve();
   }
 
-  get<StoredValue>(key: string[]): Promise<StoredValue | null> {
+  // -- IStorageBackend primitives --
+
+  get<T>(key: readonly Deno.KvKeyPart[]): Promise<T | null> {
     this.#assertInitialised();
-    return kvGet<StoredValue>(this.kv!, key);
+    if (this.ops) this.ops.reads++;
+    return kvGet<T>(this.kv!, key);
   }
 
-  set<StoredValue>(key: string[], value: StoredValue): Promise<void> {
+  getEntry<T>(key: readonly Deno.KvKeyPart[]): Promise<Deno.KvEntryMaybe<T>> {
     this.#assertInitialised();
-    return kvSet<StoredValue>(this.kv!, key, value);
+    if (this.ops) this.ops.reads++;
+    return kvGetEntry<T>(this.kv!, key);
   }
 
-  setWithExpiry<StoredValue>(key: string[], value: StoredValue, expireInMs: number): Promise<void> {
+  set<T>(key: readonly Deno.KvKeyPart[], value: T): Promise<void> {
     this.#assertInitialised();
-    return kvSetWithExpiry<StoredValue>(this.kv!, key, value, expireInMs);
+    if (this.ops) this.ops.writes++;
+    return kvSet<T>(this.kv!, key, value);
   }
 
-  delete(key: string[]): Promise<void> {
+  setWithExpiry<T>(key: readonly Deno.KvKeyPart[], value: T, expireInMs: number): Promise<void> {
     this.#assertInitialised();
+    if (this.ops) this.ops.writes++;
+    return kvSetWithExpiry<T>(this.kv!, key, value, expireInMs);
+  }
+
+  delete(key: readonly Deno.KvKeyPart[]): Promise<void> {
+    this.#assertInitialised();
+    if (this.ops) this.ops.writes++;
     return kvDelete(this.kv!, key);
   }
 
-  async *list<StoredValue>(
-    prefix: string[],
-    options?: { start?: string[]; limit?: number },
-  ): AsyncGenerator<{ key: string[]; value: StoredValue }> {
+  async *list<T>(selector: Deno.KvListSelector, options?: { limit?: number }): AsyncGenerator<Deno.KvEntry<T>> {
     this.#assertInitialised();
-    yield* kvList<StoredValue>(this.kv!, prefix, options);
+    if (this.ops) this.ops.lists++;
+    for await (const item of kvList<T>(this.kv!, selector, options)) {
+      if (this.ops) this.ops.listItems++;
+      yield item;
+    }
   }
 
   atomic(): IAtomicWriter {
     this.#assertInitialised();
-    return kvAtomic(this.kv!);
+    return kvAtomic(this.kv!, this.ops ?? undefined);
   }
 
-  // -- IGetTopicType --
+  // -- ITopicService --
 
   getTopicType(topic: string): Promise<"event" | "object" | null> {
-    this.#assertInitialised();
-    return Topics.getTopicType(this.kv!, topic);
+    return this.topicStore.getTopicType(topic);
   }
-
-  // -- IGetTopicNames --
 
   getTopicNames(): Promise<string[]> {
-    this.#assertInitialised();
-    return Topics.getTopicNames(this.kv!);
+    return this.topicStore.getTopicNames();
   }
-
-  // -- IGetTopicStats --
 
   getTopicStats(topic: string): Promise<TopicStats | null> {
-    this.#assertInitialised();
-    return Topics.getTopicStats(this.kv!, topic);
+    return this.topicStore.getTopicStats(topic);
   }
-
-  // -- IGetSubscriptions --
 
   getSubscriptions(): Promise<Subscription[]> {
-    return Topics.getSubscriptions();
+    return this.topicStore.getSubscriptions();
   }
-
-  // -- ICreateTopics --
 
   createTopics(events: TopicConfig[], objects: TopicConfig[]): Promise<void> {
-    this.#assertInitialised();
-    return Topics.createTopics(this.kv!, events, objects);
+    return this.topicStore.createTopics(events, objects);
   }
 
-  // -- IWriteEvent --
+  // -- IEventService --
 
   writeEvent(topic: string, payload: unknown): Promise<EventEntry | null> {
-    this.#assertInitialised();
-    return Events.writeEvent(this.kv!, topic, payload);
+    return this.eventStore.writeEvent(topic, payload);
   }
-
-  // -- IReadEvents --
 
   readEvents(topic: string, opts: ReadEventOptions): Promise<EventEntry[] | null> {
-    this.#assertInitialised();
-    return Events.readEvents(this.kv!, topic, opts);
+    return this.eventStore.readEvents(topic, opts);
   }
-
-  // -- IStreamEvents --
-
-  async *streamEvents(topic: string, startId: number, signal: AbortSignal): AsyncGenerator<EventEntry> {
-    this.#assertInitialised();
-    yield* Events.streamEvents(this.kv!, topic, startId, signal);
-  }
-
-  // -- IReadEvent --
 
   readEvent(topic: string, id: number): Promise<EventEntry | null> {
-    this.#assertInitialised();
-    return Events.readEvent(this.kv!, topic, id);
+    return this.eventStore.readEvent(topic, id);
   }
-
-  // -- IUpdateEvent --
 
   updateEvent(topic: string, id: number, payload: unknown, timestamps?: UpdateEventTimestamps): Promise<{ entry: EventEntry; created: boolean } | null> {
-    this.#assertInitialised();
-    return Events.updateEvent(this.kv!, topic, id, payload, timestamps);
+    return this.eventStore.updateEvent(topic, id, payload, timestamps);
   }
 
-  // -- IDiffEvents --
+  async *streamEvents(topic: string, startId: number, signal: AbortSignal): AsyncGenerator<EventEntry> {
+    yield* this.eventStore.streamEvents(topic, startId, signal);
+  }
 
   diffEvents(topic: string, req: EventDiffRequest): Promise<EventDiffResult | null> {
-    this.#assertInitialised();
-    return Events.diffEvents(this.kv!, topic, req);
+    return this.eventStore.diffEvents(topic, req);
   }
 
-  // -- IUpsertObject --
+  // -- IObjectService --
 
   upsertObject(topic: string, id: string, payload: unknown): Promise<ObjectEntry | null> {
-    this.#assertInitialised();
-    return Objects.upsertObject(this.kv!, topic, id, payload);
+    return this.objectStore.upsertObject(topic, id, payload);
   }
-
-  // -- IReadObject --
 
   readObject(topic: string, id: string): Promise<ObjectEntry | null> {
-    this.#assertInitialised();
-    return Objects.readObject(this.kv!, topic, id);
+    return this.objectStore.readObject(topic, id);
   }
-
-  // -- IDeleteObject --
 
   deleteObject(topic: string, id: string): Promise<ObjectEntry | null> {
-    this.#assertInitialised();
-    return Objects.deleteObject(this.kv!, topic, id);
+    return this.objectStore.deleteObject(topic, id);
   }
-
-  // -- IDiffObjects --
-
-  diffObjects(topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null> {
-    this.#assertInitialised();
-    return Objects.diffObjects(this.kv!, topic, req);
-  }
-
-  // -- IReadObjects --
 
   readObjects(topic: string): Promise<ObjectEntry[] | null> {
-    this.#assertInitialised();
-    return Objects.readObjects(this.kv!, topic);
+    return this.objectStore.readObjects(topic);
   }
-
-  // -- IReadObjectsBySeq --
 
   readObjectsBySeq(topic: string, opts: { start?: number; size?: number }): Promise<ObjectEntry[] | null> {
-    this.#assertInitialised();
-    return Objects.readObjectsBySeq(this.kv!, topic, opts);
+    return this.objectStore.readObjectsBySeq(topic, opts);
   }
-
-  // -- IStreamObjects --
 
   async *streamObjects(topic: string, startSeq: number, signal: AbortSignal): AsyncGenerator<ObjectEntry> {
-    this.#assertInitialised();
-    yield* Objects.streamObjects(this.kv!, topic, startSeq, signal);
+    yield* this.objectStore.streamObjects(topic, startSeq, signal);
   }
 
-  // -- ISweepTombstones --
+  diffObjects(topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null> {
+    return this.objectStore.diffObjects(topic, req);
+  }
 
   sweepTombstones(topic: string, cutoff?: number): Promise<void> {
-    this.#assertInitialised();
-    return Objects.sweepTombstones(this.kv!, topic, cutoff);
+    return this.objectStore.sweepTombstones(topic, cutoff);
   }
 
-  // -- IReadIdempotencyEntry --
+  // -- IIdempotencyService --
 
   readIdempotencyEntry(namespace: string, topic: string, key: string): Promise<unknown | null> {
-    this.#assertInitialised();
-    return Idempotency.readIdempotencyEntry(this.kv!, namespace, topic, key);
+    return this.idempotencyStore.readIdempotencyEntry(namespace, topic, key);
   }
 
-  // -- IWriteIdempotencyEntry --
-
   writeIdempotencyEntry(namespace: string, topic: string, key: string, entry: unknown): Promise<void> {
-    this.#assertInitialised();
-    return Idempotency.writeIdempotencyEntry(this.kv!, namespace, topic, key, entry);
+    return this.idempotencyStore.writeIdempotencyEntry(namespace, topic, key, entry);
   }
 
   #assertInitialised(): void {

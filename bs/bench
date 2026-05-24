@@ -1,0 +1,217 @@
+#!/usr/bin/env -S deno run --allow-all
+// Benchmarks each HTTP route at 10/100/1000/10000 entries. Outputs NDJSON to stdout.
+//
+// Note: kvOps counts all calls through DenoKVBackend — rate-limiting, route handlers, and
+// direct storage calls in buildReq (DELETE setup). Atomic writes count each individual
+// .set()/.delete() op, not just the commit. List ops count calls; listItems counts entries yielded.
+//
+// Usage:
+//   ./bs/bench | tee results.ndjson
+//   ./bs/bench 2>/dev/null | jq .      # suppress setup progress
+
+import { DenoKVBackend, KvOpsCounter } from "../src/api/storage/kv/index.ts";
+import { createApp } from "../src/api/app.ts";
+import { MetricsCollector } from "../src/api/metrics/collector.ts";
+import { buildSchemaRegistry } from "../src/api/parsers/payload-schema.ts";
+import { mintToken } from "../src/commons/auth.ts";
+import { NoopLogger } from "../src/commons/logger.ts";
+import type { Config } from "../src/commons/config.ts";
+
+// --- config ---
+
+const BENCH_ROOT_KEY_VAR = "CS_BENCH_ROOT_KEY";
+const BENCH_ROOT_KEY = "bench-root-key-do-not-use-in-production-32b";
+Deno.env.set(BENCH_ROOT_KEY_VAR, BENCH_ROOT_KEY);
+const TOKEN = mintToken(BENCH_ROOT_KEY, "bench", {});
+
+const CONFIG: Config = {
+  server: { port: 0 },
+  rootKey: BENCH_ROOT_KEY_VAR,
+  events: [{ name: "ev" }],
+  objects: [{ name: "ob" }],
+};
+
+const ENTRY_COUNTS = [10, 100, 1000, 10000];
+
+const ITERATIONS: Record<number, number> = {
+  10: 100,
+  100: 100,
+  1000: 50,
+  10000: 20,
+};
+
+// --- types ---
+
+type LatencyMs = { mean: number; min: number; max: number; p50: number; p95: number; p99: number };
+type BenchRecord = {
+  route: string;
+  method: string;
+  entryCount: number;
+  iterations: number;
+  latencyMs: LatencyMs;
+  kvOps: { reads: number; writes: number; lists: number; listItems: number };
+};
+
+// --- stats ---
+
+function pct(sorted: number[], p: number): number {
+  return sorted[Math.min(Math.floor(sorted.length * p), sorted.length - 1)];
+}
+
+function round(v: number): number {
+  return +v.toFixed(3);
+}
+
+function latencyStats(timings: number[]): LatencyMs {
+  const sorted = [...timings].sort((a, b) => a - b);
+  const mean = sorted.reduce((acc, v) => acc + v, 0) / sorted.length;
+  return {
+    mean: round(mean),
+    min: round(sorted[0]),
+    max: round(sorted[sorted.length - 1]),
+    p50: round(pct(sorted, 0.50)),
+    p95: round(pct(sorted, 0.95)),
+    p99: round(pct(sorted, 0.99)),
+  };
+}
+
+// --- helpers ---
+
+function makeReq(method: string, path: string, body?: unknown): Request {
+  return new Request(`http://localhost${path}`, {
+    method,
+    headers: { "Authorization": `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+}
+
+function emit(record: BenchRecord): void {
+  console.log(JSON.stringify(record));
+}
+
+async function bench(
+  route: string,
+  method: string,
+  appFetch: (r: Request) => Response | Promise<Response>,
+  buildReq: () => Request | Promise<Request>,
+  kvOps: KvOpsCounter,
+  iters: number,
+  entryCount: number,
+): Promise<void> {
+  // one warmup pass before timing starts
+  await (await appFetch(await buildReq())).body?.cancel();
+
+  kvOps.drain();
+  const timings: number[] = [];
+  for (let i = 0; i < iters; i++) {
+    const request = await buildReq();
+    const start = performance.now();
+    const res = await appFetch(request);
+    await res.body?.cancel();
+    timings.push(performance.now() - start);
+  }
+  const ops = kvOps.drain();
+
+  emit({
+    route, method, entryCount, iterations: iters,
+    latencyMs: latencyStats(timings),
+    kvOps: {
+      reads: round(ops.reads / iters),
+      writes: round(ops.writes / iters),
+      lists: round(ops.lists / iters),
+      listItems: round(ops.listItems / iters),
+    },
+  });
+}
+
+// --- main ---
+
+for (const N of ENTRY_COUNTS) {
+  Deno.stderr.write(new TextEncoder().encode(`\nsetup: N=${N} — populating ${N} events + ${N} objects...\n`));
+
+  const tmpPath = await Deno.makeTempFile({ suffix: ".db" });
+  const kvOps = new KvOpsCounter();
+  const storage = new DenoKVBackend(tmpPath, kvOps);
+  await storage.init();
+  await storage.createTopics([{ name: "ev" }], [{ name: "ob" }]);
+
+  for (let i = 1; i <= N; i++) await storage.writeEvent("ev", { n: i });
+  for (let i = 1; i <= N; i++) await storage.upsertObject("ob", `obj-${i}`, { n: i });
+
+  const schemas = await buildSchemaRegistry(CONFIG.events ?? [], CONFIG.objects ?? []);
+  const app = createApp({
+    storage,
+    collector: new MetricsCollector(),
+    config: CONFIG,
+    schemas,
+    logger: new NoopLogger(),
+    // high limits so rate limiting never fires during the benchmark
+    rateLimits: { ipLimit: 1_000_000, globalLimit: 1_000_000 },
+  });
+  const appFetch = app.fetch.bind(app);
+  const iters = ITERATIONS[N];
+
+  Deno.stderr.write(new TextEncoder().encode(`running ${iters} iterations per route...\n`));
+
+  let postCounter = N + 1;
+  let delCounter = 0;
+
+  await bench("GET /feed", "GET", appFetch,
+    () => makeReq("GET", "/feed"),
+    kvOps, iters, N);
+
+  await bench("POST /events/:topic", "POST", appFetch,
+    () => makeReq("POST", "/events/ev", { payload: { n: postCounter++ } }),
+    kvOps, iters, N);
+
+  await bench("GET /events/:topic", "GET", appFetch,
+    () => makeReq("GET", "/events/ev"),
+    kvOps, iters, N);
+
+  await bench("GET /events/:topic/:id", "GET", appFetch,
+    () => makeReq("GET", "/events/ev/1"),
+    kvOps, iters, N);
+
+  await bench("PUT /events/:topic/:id", "PUT", appFetch,
+    () => makeReq("PUT", "/events/ev/1", { payload: { n: 1 } }),
+    kvOps, iters, N);
+
+  // GET /objects/:topic with no params — paginated with default page size; same path as (page)
+  await bench("GET /objects/:topic (all)", "GET", appFetch,
+    () => makeReq("GET", "/objects/ob"),
+    kvOps, iters, N);
+
+  // GET /objects/:topic with ?size= returns a fixed page — should not scale with N
+  await bench("GET /objects/:topic (page)", "GET", appFetch,
+    () => makeReq("GET", "/objects/ob?size=100&start=1"),
+    kvOps, iters, N);
+
+  await bench("GET /objects/:topic/:id", "GET", appFetch,
+    () => makeReq("GET", "/objects/ob/obj-1"),
+    kvOps, iters, N);
+
+  await bench("PUT /objects/:topic/:id", "PUT", appFetch,
+    () => makeReq("PUT", "/objects/ob/bench-obj", { payload: { n: 1 } }),
+    kvOps, iters, N);
+
+  // DELETE needs a live object before each request — pre-create via storage, not HTTP
+  await bench("DELETE /objects/:topic/:id", "DELETE", appFetch,
+    async () => {
+      const id = `del-${delCounter++}`;
+      await storage.upsertObject("ob", id, { n: delCounter });
+      return makeReq("DELETE", `/objects/ob/${id}`);
+    },
+    kvOps, iters, N);
+
+  // POST /diff with an empty client (root="", no buckets) forces a full server scan
+  await bench("POST /diff/:topic (events)", "POST", appFetch,
+    () => makeReq("POST", "/diff/ev", { root: "", buckets: [] }),
+    kvOps, iters, N);
+
+  await bench("POST /diff/:topic (objects)", "POST", appFetch,
+    () => makeReq("POST", "/diff/ob", { root: "", buckets: [] }),
+    kvOps, iters, N);
+
+  await storage.close();
+  await Deno.remove(tmpPath);
+}
