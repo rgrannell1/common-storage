@@ -33,7 +33,7 @@ Common Storage is a REST HTTP API.
 Get basic information on how many entries are stored on the server, and when it was last updated.
 
 **Query params**
-- `?human` — flag; when present, timestamps are ISO 8601 strings instead of epoch ms
+- `?human` - flag; when present, timestamps are ISO 8601 strings instead of epoch ms
 
 **Response** `200`
 ```json
@@ -52,18 +52,18 @@ Returns a paginated page of entries from an event topic, ordered by ID. Supports
 - Specific ID lookups for post-diff reconciliation.
 
 **Path params**
-- `:topic` — topic name
+- `:topic` - topic name
 
 **Query params**
-- `?start=<id>` — first ID to return (positive int); omit to start from the beginning
-- `?size=<n>` — max entries to return (positive int)
-- `?ids=1,2,5` — fetch a specific set of IDs instead of a range (non-empty, positive ints)
-- `?filter=<expr>` — JMESPath expression; entries where it evaluates falsy are excluded; not available on streaming path
+- `?start=<id>` - first ID to return (positive int); omit to start from the beginning
+- `?size=<n>` - max entries to return (positive int)
+- `?ids=1,2,5` - fetch a specific set of IDs instead of a range (non-empty, positive ints)
+- `?filter=<expr>` - JMESPath expression; entries where it evaluates falsy are excluded; not available on streaming path
 
 **Headers**
-- `Accept: application/x-ndjson` — switch to unbounded NDJSON stream; `?start` becomes the cursor
+- `Accept: application/x-ndjson` - switch to unbounded NDJSON stream; `?start` becomes the cursor
 
-**Response** `200` — paginated:
+**Response** `200` - paginated:
 ```json
 { "entries": [{ "id": 1, "createdAt": 0, "updatedAt": 0, "payload": {} }], "next": 2 }
 ```
@@ -76,8 +76,8 @@ Returns a paginated page of entries from an event topic, ordered by ID. Supports
 Returns a single event entry by its server-assigned ID.
 
 **Path params**
-- `:topic` — topic name
-- `:id` — event ID (positive int)
+- `:topic` - topic name
+- `:id` - event ID (positive int)
 
 **Response** `200`
 ```json
@@ -91,17 +91,17 @@ Returns a single event entry by its server-assigned ID.
 Appends a new entry to an event topic. The server assigns the ID.
 
 **Path params**
-- `:topic` — topic name, 1–128 chars
+- `:topic` - topic name, 1–128 chars
 
 **Headers**
-- `Idempotency-Key` — optional; retries with the same key return the cached response
+- `Idempotency-Key` - optional; retries with the same key return the cached response
 
 **Body**
 ```json
 { "payload": {} }
 ```
 
-**Response** `201` — the created entry:
+**Response** `201` - the created entry:
 ```json
 { "id": 42, "createdAt": 0, "updatedAt": 0, "payload": {} }
 ```
@@ -113,11 +113,11 @@ Appends a new entry to an event topic. The server assigns the ID.
 Upserts an event at a given ID; creates it if absent, updates if present. Used by federation to replicate entries with their original IDs.
 
 **Path params**
-- `:topic` — topic name, 1–128 chars
-- `:id` — event ID (positive int)
+- `:topic` - topic name, 1–128 chars
+- `:id` - event ID (positive int)
 
 **Headers**
-- `Idempotency-Key` — optional; max 512 bytes
+- `Idempotency-Key` - optional; max 512 bytes
 
 **Body**
 ```json
@@ -137,17 +137,17 @@ Upserts an event at a given ID; creates it if absent, updates if present. Used b
 Returns a paginated page of object entries ordered by seq. Supports NDJSON streaming for live tailing. Tombstones (`payload: null`) are included in all responses so deletions propagate to subscribers.
 
 **Path params**
-- `:topic` — topic name
+- `:topic` - topic name
 
 **Query params**
-- `?start=<seq>` — first seq position to return (positive int)
-- `?size=<n>` — max entries to return (positive int); defaults to 100
-- `?filter=<expr>` — JMESPath expression applied to each entry's payload; not available on streaming path
+- `?start=<seq>` - first seq position to return (positive int)
+- `?size=<n>` - max entries to return (positive int); defaults to 100
+- `?filter=<expr>` - JMESPath expression applied to each entry's payload; not available on streaming path
 
 **Headers**
-- `Accept: application/x-ndjson` — switch to unbounded NDJSON stream ordered by seq; `?start` becomes the cursor
+- `Accept: application/x-ndjson` - switch to unbounded NDJSON stream ordered by seq; `?start` becomes the cursor
 
-**Response** `200` — paginated:
+**Response** `200` - paginated:
 ```json
 { "entries": [{ "id": "key", "seq": 1, "createdAt": 0, "updatedAt": 0, "payload": {} }], "next": 2 }
 ```
@@ -160,8 +160,8 @@ Returns a paginated page of object entries ordered by seq. Supports NDJSON strea
 Returns a single object entry by its client-supplied string ID.
 
 **Path params**
-- `:topic` — topic name
-- `:id` — object ID (non-empty string)
+- `:topic` - topic name
+- `:id` - object ID (non-empty string)
 
 **Response** `200`
 ```json
@@ -175,11 +175,11 @@ Returns a single object entry by its client-supplied string ID.
 Upserts an object entry at the given string ID. Creates it if absent; overwrites the payload and advances the seq if present.
 
 **Path params**
-- `:topic` — topic name
-- `:id` — object ID (non-empty string)
+- `:topic` - topic name
+- `:id` - object ID (non-empty string)
 
 **Headers**
-- `Idempotency-Key` — optional; max 512 bytes
+- `Idempotency-Key` - optional; max 512 bytes
 
 **Body**
 ```json
@@ -198,10 +198,10 @@ Upserts an object entry at the given string ID. Creates it if absent; overwrites
 Writes a tombstone; does not remove the entry. Tombstones propagate to subscribers and are GC'd after the retention window.
 
 **Path params**
-- `:topic` — topic name
-- `:id` — object ID (non-empty string)
+- `:topic` - topic name
+- `:id` - object ID (non-empty string)
 
-**Response** `200` — the tombstone entry:
+**Response** `200` - the tombstone entry:
 ```json
 { "id": "key", "seq": 2, "createdAt": 0, "updatedAt": 0, "payload": null }
 ```
@@ -213,7 +213,7 @@ Writes a tombstone; does not remove the entry. Tombstones propagate to subscribe
 Set reconciliation. The client sends bucket hashes covering the topic's ID (events) or seq (objects) space; the server returns which ranges differ.
 
 **Path params**
-- `:topic` — topic name, 1–128 chars
+- `:topic` - topic name, 1–128 chars
 
 **Body**
 ```json
@@ -226,9 +226,9 @@ Set reconciliation. The client sends bucket hashes covering the topic's ID (even
 ```
 Bucket hashes are SHA-256 over concatenated `id || updatedAt` pairs (events) or using an internal monotone id `seq || updatedAt` pairs (objects), sorted ascending.
 
-**Response** `204` — root hashes match; no action needed.
+**Response** `204` - root hashes match; no action needed.
 
-**Response** `200` — divergent ranges the client should re-fetch:
+**Response** `200` - divergent ranges the client should re-fetch:
 ```json
 { "ranges": [{ "start": 0, "end": 500 }] }
 ```
@@ -252,10 +252,10 @@ Routes may only use these smaller interfaces.
 
 The server reads a single JSON config file. The path is resolved in order:
 
-1. `CMSTR_CONFIG_PATH` env var (for Deno Deploy — point to a `./config.json` committed alongside the code)
+1. `CMSTR_CONFIG_PATH` env var (for Deno Deploy - point to a `./config.json` committed alongside the code)
 2. `$XDG_CONFIG_HOME/common-storage/config.json`
 
-If the file is executable, the server runs it as a subprocess and reads its stdout as JSON. This mirrors the Ansible dynamic-inventory pattern — static and generated configs share the same interface.
+If the file is executable, the server runs it as a subprocess and reads its stdout as JSON. This mirrors the Ansible dynamic-inventory pattern - static and generated configs share the same interface.
 
 ```json
 {
@@ -310,4 +310,9 @@ On a diff request, each bucket's hash is looked up in KV first. On a miss the ha
 Caches are invalidated by writes; appends or updates also delete the affected bucket hash and the root topic hash.
 
 ## Subscription & Syncing
+
+Servers can subscribe to topics on other servers. We:
+
+- Sync all topics using NDJSON initially.
+- When come content already exists, build a diff and `POST /diff/:topic` to the remote. Then detch diverging ranges.
 
