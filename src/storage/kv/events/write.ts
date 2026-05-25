@@ -1,12 +1,12 @@
 // Event write operations — writeEvent and updateEvent
 // @work.md
 
-import type { IStorageBackend } from "../../backend.ts";
+import type { IStorageBackend } from "../backend.ts";
 import type { EventEntry, UpdateEventTimestamps } from "../../capabilities.ts";
-import type { StoredTopic, StoredTopicStats, StoredEvent } from "../../types/stored-types.ts";
-import { KV_TOPIC, KV_TOPIC_STATS, KV_EVENT, KV_EVENT_COUNTER, KV_BUCKET_HASH, KV_BUCKET_INDEX, KV_TOPIC_ROOT_HASH } from "../../keys.ts";
-import { DEFAULT_EVENT_BUCKET_SIZE } from "../../../../commons/constants.ts";
-import { bucketStartFor } from "../hashing.ts";
+import type { StoredTopic, StoredTopicStats, StoredEvent } from "../types/stored-types.ts";
+import { KV_TOPIC, KV_TOPIC_STATS, KV_EVENT, KV_EVENT_COUNTER, KV_BUCKET_HASH, KV_BUCKET_INDEX, KV_TOPIC_ROOT_HASH } from "../keys.ts";
+import { DEFAULT_EVENT_BUCKET_SIZE } from "../../../commons/constants.ts";
+import { bucketStartFor } from "../../../core/hashing.ts";
 
 export async function writeEvent(storage: IStorageBackend, topic: string, payload: unknown): Promise<EventEntry | null> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);

@@ -1,11 +1,12 @@
 // KvEventStore — implements IEventService; delegates to the Events domain module
 // @work.md
 
-import type { IStorageBackend } from "../backend.ts";
+import type { IStorageBackend } from "./backend.ts";
 import type { IEventService, EventEntry, ReadEventOptions, UpdateEventTimestamps, EventDiffRequest, EventDiffResult } from "../capabilities.ts";
+import type { ILocalEventStore } from "../backend.ts";
 import * as Events from "./events/index.ts";
 
-export class KvEventStore implements IEventService {
+export class KvEventStore implements IEventService, ILocalEventStore {
   constructor(private readonly storage: IStorageBackend) {}
 
   writeEvent(topic: string, payload: unknown): Promise<EventEntry | null> {

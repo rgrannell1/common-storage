@@ -3,8 +3,8 @@
 // @work.md
 
 import type { MiddlewareHandler, Context } from "hono";
-import type { IStorageBackend } from "../storage/backend.ts";
-import { KV_RATE_LIMIT_IP, KV_RATE_LIMIT_GLOBAL } from "../storage/keys.ts";
+import type { IStorageBackend } from "../../storage/kv/backend.ts";
+import { KV_RATE_LIMIT_IP, KV_RATE_LIMIT_GLOBAL } from "../../storage/kv/keys.ts";
 import {
   DEFAULT_IP_LIMIT,
   DEFAULT_GLOBAL_LIMIT,

@@ -9,7 +9,7 @@ import { pathParamParser, queryParser, mergeAll, acceptParser, abortSignalParser
 import { TopicNameSchema, EventEntrySchema, QueryStartSchema, QuerySizeSchema, QueryIdsSchema, QueryFilterSchema } from "../parsers/schemas.ts";
 import { applyFilter } from "../parsers/filter.ts";
 import { DEFAULT_PAGE_SIZE } from "../../commons/constants.ts";
-import type { IReadEvents, IStreamEvents, EventEntry } from "../storage/capabilities.ts";
+import type { IReadEvents, IStreamEvents, EventEntry } from "../../storage/capabilities.ts";
 
 const GetEventsPathSchema = z.object({
   topic: TopicNameSchema,

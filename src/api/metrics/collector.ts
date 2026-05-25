@@ -3,7 +3,7 @@
 // Storage concerns live in emitter.ts.
 
 import type { MiddlewareHandler } from "hono";
-import type { IStorageBackend } from "../storage/backend.ts";
+import type { IStorageBackend } from "../../storage/kv/backend.ts";
 import {
   METRICS_COUNTERS_KEY,
   METRICS_BUCKET_PREFIX,

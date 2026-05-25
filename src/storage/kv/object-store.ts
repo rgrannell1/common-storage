@@ -1,23 +1,24 @@
 // KvObjectStore — implements IObjectService; delegates to the Objects domain module
 // @work.md
 
-import type { IStorageBackend } from "../backend.ts";
+import type { IStorageBackend } from "./backend.ts";
 import type { IObjectService, ObjectEntry, ObjectDiffRequest, ObjectDiffResult } from "../capabilities.ts";
+import type { ILocalObjectStore } from "../backend.ts";
 import * as Objects from "./objects.ts";
 
-export class KvObjectStore implements IObjectService {
+export class KvObjectStore implements IObjectService, ILocalObjectStore {
   constructor(private readonly storage: IStorageBackend) {}
 
-  upsertObject(topic: string, id: string, payload: unknown): Promise<ObjectEntry | null> {
-    return Objects.upsertObject(this.storage, topic, id, payload);
+  upsertObject(topic: string, id: string, payload: unknown, timestamps?: { createdAt?: number; updatedAt?: number; seq?: number }): Promise<ObjectEntry | null> {
+    return Objects.upsertObject(this.storage, topic, id, payload, timestamps);
   }
 
   readObject(topic: string, id: string): Promise<ObjectEntry | null> {
     return Objects.readObject(this.storage, topic, id);
   }
 
-  deleteObject(topic: string, id: string): Promise<ObjectEntry | null> {
-    return Objects.deleteObject(this.storage, topic, id);
+  deleteObject(topic: string, id: string, timestamps?: { createdAt?: number; updatedAt?: number; seq?: number }): Promise<ObjectEntry | null> {
+    return Objects.deleteObject(this.storage, topic, id, timestamps);
   }
 
   readObjects(topic: string): Promise<ObjectEntry[] | null> {

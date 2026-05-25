@@ -2,8 +2,8 @@
 // seq index and that bucket hash caches are invalidated so subsequent diffs recompute correctly.
 // @work.md
 
-import { DenoKVBackend } from "../src/api/storage/kv/index.ts";
-import { hashBucket, hashBucketRoot, bucketStartFor } from "../src/api/storage/kv/hashing.ts";
+import { DenoKVBackend } from "../src/storage/kv/index.ts";
+import { hashBucket, hashBucketRoot, bucketStartFor } from "../src/core/hashing.ts";
 
 const OBJECT_BUCKET_SIZE = 50;
 

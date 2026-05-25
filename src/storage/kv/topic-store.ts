@@ -1,9 +1,9 @@
 // KvTopicStore — implements ITopicService; delegates to the Topics domain module
 // @work.md
 
-import type { IStorageBackend } from "../backend.ts";
+import type { IStorageBackend } from "./backend.ts";
 import type { ITopicService, TopicStats, Subscription } from "../capabilities.ts";
-import type { TopicConfig } from "../../../commons/config.ts";
+import type { TopicConfig } from "../../commons/config.ts";
 import * as Topics from "./topics.ts";
 
 export class KvTopicStore implements ITopicService {

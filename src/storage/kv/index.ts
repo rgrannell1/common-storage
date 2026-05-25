@@ -1,19 +1,23 @@
-// DenoKVBackend — raw KV primitives + composer that wires the four service stores into IFullStorage
+// DenoKVBackend — raw KV primitives + composer that wires the four service stores into IFullStorage.
+// Also implements ILocalBackend so it can be used directly with CommonStorageNode.
 // @work.md
 
-import type { IAtomicWriter, IStorageBackend } from "../backend.ts";
+import type { IAtomicWriter, IStorageBackend } from "./backend.ts";
 import type { IFullStorage, TopicStats, Subscription, EventEntry, ReadEventOptions, UpdateEventTimestamps, EventDiffRequest, EventDiffResult, ObjectEntry, ObjectDiffRequest, ObjectDiffResult } from "../capabilities.ts";
-import type { TopicConfig } from "../../../commons/config.ts";
+import type { ILocalBackend, ILocalEventStore, ILocalObjectStore } from "../backend.ts";
+import type { ICursorStore } from "../backend.ts";
+import type { TopicConfig } from "../../commons/config.ts";
 import { kvGet, kvGetEntry, kvSet, kvSetWithExpiry, kvDelete, kvList, kvAtomic } from "./base.ts";
 import { KvOpsCounter } from "./ops.ts";
 import { KvTopicStore } from "./topic-store.ts";
 import { KvEventStore } from "./event-store.ts";
 import { KvObjectStore } from "./object-store.ts";
 import { KvIdempotencyStore } from "./idempotency-store.ts";
+import { KvCursorStore } from "./cursor-store.ts";
 
 export { KvOpsCounter } from "./ops.ts";
 
-export class DenoKVBackend implements IStorageBackend, IFullStorage {
+export class DenoKVBackend implements IStorageBackend, IFullStorage, ILocalBackend {
   private kv: Deno.Kv | null = null;
   private path: string | undefined;
   private ops: KvOpsCounter | null;
@@ -21,6 +25,11 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage {
   private readonly eventStore: KvEventStore;
   private readonly objectStore: KvObjectStore;
   private readonly idempotencyStore: KvIdempotencyStore;
+  readonly cursors: ICursorStore;
+
+  // ILocalBackend sub-stores — expose event/object stores under the narrow ILocalBackend interface
+  get events(): ILocalEventStore { return this.eventStore; }
+  get objects(): ILocalObjectStore { return this.objectStore; }
 
   constructor(path?: string, ops?: KvOpsCounter) {
     this.path = path;
@@ -31,6 +40,7 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage {
     this.eventStore = new KvEventStore(this);
     this.objectStore = new KvObjectStore(this);
     this.idempotencyStore = new KvIdempotencyStore(this);
+    this.cursors = new KvCursorStore(this);
   }
 
   async init(): Promise<void> {
@@ -45,28 +55,28 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage {
 
   // -- IStorageBackend primitives --
 
-  get<T>(key: readonly Deno.KvKeyPart[]): Promise<T | null> {
+  get<Value>(key: readonly Deno.KvKeyPart[]): Promise<Value | null> {
     this.#assertInitialised();
     if (this.ops) this.ops.reads++;
-    return kvGet<T>(this.kv!, key);
+    return kvGet<Value>(this.kv!, key);
   }
 
-  getEntry<T>(key: readonly Deno.KvKeyPart[]): Promise<Deno.KvEntryMaybe<T>> {
+  getEntry<Value>(key: readonly Deno.KvKeyPart[]): Promise<Deno.KvEntryMaybe<Value>> {
     this.#assertInitialised();
     if (this.ops) this.ops.reads++;
-    return kvGetEntry<T>(this.kv!, key);
+    return kvGetEntry<Value>(this.kv!, key);
   }
 
-  set<T>(key: readonly Deno.KvKeyPart[], value: T): Promise<void> {
+  set<Value>(key: readonly Deno.KvKeyPart[], value: Value): Promise<void> {
     this.#assertInitialised();
     if (this.ops) this.ops.writes++;
-    return kvSet<T>(this.kv!, key, value);
+    return kvSet<Value>(this.kv!, key, value);
   }
 
-  setWithExpiry<T>(key: readonly Deno.KvKeyPart[], value: T, expireInMs: number): Promise<void> {
+  setWithExpiry<Value>(key: readonly Deno.KvKeyPart[], value: Value, expireInMs: number): Promise<void> {
     this.#assertInitialised();
     if (this.ops) this.ops.writes++;
-    return kvSetWithExpiry<T>(this.kv!, key, value, expireInMs);
+    return kvSetWithExpiry<Value>(this.kv!, key, value, expireInMs);
   }
 
   delete(key: readonly Deno.KvKeyPart[]): Promise<void> {
@@ -75,10 +85,10 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage {
     return kvDelete(this.kv!, key);
   }
 
-  async *list<T>(selector: Deno.KvListSelector, options?: { limit?: number }): AsyncGenerator<Deno.KvEntry<T>> {
+  async *list<Value>(selector: Deno.KvListSelector, options?: { limit?: number }): AsyncGenerator<Deno.KvEntry<Value>> {
     this.#assertInitialised();
     if (this.ops) this.ops.lists++;
-    for await (const item of kvList<T>(this.kv!, selector, options)) {
+    for await (const item of kvList<Value>(this.kv!, selector, options)) {
       if (this.ops) this.ops.listItems++;
       yield item;
     }
@@ -139,16 +149,16 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage {
 
   // -- IObjectService --
 
-  upsertObject(topic: string, id: string, payload: unknown): Promise<ObjectEntry | null> {
-    return this.objectStore.upsertObject(topic, id, payload);
+  upsertObject(topic: string, id: string, payload: unknown, timestamps?: { createdAt?: number; updatedAt?: number; seq?: number }): Promise<ObjectEntry | null> {
+    return this.objectStore.upsertObject(topic, id, payload, timestamps);
   }
 
   readObject(topic: string, id: string): Promise<ObjectEntry | null> {
     return this.objectStore.readObject(topic, id);
   }
 
-  deleteObject(topic: string, id: string): Promise<ObjectEntry | null> {
-    return this.objectStore.deleteObject(topic, id);
+  deleteObject(topic: string, id: string, timestamps?: { createdAt?: number; updatedAt?: number; seq?: number }): Promise<ObjectEntry | null> {
+    return this.objectStore.deleteObject(topic, id, timestamps);
   }
 
   readObjects(topic: string): Promise<ObjectEntry[] | null> {

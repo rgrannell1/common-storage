@@ -1,6 +1,6 @@
 // Periodic tombstone GC — deletes object tombstones older than TOMBSTONE_RETENTION_MS.
 
-import type { ISweepTombstones } from "../storage/capabilities.ts";
+import type { ISweepTombstones } from "../../storage/capabilities.ts";
 import { GC_CRON } from "../../commons/constants.ts";
 import { startCron } from "../commons/cron.ts";
 

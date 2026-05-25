@@ -1,7 +1,7 @@
 // Top-level API dependency types
 // @work.md
 
-import type { IFullStorage } from "./storage/capabilities.ts";
+import type { IFullStorage } from "../storage/capabilities.ts";
 import type { MetricsCollector } from "./metrics/collector.ts";
 import type { Config } from "../commons/config.ts";
 import type { TopicSchemaRegistry } from "./parsers/payload-schema.ts";

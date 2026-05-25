@@ -1,7 +1,7 @@
 // Periodic metrics emitter — snapshots the collector and upserts to the metrics object topic.
 // Depends only on IUpsertObject; all collection is handled by collector.ts.
 
-import type { IUpsertObject } from "../storage/capabilities.ts";
+import type { IUpsertObject } from "../../storage/capabilities.ts";
 import type { MetricsCollector } from "./collector.ts";
 import { METRICS_TOPIC, METRICS_CRON, METRICS_OBJECT_ID } from "../../commons/constants.ts";
 import { startCron } from "../commons/cron.ts";

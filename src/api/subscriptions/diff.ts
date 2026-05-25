@@ -1,8 +1,8 @@
 // Builds the local diff request body from a set of local event entries.
 // Pure — no I/O; hashing is async due to Web Crypto.
 
-import type { EventEntry, EventDiffRequest } from "../storage/capabilities.ts";
-import { hashBucket, hashBucketRoot } from "../storage/kv/hashing.ts";
+import type { EventEntry, EventDiffRequest } from "../../storage/capabilities.ts";
+import { hashBucket, hashBucketRoot } from "../../core/hashing.ts";
 import { DEFAULT_EVENT_BUCKET_SIZE } from "../../commons/constants.ts";
 
 type BucketEntry = { id: number; updatedAt: number };

@@ -1,13 +1,13 @@
 // Object topic read/write — implements IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadObjectsBySeq, IStreamObjects, IDiffObjects
 // @work.md
 
-import type { IStorageBackend, IAtomicWriter } from "../backend.ts";
+import type { IStorageBackend, IAtomicWriter } from "./backend.ts";
 import type { ObjectEntry, ObjectDiffRequest, ObjectDiffResult, EventDiffBucket } from "../capabilities.ts";
-import { hashBucket, hashBucketRoot, bucketStartFor } from "./hashing.ts";
+import { hashBucket, hashBucketRoot, bucketStartFor } from "../../core/hashing.ts";
 import { waitForPoll } from "./base.ts";
-import type { StoredTopic, StoredTopicStats, StoredObject } from "../types/stored-types.ts";
-import { KV_TOPIC, KV_TOPIC_STATS, KV_OBJECT, KV_OBJECT_SEQ, KV_OBJECT_COUNTER, KV_BUCKET_HASH, KV_BUCKET_INDEX, KV_TOPIC_ROOT_HASH } from "../keys.ts";
-import { TOMBSTONE_RETENTION_MS, DEFAULT_OBJECT_BUCKET_SIZE, DEFAULT_PAGE_SIZE } from "../../../commons/constants.ts";
+import type { StoredTopic, StoredTopicStats, StoredObject } from "./types/stored-types.ts";
+import { KV_TOPIC, KV_TOPIC_STATS, KV_OBJECT, KV_OBJECT_SEQ, KV_OBJECT_COUNTER, KV_BUCKET_HASH, KV_BUCKET_INDEX, KV_TOPIC_ROOT_HASH } from "./keys.ts";
+import { TOMBSTONE_RETENTION_MS, DEFAULT_OBJECT_BUCKET_SIZE, DEFAULT_PAGE_SIZE } from "../../commons/constants.ts";
 
 type BucketEntry = { id: number; updatedAt: number };
 
@@ -86,7 +86,13 @@ function invalidateBuckets(
   return atomic;
 }
 
-export async function upsertObject(storage: IStorageBackend, topic: string, id: string, payload: unknown): Promise<ObjectEntry | null> {
+export async function upsertObject(
+  storage: IStorageBackend,
+  topic: string,
+  id: string,
+  payload: unknown,
+  timestamps?: { createdAt?: number; updatedAt?: number; seq?: number },
+): Promise<ObjectEntry | null> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
   if (!meta) return null;
 
@@ -98,14 +104,17 @@ export async function upsertObject(storage: IStorageBackend, topic: string, id: 
     ]);
     const now = Date.now();
     const isNew = existing.value === null;
-    const newSeq = (counter.value ?? 0) + 1;
+    // Use remote seq when provided (sync replication); advance counter to max so local
+    // writes after a replication still produce strictly higher seq values.
+    const newSeq = timestamps?.seq ?? (counter.value ?? 0) + 1;
+    const newCounter = Math.max(counter.value ?? 0, newSeq);
     const oldSeq = existing.value?.seq;
 
     const entry: StoredObject = {
       id,
       seq: newSeq,
-      createdAt: existing.value?.createdAt ?? now,
-      updatedAt: now,
+      createdAt: timestamps?.createdAt ?? existing.value?.createdAt ?? now,
+      updatedAt: timestamps?.updatedAt ?? now,
       payload,
     };
     const newStats: StoredTopicStats = {
@@ -119,10 +128,12 @@ export async function upsertObject(storage: IStorageBackend, topic: string, id: 
       .check(counter)
       .set([...KV_OBJECT, topic, id], entry)
       .set([...KV_OBJECT_SEQ, topic, newSeq], entry)
-      .set([...KV_OBJECT_COUNTER, topic], newSeq)
+      .set([...KV_OBJECT_COUNTER, topic], newCounter)
       .set([...KV_TOPIC_STATS, topic], newStats);
 
-    if (oldSeq !== undefined) {
+    // Only delete the old seq slot when it differs from newSeq; deleting the same key
+    // that was just set in the same atomic would remove the entry we just wrote.
+    if (oldSeq !== undefined && oldSeq !== newSeq) {
       atomic = atomic.delete([...KV_OBJECT_SEQ, topic, oldSeq]);
     }
     atomic = invalidateBuckets(atomic, topic, newSeq, oldSeq);
@@ -132,7 +143,12 @@ export async function upsertObject(storage: IStorageBackend, topic: string, id: 
   }
 }
 
-export async function deleteObject(storage: IStorageBackend, topic: string, id: string): Promise<ObjectEntry | null> {
+export async function deleteObject(
+  storage: IStorageBackend,
+  topic: string,
+  id: string,
+  timestamps?: { createdAt?: number; updatedAt?: number; seq?: number },
+): Promise<ObjectEntry | null> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
   if (!meta) return null;
 
@@ -143,14 +159,15 @@ export async function deleteObject(storage: IStorageBackend, topic: string, id: 
       storage.getEntry<number>([...KV_OBJECT_COUNTER, topic]),
     ]);
     const now = Date.now();
-    const newSeq = (counter.value ?? 0) + 1;
+    const newSeq = timestamps?.seq ?? (counter.value ?? 0) + 1;
+    const newCounter = Math.max(counter.value ?? 0, newSeq);
     const oldSeq = existing.value?.seq;
 
     const tombstone: StoredObject = {
       id,
       seq: newSeq,
-      createdAt: existing.value?.createdAt ?? now,
-      updatedAt: now,
+      createdAt: timestamps?.createdAt ?? existing.value?.createdAt ?? now,
+      updatedAt: timestamps?.updatedAt ?? now,
       payload: null,
     };
     const newStats: StoredTopicStats = {
@@ -165,10 +182,10 @@ export async function deleteObject(storage: IStorageBackend, topic: string, id: 
       .check(counter)
       .set([...KV_OBJECT, topic, id], tombstone)
       .set([...KV_OBJECT_SEQ, topic, newSeq], tombstone)
-      .set([...KV_OBJECT_COUNTER, topic], newSeq)
+      .set([...KV_OBJECT_COUNTER, topic], newCounter)
       .set([...KV_TOPIC_STATS, topic], newStats);
 
-    if (oldSeq !== undefined) {
+    if (oldSeq !== undefined && oldSeq !== newSeq) {
       atomic = atomic.delete([...KV_OBJECT_SEQ, topic, oldSeq]);
     }
     atomic = invalidateBuckets(atomic, topic, newSeq, oldSeq);
@@ -297,10 +314,10 @@ export async function sweepTombstones(storage: IStorageBackend, topic: string, c
 
       // If the bucket is now empty, remove its index entry so it no longer appears as server-only
       // in future diffs. A limit:1 scan is sufficient — any entry means the bucket is non-empty.
-      const bucketEnd = bucketStart + DEFAULT_OBJECT_BUCKET_SIZE;
+      // +1 because Deno KV end is exclusive; bucket covers bucketStart+1..bucketStart+size inclusive.
+      const bucketEnd = bucketStart + DEFAULT_OBJECT_BUCKET_SIZE + 1;
       let bucketEmpty = true;
       for await (const _ of storage.list<StoredObject>({
-        prefix: [...KV_OBJECT_SEQ, topic],
         start: [...KV_OBJECT_SEQ, topic, bucketStart],
         end: [...KV_OBJECT_SEQ, topic, bucketEnd],
       }, { limit: 1 })) {

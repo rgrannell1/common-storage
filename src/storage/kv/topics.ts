@@ -1,11 +1,11 @@
 // Topic CRUD — implements IGetTopicNames, IGetTopicStats, IGetSubscriptions, ICreateTopics
 // @work.md
 
-import type { IStorageBackend } from "../backend.ts";
-import type { TopicConfig } from "../../../commons/config.ts";
+import type { IStorageBackend } from "./backend.ts";
+import type { TopicConfig } from "../../commons/config.ts";
 import type { TopicStats, Subscription } from "../capabilities.ts";
-import type { StoredTopic, StoredTopicStats } from "../types/stored-types.ts";
-import { KV_TOPIC, KV_TOPIC_STATS } from "../keys.ts";
+import type { StoredTopic, StoredTopicStats } from "./types/stored-types.ts";
+import { KV_TOPIC, KV_TOPIC_STATS } from "./keys.ts";
 
 export async function getTopicNames(storage: IStorageBackend): Promise<string[]> {
   const names: string[] = [];

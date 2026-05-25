@@ -1,10 +1,10 @@
 // Event streaming — tails an event topic indefinitely, polling for new writes
 // @work.md
 
-import type { IStorageBackend } from "../../backend.ts";
+import type { IStorageBackend } from "../backend.ts";
 import type { EventEntry } from "../../capabilities.ts";
-import type { StoredTopic, StoredEvent } from "../../types/stored-types.ts";
-import { KV_TOPIC, KV_EVENT } from "../../keys.ts";
+import type { StoredTopic, StoredEvent } from "../types/stored-types.ts";
+import { KV_TOPIC, KV_EVENT } from "../keys.ts";
 import { waitForPoll } from "../base.ts";
 
 export async function* streamEvents(storage: IStorageBackend, topic: string, startId: number, signal: AbortSignal): AsyncGenerator<EventEntry> {

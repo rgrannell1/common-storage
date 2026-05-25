@@ -1,8 +1,8 @@
 // Storage capability sub-interfaces and their associated types — composed per route via intersection types
 // @work.md
 
-import type { IStorageBackend } from "./backend.ts";
-import type { TopicConfig } from "../../commons/config.ts";
+import type { IStorageBackend } from "./kv/backend.ts";
+import type { TopicConfig } from "../commons/config.ts";
 
 export type TopicStats = {
   topic: string;
@@ -86,9 +86,16 @@ export type ObjectEntry = {
   payload: unknown;
 };
 
+export type UpsertObjectTimestamps = {
+  // Timestamp to use for createdAt when creating a new entry; ignored on update
+  createdAt?: number;
+  // Timestamp to use for updatedAt; defaults to now
+  updatedAt?: number;
+};
+
 export interface IUpsertObject {
   // Creates or updates an object entry; returns null if the topic does not exist
-  upsertObject(topic: string, id: string, payload: unknown): Promise<ObjectEntry | null>;
+  upsertObject(topic: string, id: string, payload: unknown, timestamps?: UpsertObjectTimestamps): Promise<ObjectEntry | null>;
 }
 
 export interface IReadObject {
@@ -98,7 +105,7 @@ export interface IReadObject {
 
 export interface IDeleteObject {
   // Writes a tombstone (payload: null); returns null only if the topic does not exist
-  deleteObject(topic: string, id: string): Promise<ObjectEntry | null>;
+  deleteObject(topic: string, id: string, timestamps?: UpsertObjectTimestamps): Promise<ObjectEntry | null>;
 }
 
 export interface IReadObjects {

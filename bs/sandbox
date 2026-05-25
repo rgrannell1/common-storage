@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Spin up a Deno Deploy sandbox to debug remote build failures.
+# Copies this project and ../peach.ts into the sandbox at the correct relative
+# paths, then runs deno check main.ts to reproduce the Deploy build environment.
+
+PEACH_DIR="$(realpath ../peach.ts)"
+
+echo "==> Creating sandbox..."
+TMPFILE=$(mktemp)
+deno deploy sandbox create --timeout 30m 2>&1 | tee "$TMPFILE" || {
+  rm -f "$TMPFILE"
+  exit 1
+}
+
+SANDBOX_ID=$(grep -oP '[a-z]+-[a-z]+-[a-z]+' "$TMPFILE" | head -1)
+rm -f "$TMPFILE"
+if [[ -z "$SANDBOX_ID" ]]; then
+  echo ""
+  echo "error: could not parse sandbox ID from output above"
+  echo "Run: deno deploy sandbox list"
+  exit 1
+fi
+
+echo ""
+echo "==> Sandbox: $SANDBOX_ID"
+
+echo "==> Copying project..."
+deno deploy sandbox copy . "${SANDBOX_ID}:/app/cmstr"
+
+echo "==> Copying peach.ts (relative import dependency)..."
+deno deploy sandbox copy "$PEACH_DIR" "${SANDBOX_ID}:/app/peach.ts"
+
+echo "==> Running deno check main.ts..."
+deno deploy sandbox exec "$SANDBOX_ID" sh -c "cd /app/cmstr && deno check main.ts"
+
+echo ""
+echo "SSH in : deno deploy sandbox ssh $SANDBOX_ID"
+echo "Kill   : deno deploy sandbox kill $SANDBOX_ID"

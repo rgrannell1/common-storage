@@ -2,7 +2,7 @@
 // Decoupled from the HTTP server; depends only on narrow storage interfaces.
 
 import type { SubscriptionConfig } from "../../commons/config.ts";
-import type { IReadEvents, IUpdateEvent, EventEntry } from "../storage/capabilities.ts";
+import type { IReadEvents, IUpdateEvent, EventEntry } from "../../storage/capabilities.ts";
 import type { ILogger } from "../../commons/logger.ts";
 import { buildDiffRequest } from "./diff.ts";
 import { postDiff, fetchRange, tailEvents } from "./client.ts";

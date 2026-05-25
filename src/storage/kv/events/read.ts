@@ -1,10 +1,10 @@
 // Event read operations — readEvent, readEvents, and ID-based batch fetch
 // @work.md
 
-import type { IStorageBackend } from "../../backend.ts";
+import type { IStorageBackend } from "../backend.ts";
 import type { EventEntry, ReadEventOptions } from "../../capabilities.ts";
-import type { StoredTopic, StoredEvent } from "../../types/stored-types.ts";
-import { KV_TOPIC, KV_EVENT } from "../../keys.ts";
+import type { StoredTopic, StoredEvent } from "../types/stored-types.ts";
+import { KV_TOPIC, KV_EVENT } from "../keys.ts";
 
 export async function readEvent(storage: IStorageBackend, topic: string, id: number): Promise<EventEntry | null> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);

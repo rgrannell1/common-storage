@@ -1,12 +1,12 @@
 // Event diff — bucket-hash reconciliation for event topics
 // @work.md
 
-import type { IStorageBackend } from "../../backend.ts";
+import type { IStorageBackend } from "../backend.ts";
 import type { EventDiffRequest, EventDiffResult, EventDiffBucket } from "../../capabilities.ts";
-import type { StoredEvent } from "../../types/stored-types.ts";
-import { hashBucket, hashBucketRoot } from "../hashing.ts";
-import { KV_TOPIC, KV_EVENT, KV_BUCKET_HASH, KV_BUCKET_INDEX, KV_TOPIC_ROOT_HASH } from "../../keys.ts";
-import { DEFAULT_EVENT_BUCKET_SIZE } from "../../../../commons/constants.ts";
+import type { StoredEvent } from "../types/stored-types.ts";
+import { hashBucket, hashBucketRoot } from "../../../core/hashing.ts";
+import { KV_TOPIC, KV_EVENT, KV_BUCKET_HASH, KV_BUCKET_INDEX, KV_TOPIC_ROOT_HASH } from "../keys.ts";
+import { DEFAULT_EVENT_BUCKET_SIZE } from "../../../commons/constants.ts";
 
 type BucketEntry = { id: number; updatedAt: number };
 

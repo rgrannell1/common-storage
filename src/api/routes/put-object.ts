@@ -8,7 +8,7 @@ import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts"
 import { pathParamParser, bodyParser, mergeAll, idempotencyKeyParser, tokenIdParser, responseParser } from "../parsers/combinators.ts";
 import { TopicNameSchema, ObjectEntrySchema, JsonPayloadSchema } from "../parsers/schemas.ts";
 import type { IValidateTopicPayload } from "../parsers/payload-schema.ts";
-import type { IUpsertObject, IReadIdempotencyEntry, IWriteIdempotencyEntry, ObjectEntry } from "../storage/capabilities.ts";
+import type { IUpsertObject, IReadIdempotencyEntry, IWriteIdempotencyEntry, ObjectEntry } from "../../storage/capabilities.ts";
 import { MAX_PAYLOAD_BYTES, IDEMPOTENCY_NS_PUT_OBJECT } from "../../commons/constants.ts";
 
 const PutObjectPathSchema = z.object({

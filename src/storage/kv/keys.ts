@@ -39,3 +39,6 @@ export const KV_RATE_LIMIT_IP = ["rate-limit", "ip"];
 // Prefix for global rate-limit bucket counters: ["rate-limit", "global", <bucket-minute>]
 export const KV_RATE_LIMIT_GLOBAL = ["rate-limit", "global"];
 
+// Prefix for sync cursor entries: ["sync-cursor", "event"|"object", <topic>] → number
+export const KV_SYNC_CURSOR = ["sync-cursor"];
+

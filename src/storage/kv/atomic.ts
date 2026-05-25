@@ -1,6 +1,6 @@
 // DenoAtomicWriter — wraps Deno.AtomicOperation behind IAtomicWriter
 
-import type { IAtomicWriter } from "../backend.ts";
+import type { IAtomicWriter } from "./backend.ts";
 import type { KvOpsCounter } from "./ops.ts";
 
 export class DenoAtomicWriter implements IAtomicWriter {
@@ -17,7 +17,7 @@ export class DenoAtomicWriter implements IAtomicWriter {
     return this;
   }
 
-  set<T>(key: readonly Deno.KvKeyPart[], value: T): IAtomicWriter {
+  set<Value>(key: readonly Deno.KvKeyPart[], value: Value): IAtomicWriter {
     if (this.ops) this.ops.writes++;
     this.op = this.op.set(key, value);
     return this;
@@ -29,7 +29,7 @@ export class DenoAtomicWriter implements IAtomicWriter {
     return this;
   }
 
-  async commit(): Promise<{ ok: boolean }> {
+  commit(): Promise<{ ok: boolean }> {
     return this.op.commit();
   }
 }

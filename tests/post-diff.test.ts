@@ -2,7 +2,7 @@
 // @work.md
 
 import { makePersistentServer, jsonPost, jsonPut, discard } from "./helpers.ts";
-import { hashBucket, hashBucketRoot, bucketStartFor } from "../src/api/storage/kv/hashing.ts";
+import { hashBucket, hashBucketRoot, bucketStartFor } from "../src/core/hashing.ts";
 
 // SHA-256 of an empty input — used as the root hash when no entries exist
 const EMPTY_HASH = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";

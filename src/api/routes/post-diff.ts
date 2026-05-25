@@ -7,7 +7,7 @@ import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
 import { pathParamParser, mergeParser, rawBodyParser } from "../parsers/combinators.ts";
 import { TopicNameSchema, EventDiffBodySchema } from "../parsers/schemas.ts";
-import type { IGetTopicType, IDiffEvents, IDiffObjects, EventDiffRequest } from "../storage/capabilities.ts";
+import type { IGetTopicType, IDiffEvents, IDiffObjects, EventDiffRequest } from "../../storage/capabilities.ts";
 
 const PostDiffPathSchema = z.object({
   topic: TopicNameSchema,

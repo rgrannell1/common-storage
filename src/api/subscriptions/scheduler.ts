@@ -2,7 +2,7 @@
 // Returns a cleanup function that cancels all crons.
 
 import type { SubscriptionConfig } from "../../commons/config.ts";
-import type { IReadEvents, IUpdateEvent } from "../storage/capabilities.ts";
+import type { IReadEvents, IUpdateEvent } from "../../storage/capabilities.ts";
 import type { ILogger } from "../../commons/logger.ts";
 import { syncOnce } from "./sync.ts";
 import { startCron } from "../commons/cron.ts";

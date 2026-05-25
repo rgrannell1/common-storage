@@ -1,7 +1,7 @@
 // HTTP client for talking to a remote common-storage server during subscription sync.
 // All functions are stateless; callers supply the base URL and token on each call.
 
-import type { EventEntry, EventDiffRequest } from "../storage/capabilities.ts";
+import type { EventEntry, EventDiffRequest } from "../../storage/capabilities.ts";
 import { TAIL_DURATION_MS } from "../../commons/constants.ts";
 import { STATUS_NO_CONTENT } from "../commons/statuses.ts";
 

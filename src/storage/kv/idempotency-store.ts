@@ -1,7 +1,7 @@
 // KvIdempotencyStore — implements IIdempotencyService; delegates to the Idempotency domain module
 // @work.md
 
-import type { IStorageBackend } from "../backend.ts";
+import type { IStorageBackend } from "./backend.ts";
 import type { IIdempotencyService } from "../capabilities.ts";
 import * as Idempotency from "./idempotency.ts";
 

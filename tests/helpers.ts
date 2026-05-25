@@ -2,7 +2,7 @@
 // @work.md
 
 import { makeFetch } from "@deno-libs/superfetch";
-import { DenoKVBackend } from "../src/api/storage/kv/index.ts";
+import { DenoKVBackend } from "../src/storage/kv/index.ts";
 import { createApp } from "../src/api/app.ts";
 import { MetricsCollector } from "../src/api/metrics/collector.ts";
 import type { Config, TopicConfig } from "../src/commons/config.ts";

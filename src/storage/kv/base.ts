@@ -1,10 +1,10 @@
 // Low-level Deno KV helpers — thin wrappers over Deno.Kv used by DenoKVBackend
 // @work.md
 
-import type { IAtomicWriter } from "../backend.ts";
+import type { IAtomicWriter } from "./backend.ts";
 import { DenoAtomicWriter } from "./atomic.ts";
 import type { KvOpsCounter } from "./ops.ts";
-import { STREAM_POLL_INTERVAL_MS } from "../../../commons/constants.ts";
+import { STREAM_POLL_INTERVAL_MS } from "../../commons/constants.ts";
 
 // Waits for the poll interval, resolving early if the signal is aborted.
 export function waitForPoll(signal: AbortSignal): Promise<void> {
@@ -14,20 +14,20 @@ export function waitForPoll(signal: AbortSignal): Promise<void> {
   });
 }
 
-export async function kvGet<T>(kv: Deno.Kv, key: readonly Deno.KvKeyPart[]): Promise<T | null> {
-  const entry = await kv.get<T>(key);
+export async function kvGet<Value>(kv: Deno.Kv, key: readonly Deno.KvKeyPart[]): Promise<Value | null> {
+  const entry = await kv.get<Value>(key);
   return entry.value;
 }
 
-export function kvGetEntry<T>(kv: Deno.Kv, key: readonly Deno.KvKeyPart[]): Promise<Deno.KvEntryMaybe<T>> {
-  return kv.get<T>(key);
+export function kvGetEntry<Value>(kv: Deno.Kv, key: readonly Deno.KvKeyPart[]): Promise<Deno.KvEntryMaybe<Value>> {
+  return kv.get<Value>(key);
 }
 
-export async function kvSet<T>(kv: Deno.Kv, key: readonly Deno.KvKeyPart[], value: T): Promise<void> {
+export async function kvSet<Value>(kv: Deno.Kv, key: readonly Deno.KvKeyPart[], value: Value): Promise<void> {
   await kv.set(key, value);
 }
 
-export async function kvSetWithExpiry<T>(kv: Deno.Kv, key: readonly Deno.KvKeyPart[], value: T, expireInMs: number): Promise<void> {
+export async function kvSetWithExpiry<Value>(kv: Deno.Kv, key: readonly Deno.KvKeyPart[], value: Value, expireInMs: number): Promise<void> {
   await kv.set(key, value, { expireIn: expireInMs });
 }
 
@@ -35,13 +35,13 @@ export async function kvDelete(kv: Deno.Kv, key: readonly Deno.KvKeyPart[]): Pro
   await kv.delete(key);
 }
 
-export async function* kvList<T>(
+export async function* kvList<Value>(
   kv: Deno.Kv,
   selector: Deno.KvListSelector,
   options?: { limit?: number },
-): AsyncGenerator<Deno.KvEntry<T>> {
+): AsyncGenerator<Deno.KvEntry<Value>> {
   const kvOptions: Deno.KvListOptions = options?.limit !== undefined ? { limit: options.limit } : {};
-  yield* kv.list<T>(selector, kvOptions);
+  yield* kv.list<Value>(selector, kvOptions);
 }
 
 export function kvAtomic(kv: Deno.Kv, ops?: KvOpsCounter): IAtomicWriter {

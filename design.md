@@ -316,6 +316,8 @@ Servers can subscribe to topics on other servers. We:
 - Sync all topics using NDJSON initially.
 - When some content already exists, build a diff and `POST /diff/:topic` to the remote. Then fetch diverging ranges.
 
+Each topic maps to at most one remote. A topic cannot have multiple upstream sources.
+
 ## Security
 
 - CORS
