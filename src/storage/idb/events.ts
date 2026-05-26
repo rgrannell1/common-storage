@@ -24,12 +24,8 @@ export class IDBEventStore implements ILocalEventStore {
   constructor(private readonly db: IDBDatabase) {}
 
   readEvent(topic: string, id: number): Promise<EventEntry | null> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(IDB_EVENT_STORE, "readonly");
-      const req = tx.objectStore(IDB_EVENT_STORE).get(this.#key(topic, id));
-      req.onsuccess = () => resolve(req.result ? toEntry(req.result as StoredEvent) : null);
-      req.onerror = () => reject(req.error);
-    });
+    return this.db.get(IDB_EVENT_STORE, this.#key(topic, id))
+      .then(result => result ? toEntry(result as StoredEvent) : null);
   }
 
   readEvents(topic: string, opts: ReadEventOptions): Promise<EventEntry[] | null> {
@@ -106,54 +102,33 @@ export class IDBEventStore implements ILocalEventStore {
     return `${topic}:${id}`;
   }
 
-  #readByIds(topic: string, ids: number[]): Promise<EventEntry[]> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(IDB_EVENT_STORE, "readonly");
-      const store = tx.objectStore(IDB_EVENT_STORE);
-      const results: EventEntry[] = [];
-      let pending = ids.length;
-      if (pending === 0) { resolve([]); return; }
-      for (const id of ids) {
-        const req = store.get(this.#key(topic, id));
-        req.onsuccess = () => {
-          if (req.result) results.push(toEntry(req.result as StoredEvent));
-          if (--pending === 0) resolve(results.sort((first, second) => first.id - second.id));
-        };
-        req.onerror = () => reject(req.error);
-      }
-    });
+  async #readByIds(topic: string, ids: number[]): Promise<EventEntry[]> {
+    const results = await Promise.all(ids.map(id => this.db.get(IDB_EVENT_STORE, this.#key(topic, id))));
+    return results
+      .filter((result): result is StoredEvent => result !== undefined)
+      .map(toEntry)
+      .sort((first, second) => first.id - second.id);
   }
 
-  #readRange(topic: string, start: number, size?: number): Promise<EventEntry[]> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(IDB_EVENT_STORE, "readonly");
-      const store = tx.objectStore(IDB_EVENT_STORE);
-      // Use a cursor over the topic's key range
-      const lower = this.#key(topic, start);
-      const upper = `${topic}:￿`;
-      const range = IDBKeyRange.bound(lower, upper);
-      const results: EventEntry[] = [];
-      const cursor = store.openCursor(range);
-      cursor.onsuccess = () => {
-        const cur = cursor.result;
-        if (!cur || (size !== undefined && results.length >= size)) {
-          resolve(results);
-          return;
-        }
-        results.push(toEntry(cur.value as StoredEvent));
-        cur.continue();
-      };
-      cursor.onerror = () => reject(cursor.error);
-    });
+  async #readRange(topic: string, start: number, size?: number): Promise<EventEntry[]> {
+    const tx = this.db.transaction(IDB_EVENT_STORE, "readonly");
+    const store = tx.objectStore(IDB_EVENT_STORE);
+    // Use a cursor over the topic's key range
+    const lower = this.#key(topic, start);
+    const upper = `${topic}:￿`;
+    const range = IDBKeyRange.bound(lower, upper);
+    const results: EventEntry[] = [];
+    let cursor = await store.openCursor(range);
+    while (cursor) {
+      if (size !== undefined && results.length >= size) break;
+      results.push(toEntry(cursor.value as StoredEvent));
+      cursor = await cursor.continue();
+    }
+    return results;
   }
 
   #put(topic: string, entry: StoredEvent): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(IDB_EVENT_STORE, "readwrite");
-      const req = tx.objectStore(IDB_EVENT_STORE).put(entry, this.#key(topic, entry.id));
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
+    return this.db.put(IDB_EVENT_STORE, entry, this.#key(topic, entry.id)).then(() => undefined);
   }
 
   async #nextId(topic: string): Promise<number> {

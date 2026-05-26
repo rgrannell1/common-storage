@@ -27,36 +27,26 @@ export class IDBObjectStore implements ILocalObjectStore {
   constructor(private readonly db: IDBDatabase) {}
 
   readObject(topic: string, id: string): Promise<ObjectEntry | null> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(IDB_OBJECT_STORE, "readonly");
-      const req = tx.objectStore(IDB_OBJECT_STORE).get(this.#key(topic, id));
-      req.onsuccess = () => resolve(req.result ? toEntry(req.result as StoredObject) : null);
-      req.onerror = () => reject(req.error);
-    });
+    return this.db.get(IDB_OBJECT_STORE, this.#key(topic, id))
+      .then(result => result ? toEntry(result as StoredObject) : null);
   }
 
-  readObjectsBySeq(topic: string, opts: { start?: number; size?: number }): Promise<ObjectEntry[] | null> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(IDB_OBJECT_STORE, "readonly");
-      const index = tx.objectStore(IDB_OBJECT_STORE).index(IDB_OBJECT_SEQ_INDEX);
-      const lower = opts.start ?? 0;
-      const upper = [topic, "￿"];
-      const boundedRange = IDBKeyRange.bound([topic, lower], upper);
-      const results: ObjectEntry[] = [];
-      const cursor = index.openCursor(boundedRange);
-      cursor.onsuccess = () => {
-        const cur = cursor.result;
-        if (!cur || (opts.size !== undefined && results.length >= opts.size)) {
-          resolve(results);
-          return;
-        }
-        const stored = cur.value as StoredObject;
-        if (stored.topic !== topic) { resolve(results); return; }
-        results.push(toEntry(stored));
-        cur.continue();
-      };
-      cursor.onerror = () => reject(cursor.error);
-    });
+  async readObjectsBySeq(topic: string, opts: { start?: number; size?: number }): Promise<ObjectEntry[] | null> {
+    const tx = this.db.transaction(IDB_OBJECT_STORE, "readonly");
+    const index = tx.objectStore(IDB_OBJECT_STORE).index(IDB_OBJECT_SEQ_INDEX);
+    const lower = opts.start ?? 0;
+    const upper = [topic, "￿"];
+    const range = IDBKeyRange.bound([topic, lower], upper);
+    const results: ObjectEntry[] = [];
+    let cursor = await index.openCursor(range);
+    while (cursor) {
+      if (opts.size !== undefined && results.length >= opts.size) break;
+      const stored = cursor.value as StoredObject;
+      if (stored.topic !== topic) break;
+      results.push(toEntry(stored));
+      cursor = await cursor.continue();
+    }
+    return results;
   }
 
   async upsertObject(topic: string, id: string, payload: unknown, timestamps?: { createdAt?: number; updatedAt?: number; seq?: number }): Promise<ObjectEntry | null> {
@@ -128,12 +118,7 @@ export class IDBObjectStore implements ILocalObjectStore {
   }
 
   #put(stored: StoredObject): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(IDB_OBJECT_STORE, "readwrite");
-      const req = tx.objectStore(IDB_OBJECT_STORE).put(stored, this.#key(stored.topic, stored.id));
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
+    return this.db.put(IDB_OBJECT_STORE, stored, this.#key(stored.topic, stored.id)).then(() => undefined);
   }
 
   async #nextSeq(topic: string): Promise<number> {

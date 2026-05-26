@@ -14,6 +14,7 @@
     "npm:bloom-filters@3": "3.0.4",
     "npm:docopt@0.6": "0.6.2",
     "npm:hono@4": "4.12.18",
+    "npm:idb@8": "8.0.3",
     "npm:jmespath@0.16": "0.16.0",
     "npm:macaroons.js@~0.3.9": "0.3.9",
     "npm:zod@3": "3.25.76"
@@ -102,6 +103,9 @@
     "hono@4.12.18": {
       "integrity": "sha512-RWzP96k/yv0PQfyXnWjs6zot20TqfpfsNXhOnev8d1InAxubW93L11/oNUc3tQqn2G0bSdAOBpX+2uDFHV7kdQ=="
     },
+    "idb@8.0.3": {
+      "integrity": "sha512-LtwtVyVYO5BqRvcsKuB2iUMnHwPVByPCXFXOpuU96IZPPoPN6xjOGxZQ74pgSVVLQWtUOYgyeL4GE98BY5D3wg=="
+    },
     "is-buffer@2.0.5": {
       "integrity": "sha512-i2R6zNFDwgEHJyQUtJEk0XFi1i0dPFn/oqjK3/vPCcDeJvW5NQ83V8QbicfF1SupOaB0h8ntgBC2YiE7dfyctQ=="
     },
@@ -161,6 +165,7 @@
       "npm:ajv@8",
       "npm:docopt@0.6",
       "npm:hono@4",
+      "npm:idb@8",
       "npm:jmespath@0.16",
       "npm:macaroons.js@~0.3.9",
       "npm:zod@3"

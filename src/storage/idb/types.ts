@@ -1,5 +1,7 @@
 /// <reference lib="dom" />
-// Shared IDB type aliases — browser-standard interfaces used across the IDB backend.
+// Shared IDB type aliases — idb-wrapper types used across the IDB backend.
 
-export type IDBDatabase = globalThis.IDBDatabase;
-export type IDBObjectStore = globalThis.IDBObjectStore;
+import type { IDBPDatabase } from "idb";
+
+// IDBDatabase is the idb-wrapper typed database handle (promise-based API).
+export type IDBDatabase = IDBPDatabase;

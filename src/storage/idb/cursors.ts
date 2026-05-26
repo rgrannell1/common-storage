@@ -10,37 +10,28 @@ export const IDB_CURSOR_STORE = "cursors";
 export class IDBCursorStore implements ICursorStore {
   constructor(private readonly db: IDBDatabase) {}
 
-  getEventCursor(topic: string): Promise<number> {
-    return this.#get(`event:${topic}`);
+  async getEventCursor(topic: string): Promise<number> {
+    return await this.#get(`event:${topic}`);
   }
 
   setEventCursor(topic: string, id: number): Promise<void> {
     return this.#set(`event:${topic}`, id);
   }
 
-  getObjectCursor(topic: string): Promise<number> {
-    return this.#get(`object:${topic}`);
+  async getObjectCursor(topic: string): Promise<number> {
+    return await this.#get(`object:${topic}`);
   }
 
   setObjectCursor(topic: string, seq: number): Promise<void> {
     return this.#set(`object:${topic}`, seq);
   }
 
-  #get(key: string): Promise<number> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(IDB_CURSOR_STORE, "readonly");
-      const req = tx.objectStore(IDB_CURSOR_STORE).get(key);
-      req.onsuccess = () => resolve((req.result as number | undefined) ?? 0);
-      req.onerror = () => reject(req.error);
-    });
+  async #get(key: string): Promise<number> {
+    const val = await this.db.get(IDB_CURSOR_STORE, key);
+    return (val as number | undefined) ?? 0;
   }
 
   #set(key: string, value: number): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(IDB_CURSOR_STORE, "readwrite");
-      const req = tx.objectStore(IDB_CURSOR_STORE).put(value, key);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
+    return this.db.put(IDB_CURSOR_STORE, value, key).then(() => undefined);
   }
 }
