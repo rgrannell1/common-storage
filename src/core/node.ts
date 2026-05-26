@@ -1,10 +1,12 @@
 // CommonStorageNode — the single interface for all data access in Common Storage.
-// Backed by any ILocalBackend; wraps local reads/writes and drives sync against pinned remotes.
+// Backed by any ISyncBackend; wraps local reads/writes and drives sync against pinned remotes.
 
-import type { ILocalBackend } from "../storage/backend.ts";
+import type { ISyncBackend } from "../storage/backend.ts";
 import type { EventEntry, ReadEventOptions, ObjectEntry } from "../storage/capabilities.ts";
 import { syncEventTopic, syncObjectTopic } from "./sync.ts";
 import type { ChangeEvent } from "./sync.ts";
+import type { ILogger } from "../commons/logger.ts";
+import { NoopLogger } from "../commons/logger.ts";
 export type { ChangeEvent };
 
 // Scheduler interface — injected so Deno.cron vs setInterval never appear in core.
@@ -13,26 +15,54 @@ export interface IScheduler {
   cancelAll(): void;
 }
 
-// A declared subscription: which remote topic to sync, how often, and with which token.
-export type SubscriptionDeclaration = {
+export type EventSubscription = {
   topic: string;
-  topicType: "event" | "object";
   remoteUrl: string;
   token: string;
-  // Sync frequency in milliseconds
+  intervalMs: number;
+  // How long to tail the NDJSON stream after each diff round-trip (ms). Defaults to TAIL_DURATION_MS.
+  tailDurationMs?: number;
+};
+
+export type ObjectSubscription = {
+  topic: string;
+  remoteUrl: string;
+  token: string;
   intervalMs: number;
 };
 
+export type NodeServices = {
+  backend: ISyncBackend;
+  scheduler: IScheduler;
+  // Defaults to NoopLogger when omitted
+  logger?: ILogger;
+};
+
+export type NodeSubscriptions = {
+  events?: EventSubscription[];
+  objects?: ObjectSubscription[];
+};
+
+// Internal tagged union used for dispatch after construction
+type TaggedSubscription =
+  | ({ topicType: "event" } & EventSubscription)
+  | ({ topicType: "object" } & ObjectSubscription);
+
 export class CommonStorageNode {
-  private readonly subscriptions: SubscriptionDeclaration[];
+  private readonly backend: ISyncBackend;
+  private readonly scheduler: IScheduler;
+  private readonly logger: ILogger;
+  private readonly subscriptions: TaggedSubscription[];
   private readonly watchers: Map<string, Array<(event: ChangeEvent) => void>> = new Map();
 
-  constructor(
-    private readonly backend: ILocalBackend,
-    private readonly scheduler: IScheduler,
-    subscriptions: SubscriptionDeclaration[] = [],
-  ) {
-    this.subscriptions = subscriptions;
+  constructor(services: NodeServices, subscriptions: NodeSubscriptions = {}) {
+    this.backend = services.backend;
+    this.scheduler = services.scheduler;
+    this.logger = services.logger ?? new NoopLogger();
+
+    const events = (subscriptions.events ?? []).map(sub => ({ topicType: "event" as const, ...sub }));
+    const objects = (subscriptions.objects ?? []).map(sub => ({ topicType: "object" as const, ...sub }));
+    this.subscriptions = [...events, ...objects];
   }
 
   // -- Lifecycle --
@@ -56,11 +86,11 @@ export class CommonStorageNode {
 
     try {
       const changes = sub.topicType === "event"
-        ? await syncEventTopic(this.backend, sub.remoteUrl, sub.token, topic)
+        ? await syncEventTopic(this.backend, sub.remoteUrl, sub.token, topic, sub.tailDurationMs)
         : await syncObjectTopic(this.backend, sub.remoteUrl, sub.token, topic);
       for (const change of changes) this.#emit(change);
-    } catch {
-      // Sync errors are non-fatal; the next scheduled cycle will retry
+    } catch (err) {
+      this.logger.error("sync failed", undefined, { topic, error: String(err) });
     }
   }
 
@@ -171,8 +201,8 @@ export class CommonStorageNode {
       method,
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sub.token}` },
       body: JSON.stringify({ payload }),
-    }).catch(() => {
-      // Remote push failure is non-fatal; sync will reconcile on the next cycle
+    }).catch(err => {
+      this.logger.error("event push failed", undefined, { topic, method, error: String(err) });
     });
   }
 
@@ -184,8 +214,8 @@ export class CommonStorageNode {
       method,
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sub.token}` },
       body: method === "PUT" ? JSON.stringify({ payload }) : undefined,
-    }).catch(() => {
-      // Remote push failure is non-fatal; sync will reconcile on the next cycle
+    }).catch(err => {
+      this.logger.error("object push failed", undefined, { topic, id, method, error: String(err) });
     });
   }
 }

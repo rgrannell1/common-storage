@@ -1,7 +1,7 @@
 
 # Common Storage
 
-Efficiently sync appendable events and object storage.
+Efficiently sync event-lists and object stores between clients, servers, and other servers. It is decoupled into a shared brwoser-server core that wraps diffing and syncing cycles, storage backends implementing this logic on each platforms, and APIs to facillitate interconnection.
 
 ```mermaid
 graph LR
@@ -24,9 +24,24 @@ graph LR
   clients -- "diff + fetch" --> remote
 ```
 
+```js
+const backend = await IDBBackend.open("common-storage")
+const services = {backend, scheduler}
+
+const events = [{
+	topic: "bookmarks",
+	remoteUrl: "https://example.com",
+	token: "<macaroon-token>",
+	intervalMs: 60_000
+}];
+
+const node = new CommonStorageNode(services, {events});
+node.start();
+```
+
 ## Routes
 
-Common Storage is a REST HTTP API.
+Common Storage transmits information via REST APIs.
 
 ### `GET /feed`
 
@@ -235,11 +250,14 @@ Bucket hashes are SHA-256 over concatenated `id || updatedAt` pairs (events) or 
 
 ## Services
 
-`Deno.kv` is never used directly by routes. It interacts with storage through other layers.
+### Storage
 
-`IStorageBackend` and `IAtomicWriter` provide the primitives for interacting with our KV stores.
+Common-Storage supports a few storage engines:
+- On the server, it uses `Deno.kv`
+- In the client, it uses `IndexedDb`
 
-`IFullStorage` defines route capabilities. We subdivide this mega-interface into smaller services:
+These engines are never used directly by routes. Storage is wrapped behind other shared interfaces. `IStorageBackend` and `IAtomicWriter` provide the primitives for 
+interacting with our KV stores. `IFullStorage` defines route capabilities. We subdivide this mega-interface into smaller services:
 
 - `ITopicService`
 - `IEventService`
@@ -247,6 +265,10 @@ Bucket hashes are SHA-256 over concatenated `id || updatedAt` pairs (events) or 
 - `IIdempotencyService`
 
 Routes may only use these smaller interfaces.
+
+### Others
+
+Common storage take an `ILogger` interface which can be extended to support networked logging. Scheduling differs between browser's and Deno, so this too is factored out into `IScheduler`.
 
 ## Configuration
 
@@ -316,15 +338,17 @@ Servers can subscribe to topics on other servers. We:
 - Sync all topics using NDJSON initially.
 - When some content already exists, build a diff and `POST /diff/:topic` to the remote. Then fetch diverging ranges.
 
-Each topic maps to at most one remote. A topic cannot have multiple upstream sources.
+Each topic maps to at most one remote; a topic cannot have multiple upstream sources.
 
 ## Security
 
+Standard security features
+
 - CORS
-- Body limit
-- Security headers
-- Auth
+- Body size limit
+- General Security headers
 - Rate limiting
+- Macaroon-based authentication
 
 ## Garbage Collection
 
