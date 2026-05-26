@@ -2,7 +2,7 @@
 // All platform dependencies (fetch, crypto.subtle) are Web standard APIs.
 // Deno.* never appears here.
 
-import type { ILocalBackend } from "../storage/backend.ts";
+import type { ISyncBackend } from "../storage/backend.ts";
 import type { EventEntry, ObjectEntry } from "../storage/capabilities.ts";
 import { buildEventDiffRequest, buildObjectDiffRequest } from "./diff.ts";
 
@@ -48,9 +48,9 @@ async function fetchObjectRange(baseUrl: string, topic: string, token: string, s
 }
 
 // Tails the remote NDJSON event stream briefly to catch writes that arrived during the diff round-trip.
-async function tailEventStream(baseUrl: string, topic: string, token: string, startId: number): Promise<EventEntry[]> {
+async function tailEventStream(baseUrl: string, topic: string, token: string, startId: number, durationMs = TAIL_DURATION_MS): Promise<EventEntry[]> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TAIL_DURATION_MS);
+  const timeout = setTimeout(() => controller.abort(), durationMs);
   const collected: EventEntry[] = [];
   try {
     const res = await fetch(`${baseUrl}/events/${topic}?start=${startId}`, {
@@ -79,14 +79,14 @@ async function tailEventStream(baseUrl: string, topic: string, token: string, st
 }
 
 // Applies a remote event entry locally and returns a ChangeEvent for emission.
-async function applyEventEntry(backend: ILocalBackend, topic: string, entry: EventEntry): Promise<ChangeEvent> {
+async function applyEventEntry(backend: ISyncBackend, topic: string, entry: EventEntry): Promise<ChangeEvent> {
   await backend.events.updateEvent(topic, entry.id, entry.payload, { createdAt: entry.createdAt, updatedAt: entry.updatedAt });
   return { type: "upsert", topic, entry };
 }
 
 // Applies a remote object entry locally (routes tombstones to deleteObject) and returns a ChangeEvent.
 // Remote seq and timestamps are preserved so local diff hashes match the server's.
-async function applyObjectEntry(backend: ILocalBackend, topic: string, entry: ObjectEntry): Promise<ChangeEvent> {
+async function applyObjectEntry(backend: ISyncBackend, topic: string, entry: ObjectEntry): Promise<ChangeEvent> {
   const timestamps = { seq: entry.seq, createdAt: entry.createdAt, updatedAt: entry.updatedAt };
   if (entry.payload === null) {
     await backend.objects.deleteObject(topic, entry.id, timestamps);
@@ -103,10 +103,11 @@ async function applyObjectEntry(backend: ILocalBackend, topic: string, entry: Ob
 // with large entry counts this is O(n). TODO: persist bucket hashes in the cursor store to avoid
 // the full re-scan.
 export async function syncEventTopic(
-  backend: ILocalBackend,
+  backend: ISyncBackend,
   baseUrl: string,
   token: string,
   topic: string,
+  tailDurationMs?: number,
 ): Promise<ChangeEvent[]> {
   const cursor = await backend.cursors.getEventCursor(topic);
   const local = await backend.events.readEvents(topic, {}) ?? [];
@@ -126,7 +127,7 @@ export async function syncEventTopic(
       start = entries[entries.length - 1].id + 1;
     }
     // Tail catches writes that arrived on the remote during the bulk fetch window
-    const tailed = await tailEventStream(baseUrl, topic, token, maxId + 1);
+    const tailed = await tailEventStream(baseUrl, topic, token, maxId + 1, tailDurationMs);
     for (const entry of tailed) {
       changes.push(await applyEventEntry(backend, topic, entry));
       maxId = Math.max(maxId, entry.id);
@@ -148,7 +149,7 @@ export async function syncEventTopic(
     }
   }
 
-  const tailed = await tailEventStream(baseUrl, topic, token, maxId + 1);
+  const tailed = await tailEventStream(baseUrl, topic, token, maxId + 1, tailDurationMs);
   for (const entry of tailed) {
     changes.push(await applyEventEntry(backend, topic, entry));
     maxId = Math.max(maxId, entry.id);
@@ -161,7 +162,7 @@ export async function syncEventTopic(
 // Runs one full sync cycle for an object topic: diff → fetch divergent ranges → write locally.
 // Returns ChangeEvents for every entry written so the caller can emit them to watchers.
 export async function syncObjectTopic(
-  backend: ILocalBackend,
+  backend: ISyncBackend,
   baseUrl: string,
   token: string,
   topic: string,
@@ -170,17 +171,18 @@ export async function syncObjectTopic(
   const changes: ChangeEvent[] = [];
 
   if (local.length === 0) {
-    let start = 0;
+    let start = 1;
+    let maxSeq = 0;
     while (true) {
       const entries = await fetchObjectRange(baseUrl, topic, token, start, DEFAULT_OBJECT_BUCKET_SIZE);
       for (const entry of entries) {
         changes.push(await applyObjectEntry(backend, topic, entry));
+        maxSeq = Math.max(maxSeq, entry.seq);
       }
       if (entries.length < DEFAULT_OBJECT_BUCKET_SIZE) break;
       start = entries[entries.length - 1].seq + 1;
     }
-    const all = await backend.objects.readObjectsBySeq(topic, {}) ?? [];
-    if (all.length > 0) await backend.cursors.setObjectCursor(topic, all[all.length - 1].seq);
+    if (maxSeq > 0) await backend.cursors.setObjectCursor(topic, maxSeq);
     return changes;
   }
 

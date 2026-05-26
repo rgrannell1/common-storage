@@ -91,9 +91,10 @@ Deno.test("Proves sync is bucket-efficient — incremental and deletion cycles r
       "initial sync: all objects replicated to client",
     );
 
-    // Warmup: second sync sends a diff request, causing the server to compute and cache
-    // all bucket hashes. Without this, the first incremental diff rescans all entries from
-    // scratch because the initial full-fetch never triggers diffEvents on the server.
+    // Second sync — first diff request for this topic. The server maintains the invariant
+    // that bucket hashes are cached in KV; on a cold topic the caches are absent, so the
+    // server computes and stores them all now (one-time cost). Writes thereafter only
+    // invalidate the specific bucket that changed, so subsequent diffs scan only new buckets.
     await node.sync(EVENT_TOPIC);
     await node.sync(OBJECT_TOPIC);
 

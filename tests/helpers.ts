@@ -11,7 +11,7 @@ import { mintToken } from "../src/commons/auth.ts";
 import { buildSchemaRegistry } from "../src/api/parsers/payload-schema.ts";
 import { NoopLogger } from "../src/commons/logger.ts";
 
-const TEST_ROOT_KEY_VAR = "CS_TEST_ROOT_KEY";
+export const TEST_ROOT_KEY_VAR = "CS_TEST_ROOT_KEY";
 
 // Hardcoded value — never use in production
 const TEST_ROOT_KEY_VALUE = "test-root-key-do-not-use-in-production-32b";

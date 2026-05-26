@@ -7,7 +7,7 @@ import { hashBucket, hashBucketRoot, bucketStartFor } from "../../core/hashing.t
 import { waitForPoll } from "./base.ts";
 import type { StoredTopic, StoredTopicStats, StoredObject } from "./types/stored-types.ts";
 import { KV_TOPIC, KV_TOPIC_STATS, KV_OBJECT, KV_OBJECT_SEQ, KV_OBJECT_COUNTER, KV_BUCKET_HASH, KV_BUCKET_INDEX, KV_TOPIC_ROOT_HASH } from "./keys.ts";
-import { TOMBSTONE_RETENTION_MS, DEFAULT_OBJECT_BUCKET_SIZE, DEFAULT_PAGE_SIZE } from "../../commons/constants.ts";
+import { TOMBSTONE_RETENTION_MS, DEFAULT_OBJECT_BUCKET_SIZE } from "../../commons/constants.ts";
 
 type BucketEntry = { id: number; updatedAt: number };
 
@@ -270,14 +270,14 @@ export async function readObjectsBySeq(storage: IStorageBackend, topic: string, 
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
   if (!meta) return null;
 
-  const limit = opts.size ?? DEFAULT_PAGE_SIZE;
   const prefix = [...KV_OBJECT_SEQ, topic];
   const selector = opts.start !== undefined
     ? { prefix, start: [...KV_OBJECT_SEQ, topic, opts.start] }
     : { prefix };
+  const limit = opts.size !== undefined ? { limit: opts.size } : {};
 
   const entries: ObjectEntry[] = [];
-  for await (const item of storage.list<StoredObject>(selector, { limit })) {
+  for await (const item of storage.list<StoredObject>(selector, limit)) {
     entries.push(item.value);
   }
   return entries;

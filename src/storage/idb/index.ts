@@ -1,8 +1,8 @@
 /// <reference lib="dom" />
-// IDBBackend — implements ILocalBackend over IndexedDB for browser use.
+// IDBBackend — implements ISyncBackend over IndexedDB for browser use.
 
 import { openDB } from "idb";
-import type { ILocalBackend } from "../backend.ts";
+import type { ISyncBackend } from "../backend.ts";
 import { IDBEventStore, IDB_EVENT_STORE } from "./events.ts";
 import { IDBObjectStore, IDB_OBJECT_STORE } from "./objects.ts";
 import { IDBCursorStore, IDB_CURSOR_STORE } from "./cursors.ts";
@@ -12,7 +12,7 @@ import { IDBCursorStore, IDB_CURSOR_STORE } from "./cursors.ts";
 //     ConstraintError when a remote sync later claims the same seq value
 const IDB_VERSION = 2;
 
-export class IDBBackend implements ILocalBackend {
+export class IDBBackend implements ISyncBackend {
   readonly events: IDBEventStore;
   readonly objects: IDBObjectStore;
   readonly cursors: IDBCursorStore;

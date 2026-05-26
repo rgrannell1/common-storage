@@ -1,10 +1,10 @@
 // DenoKVBackend — raw KV primitives + composer that wires the four service stores into IFullStorage.
-// Also implements ILocalBackend so it can be used directly with CommonStorageNode.
+// Also implements ISyncBackend so it can be used directly with CommonStorageNode.
 // @work.md
 
 import type { IAtomicWriter, IStorageBackend } from "./backend.ts";
 import type { IFullStorage, TopicStats, Subscription, EventEntry, ReadEventOptions, UpdateEventTimestamps, EventDiffRequest, EventDiffResult, ObjectEntry, ObjectDiffRequest, ObjectDiffResult } from "../capabilities.ts";
-import type { ILocalBackend, ILocalEventStore, ILocalObjectStore } from "../backend.ts";
+import type { ISyncBackend, ILocalEventStore, ILocalObjectStore } from "../backend.ts";
 import type { ICursorStore } from "../backend.ts";
 import type { TopicConfig } from "../../commons/config.ts";
 import { kvGet, kvGetEntry, kvSet, kvSetWithExpiry, kvDelete, kvList, kvAtomic } from "./base.ts";
@@ -17,7 +17,7 @@ import { KvCursorStore } from "./cursor-store.ts";
 
 export { KvOpsCounter } from "./ops.ts";
 
-export class DenoKVBackend implements IStorageBackend, IFullStorage, ILocalBackend {
+export class DenoKVBackend implements IStorageBackend, IFullStorage, ISyncBackend {
   private kv: Deno.Kv | null = null;
   private path: string | undefined;
   private ops: KvOpsCounter | null;
@@ -27,7 +27,7 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage, ILocalBacke
   private readonly idempotencyStore: KvIdempotencyStore;
   readonly cursors: ICursorStore;
 
-  // ILocalBackend sub-stores — expose event/object stores under the narrow ILocalBackend interface
+  // ISyncBackend sub-stores — expose event/object stores under the narrow ISyncBackend interface
   get events(): ILocalEventStore { return this.eventStore; }
   get objects(): ILocalObjectStore { return this.objectStore; }
 

@@ -1,4 +1,4 @@
-// ILocalBackend — the shared storage interface for all CommonStorageNode backends.
+// ISyncBackend — the shared storage interface for all CommonStorageNode backends.
 // DenoKVBackend satisfies this as a subset; IDBBackend implements it for browsers.
 
 import type { EventEntry, ReadEventOptions, ObjectEntry, EventDiffRequest, EventDiffResult, ObjectDiffRequest, ObjectDiffResult } from "./capabilities.ts";
@@ -42,7 +42,7 @@ export interface ILocalObjectStore {
 
 // Minimal backend interface for a CommonStorageNode — covers local reads, writes, diff, and cursor tracking.
 // Does not include rate limiting, metrics, or idempotency — those are server-only concerns.
-export interface ILocalBackend {
+export interface ISyncBackend {
   events: ILocalEventStore;
   objects: ILocalObjectStore;
   cursors: ICursorStore;
