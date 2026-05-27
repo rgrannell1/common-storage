@@ -9,6 +9,10 @@ import {
   METRICS_BUCKET_PREFIX,
   METRICS_BUCKET_TTL_MS,
   MS_PER_MINUTE,
+  METRICS_RATE_WINDOW_1M_MINUTES,
+  METRICS_RATE_WINDOW_5M_MINUTES,
+  METRICS_RATE_WINDOW_1H_MINUTES,
+  METRICS_RATE_WINDOW_1D_MINUTES,
 } from "../../commons/constants.ts";
 
 type MetricsCounters = {
@@ -53,15 +57,19 @@ export class MetricsCollector {
   // Under concurrent Deno Deploy isolates, counts may be under-reported by up to N-1 per burst.
   async record(method: string, status: number): Promise<void> {
     const statusKey = String(status);
-    const counters = await this.#storage.get<MetricsCounters>(METRICS_COUNTERS_KEY) ?? emptyCounters();
+    const minuteStart = Math.floor(Date.now() / MS_PER_MINUTE) * MS_PER_MINUTE;
+    const bucketKey = [...METRICS_BUCKET_PREFIX, String(minuteStart)];
+
+    const [countersRaw, bucketRaw] = await Promise.all([
+      this.#storage.get<MetricsCounters>(METRICS_COUNTERS_KEY),
+      this.#storage.get<MinuteBucket>(bucketKey),
+    ]);
+    const counters = countersRaw ?? emptyCounters();
+    const bucket = bucketRaw ?? { count: 0 };
 
     counters.total++;
     counters.byMethod[method] = (counters.byMethod[method] ?? 0) + 1;
     counters.byStatus[statusKey] = (counters.byStatus[statusKey] ?? 0) + 1;
-
-    const minuteStart = Math.floor(Date.now() / MS_PER_MINUTE) * MS_PER_MINUTE;
-    const bucketKey = [...METRICS_BUCKET_PREFIX, String(minuteStart)];
-    const bucket = await this.#storage.get<MinuteBucket>(bucketKey) ?? { count: 0 };
     bucket.count++;
 
     await Promise.all([
@@ -70,33 +78,36 @@ export class MetricsCollector {
     ]);
   }
 
-  // Sums bucket counts within the given number of minutes from now.
-  // Skips buckets with non-numeric keys to guard against corrupted or unexpected KV entries.
-  async #rateForMinutes(minutes: number): Promise<number> {
-    const cutoff = Date.now() - minutes * MS_PER_MINUTE;
-    let total = 0;
+  // Computes request rates for all four windows in a single KV scan.
+  // Returns counts as [1m, 5m, 1h, 1d]; skips buckets with non-numeric keys.
+  async #computeRates(now: number): Promise<[number, number, number, number]> {
+    const cutoffs = [
+      now - METRICS_RATE_WINDOW_1M_MINUTES * MS_PER_MINUTE,
+      now - METRICS_RATE_WINDOW_5M_MINUTES * MS_PER_MINUTE,
+      now - METRICS_RATE_WINDOW_1H_MINUTES * MS_PER_MINUTE,
+      now - METRICS_RATE_WINDOW_1D_MINUTES * MS_PER_MINUTE,
+    ];
+    const totals: [number, number, number, number] = [0, 0, 0, 0];
     for await (const { key, value } of this.#storage.list<MinuteBucket>({ prefix: METRICS_BUCKET_PREFIX })) {
       const minuteStart = Number(key.at(-1));
       if (!Number.isFinite(minuteStart)) continue;
-      if (minuteStart >= cutoff) total += value.count;
+      for (let idx = 0; idx < cutoffs.length; idx++) {
+        if (minuteStart >= cutoffs[idx]) totals[idx] += value.count;
+      }
     }
-    return total;
+    return totals;
   }
 
   async snapshot(): Promise<MetricsSnapshot> {
+    const now = Date.now();
     const counters = await this.#storage.get<MetricsCounters>(METRICS_COUNTERS_KEY) ?? emptyCounters();
-    const [rate1m, rate5m, rate1h, rate1d] = await Promise.all([
-      this.#rateForMinutes(1),
-      this.#rateForMinutes(5),
-      this.#rateForMinutes(60),
-      this.#rateForMinutes(1440),
-    ]);
+    const [rate1m, rate5m, rate1h, rate1d] = await this.#computeRates(now);
 
     return {
       counters,
       rates: { "1m": rate1m, "5m": rate5m, "1h": rate1h, "1d": rate1d },
       startedAt: counters.startedAt,
-      timestamp: Date.now(),
+      timestamp: now,
     };
   }
 }

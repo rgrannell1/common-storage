@@ -45,3 +45,13 @@ export function resolveServer(config: Config, alias: string): ResolvedServer {
     ? resolveLocalServer(config)
     : resolveRemoteServer(config, alias);
 }
+
+// Returns the URL for a named alias without resolving a token; used by commands that mint their own token
+export function resolveAliasUrl(config: Config, alias: string): string {
+  const aliasConfig = config.aliases?.find(entry => entry.name === alias);
+  if (!aliasConfig) {
+    console.error(`Server alias '${alias}' not found in config`);
+    Deno.exit(1);
+  }
+  return aliasConfig.url;
+}

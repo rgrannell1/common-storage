@@ -72,6 +72,9 @@ export const METRICS_CRON = "* * * * *";
 // Cron schedule for the tombstone GC sweep — daily at midnight
 export const GC_CRON = "0 0 * * *";
 
+// Cron job name for the tombstone GC sweep
+export const GC_CRON_NAME = "cmstr-gc";
+
 // Env var name to override the config file path; useful on Deno Deploy where XDG paths do not exist
 export const CMSTR_CONFIG_PATH_ENV_VAR = "CMSTR_CONFIG_PATH";
 
@@ -119,3 +122,9 @@ export const MAX_REQUEST_BODY_BYTES = 128 * 1_024;
 
 // TTL for idempotency cache entries in KV; after this window a retry key may re-execute the operation
 export const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1_000;
+
+// Rate window widths in minutes used by the metrics collector snapshot
+export const METRICS_RATE_WINDOW_1M_MINUTES = 1;
+export const METRICS_RATE_WINDOW_5M_MINUTES = 5;
+export const METRICS_RATE_WINDOW_1H_MINUTES = 60;
+export const METRICS_RATE_WINDOW_1D_MINUTES = 1440;

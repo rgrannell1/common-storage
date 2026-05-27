@@ -22,7 +22,9 @@
     "macaroons.js": "npm:macaroons.js@^0.3.9",
     "idb": "npm:idb@^8",
     "jmespath": "npm:jmespath@^0.16",
-    "peach": "../peach.ts/src/mod.ts"
+    "peach": "../peach.ts/src/mod.ts",
+    "qrcode": "npm:qrcode@^1",
+    "@types/qrcode": "npm:@types/qrcode@^1"
   },
   "deploy": {
     "org": "rgrannell1",

@@ -65,12 +65,13 @@ export class IDBBackend implements ISyncBackend {
         }
         // v2 → v3: event store uses compound [topic, id] keys; cursor store reset; merkle stores added.
         if (oldVersion < 3) {
-          db.deleteObjectStore(IDB_EVENT_STORE);
-          db.createObjectStore(IDB_EVENT_STORE);
-          db.deleteObjectStore(IDB_CURSOR_STORE);
-          db.createObjectStore(IDB_CURSOR_STORE);
-          db.createObjectStore(IDB_MERKLE_EVENT_STORE);
-          db.createObjectStore(IDB_MERKLE_OBJECT_STORE);
+          for (const store of [IDB_EVENT_STORE, IDB_CURSOR_STORE]) {
+            db.deleteObjectStore(store);
+            db.createObjectStore(store);
+          }
+          for (const store of [IDB_MERKLE_EVENT_STORE, IDB_MERKLE_OBJECT_STORE]) {
+            db.createObjectStore(store);
+          }
         }
       },
     });

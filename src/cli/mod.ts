@@ -4,6 +4,7 @@ import { docopt } from "docopt";
 import { init } from "./commands/init.ts";
 import { mint } from "./commands/mint.ts";
 import { validate } from "./commands/validate.ts";
+import { auth } from "./commands/auth.ts";
 import { httpCommand } from "./commands/client/mod.ts";
 
 const DOC = `
@@ -13,6 +14,7 @@ Usage:
   cs init                                            [--cfg <path>]
   cs validate                                        [--cfg <path>]
   cs mint [<name>]                                   [--cfg <path>]
+  cs auth <alias> --qr [<name>]                      [--cfg <path>]
   cs http get feed                                   [--cfg <path>] [--server <alias>]
   cs http get content  -p topic=<topic>              [--cfg <path>] [--server <alias>] [-p start=<id>] [-p size=<n>]
   cs http get entry    -p topic=<topic> -p id=<id>   [--cfg <path>] [--server <alias>]
@@ -34,6 +36,7 @@ Commands:
   init              Create config skeleton if absent
   validate          Parse and validate the config file, reporting any errors
   mint [<name>]     Print a token for the named definition, or all name/token pairs
+  auth <alias> --qr [<name>]  Print a QR code for the token URL targeting a server alias
   http              Make an API request to a common-storage server
 `;
 
@@ -47,6 +50,8 @@ if (args["init"]) {
   await validate(cfgArg);
 } else if (args["mint"]) {
   await mint(args["<name>"] ?? undefined, cfgArg);
+} else if (args["auth"]) {
+  await auth(args["<alias>"] as string, args["<name>"] ?? undefined, cfgArg);
 } else if (args["http"]) {
   await httpCommand(args as Record<string, unknown>);
 }

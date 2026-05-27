@@ -13,23 +13,52 @@ export function parseParams(rawParams: string | string[] | null): Record<string,
   return result;
 }
 
-// Returns a required param value or exits with an error
+// Returns a required param value or throws if missing
 export function requireParam(params: Record<string, string>, name: string): string {
   const value = params[name];
   if (value === undefined) {
-    console.error(`Missing required param: -p ${name}=<value>`);
-    Deno.exit(1);
+    throw new Error(`Missing required param: -p ${name}=<value>`);
   }
   return value;
 }
 
-// Parses payload argument as JSON; exits with error if invalid
+// Parses an optional integer param; throws if present but not a valid integer
+export function parseOptionalInt(params: Record<string, string>, name: string): number | undefined {
+  if (params[name] === undefined) return undefined;
+  const parsed = Number(params[name]);
+  if (!Number.isInteger(parsed)) {
+    throw new Error(`Invalid integer for param: -p ${name}=<integer>`);
+  }
+  return parsed;
+}
+
+// Parses a required integer param; throws if missing or not a valid integer
+export function parseRequiredInt(params: Record<string, string>, name: string): number {
+  const parsed = Number(requireParam(params, name));
+  if (!Number.isInteger(parsed)) {
+    throw new Error(`Invalid integer for param: -p ${name}=<integer>`);
+  }
+  return parsed;
+}
+
+// Parses a comma-separated list of integers; throws if any value is not a valid integer
+export function parseIntList(params: Record<string, string>, name: string): number[] | undefined {
+  if (params[name] === undefined) return undefined;
+  return params[name].split(",").map((value, idx) => {
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed)) {
+      throw new Error(`Invalid integer at position ${idx + 1} for param: -p ${name}=<id>,...`);
+    }
+    return parsed;
+  });
+}
+
+// Parses payload argument as JSON; throws if invalid
 export function parsePayload(raw: string | null): unknown {
   if (raw === null) return undefined;
   try {
     return JSON.parse(raw);
   } catch {
-    console.error("Payload is not valid JSON");
-    Deno.exit(1);
+    throw new Error("Payload is not valid JSON");
   }
 }

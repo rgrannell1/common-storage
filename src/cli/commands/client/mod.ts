@@ -4,7 +4,7 @@
 import { CmstrClient, CmstrError } from "../../../../clients/ts/mod.ts";
 import { loadConfig } from "../../../commons/config.ts";
 import { resolveConfigFilePath } from "../../paths.ts";
-import { parseParams, requireParam, parsePayload } from "./params.ts";
+import { parseParams, requireParam, parsePayload, parseOptionalInt, parseRequiredInt, parseIntList } from "./params.ts";
 import { resolveServer, LOCAL_ALIAS } from "./server.ts";
 
 function printResult(result: unknown): void {
@@ -27,9 +27,9 @@ export async function httpCommand(args: Record<string, unknown>): Promise<void> 
   const server = resolveServer(config, alias);
   const client = new CmstrClient(server);
   const params = parseParams(args["-p"] as string | string[] | null);
-  const payload = parsePayload(args["<payload>"] as string | null);
 
   try {
+    const payload = parsePayload(args["<payload>"] as string | null);
     if (args["feed"]) {
       printResult(await client.getFeed());
       return;
@@ -39,17 +39,17 @@ export async function httpCommand(args: Record<string, unknown>): Promise<void> 
       const topic = requireParam(params, "topic");
       printResult(await client.getEvents({
         topic,
-        start: params["start"] !== undefined ? Number(params["start"]) : undefined,
-        size: params["size"] !== undefined ? Number(params["size"]) : undefined,
+        start: parseOptionalInt(params, "start"),
+        size: parseOptionalInt(params, "size"),
         filter: params["filter"],
-        ids: params["ids"] !== undefined ? params["ids"].split(",").map(Number) : undefined,
+        ids: parseIntList(params, "ids"),
       }));
       return;
     }
 
     if (args["entry"] && args["get"]) {
       const topic = requireParam(params, "topic");
-      printResult(await client.getEvent({ topic, id: Number(requireParam(params, "id")) }));
+      printResult(await client.getEvent({ topic, id: parseRequiredInt(params, "id") }));
       return;
     }
 
@@ -61,7 +61,7 @@ export async function httpCommand(args: Record<string, unknown>): Promise<void> 
 
     if (args["entry"] && args["put"]) {
       const topic = requireParam(params, "topic");
-      printResult(await client.putEvent({ topic, id: Number(requireParam(params, "id")), payload }));
+      printResult(await client.putEvent({ topic, id: parseRequiredInt(params, "id"), payload }));
       return;
     }
 
