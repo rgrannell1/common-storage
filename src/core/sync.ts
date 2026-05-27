@@ -17,6 +17,10 @@ type DiffRoundResponse =
   | { kind: "match" }
   | { kind: "diff"; mismatches: { start: number; end: number; isLeaf: boolean }[] };
 
+export type SyncProgressEvent =
+  | { phase: "diff";  round: number }
+  | { phase: "fetch"; count: number };
+
 type MerkleRangeResult = { start: number; end: number }[];
 
 function authHeaders(token: string): Record<string, string> {
@@ -47,12 +51,16 @@ async function merkleDiff(
   topic: string,
   token: string,
   tree: IMerkleTree,
+  onProgress?: (event: SyncProgressEvent) => void,
 ): Promise<MerkleRangeResult> {
   const rootHash = await tree.hashForRange(0, MERKLE_TREE_END);
   let frontier = [{ start: 0, end: MERKLE_TREE_END, hash: rootHash }];
   const leafRanges: { start: number; end: number }[] = [];
+  let round = 0;
 
   while (frontier.length > 0) {
+    round++;
+    onProgress?.({ phase: "diff", round });
     const response = await postDiffRound(baseUrl, topic, token, frontier);
     if (response.kind === "match") break;
 
@@ -154,6 +162,7 @@ export async function syncEventTopic(
   token: string,
   topic: string,
   tailDurationMs?: number,
+  onProgress?: (event: SyncProgressEvent) => void,
 ): Promise<ChangeEvent[]> {
   const cursor = await backend.cursors.getEventCursor(topic);
   const changes: ChangeEvent[] = [];
@@ -168,6 +177,7 @@ export async function syncEventTopic(
       for (const entry of entries) {
         changes.push(await applyEventEntry(backend, topic, entry, true));
         maxId = Math.max(maxId, entry.id);
+        onProgress?.({ phase: "fetch", count: changes.length });
       }
       if (entries.length < DEFAULT_FETCH_PAGE_SIZE) break;
       start = entries[entries.length - 1].id + 1;
@@ -186,7 +196,7 @@ export async function syncEventTopic(
   const tree: IMerkleTree = backend.merkleEvents
     ? backend.merkleEvents.forTopic(topic)
     : buildEventMerkleTree(await backend.events.readEvents(topic, {}) ?? []);
-  const leafRanges = await merkleDiff(baseUrl, topic, token, tree);
+  const leafRanges = await merkleDiff(baseUrl, topic, token, tree, onProgress);
 
   if (leafRanges.length === 0) return changes;
 
@@ -197,6 +207,7 @@ export async function syncEventTopic(
     for (const entry of entries) {
       changes.push(await applyEventEntry(backend, topic, entry));
       maxId = Math.max(maxId, entry.id);
+      onProgress?.({ phase: "fetch", count: changes.length });
     }
   }
 

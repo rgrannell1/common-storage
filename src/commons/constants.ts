@@ -48,11 +48,11 @@ export const DEFAULT_FETCH_PAGE_SIZE = 500;
 // Number of entries per Merkle leaf node; leaf hashes cover IDs (start, start + MERKLE_LEAF_SIZE]
 export const MERKLE_LEAF_SIZE = 100;
 
-// Total ID/seq space the Merkle tree covers; MERKLE_LEAF_SIZE * 2^20 gives exactly 20 levels with 100-entry leaves
-export const MERKLE_TREE_END = MERKLE_LEAF_SIZE * (1 << 20);
+// Total ID/seq space the Merkle tree covers; MERKLE_LEAF_SIZE * 2^10 gives exactly 10 levels with 100-entry leaves (~102k max entries)
+export const MERKLE_TREE_END = MERKLE_LEAF_SIZE * (1 << 10);
 
 // Depth of the Merkle tree — number of levels from root to leaf (inclusive of both)
-export const MERKLE_TREE_DEPTH = 20;
+export const MERKLE_TREE_DEPTH = 10;
 
 // Environment variable name holding the Macaroon root key
 export const ROOT_KEY_ENV_VAR = "COMMON_STORAGE_ROOT_KEY";
