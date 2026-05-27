@@ -123,6 +123,9 @@ export const MAX_REQUEST_BODY_BYTES = 128 * 1_024;
 // TTL for idempotency cache entries in KV; after this window a retry key may re-execute the operation
 export const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1_000;
 
+// Seconds browsers may cache CORS preflight responses; reduces OPTIONS round-trips on repeated cross-origin calls
+export const CORS_MAX_AGE_SECONDS = 3600;
+
 // Rate window widths in minutes used by the metrics collector snapshot
 export const METRICS_RATE_WINDOW_1M_MINUTES = 1;
 export const METRICS_RATE_WINDOW_5M_MINUTES = 5;

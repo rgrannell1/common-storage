@@ -21,7 +21,7 @@ import { authMiddleware } from "./middleware/auth.ts";
 import { rateLimitMiddleware } from "./middleware/rate-limit.ts";
 import { securityHeaders } from "./middleware/security-headers.ts";
 import { loggingMiddleware } from "./middleware/logging.ts";
-import { MAX_REQUEST_BODY_BYTES } from "../commons/constants.ts";
+import { MAX_REQUEST_BODY_BYTES, CORS_MAX_AGE_SECONDS } from "../commons/constants.ts";
 import { STATUS_CONTENT_TOO_LARGE } from "./commons/statuses.ts";
 import type { AppDeps } from "./types.ts";
 
@@ -34,7 +34,7 @@ export type { AppDeps };
 export function createApp(deps: AppDeps): Hono {
   const app = new Hono();
 
-  app.use("*", cors());
+  app.use("*", cors({ maxAge: CORS_MAX_AGE_SECONDS }));
   app.use("*", bodyLimit({ maxSize: MAX_REQUEST_BODY_BYTES, onError: bodyTooLarge }));
   app.use("*", loggingMiddleware(deps.logger));
   app.use("*", securityHeaders);
