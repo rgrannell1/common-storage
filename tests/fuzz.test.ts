@@ -616,34 +616,33 @@ Deno.test("Proves ?filter= param never crashes on adversarial JMESPath expressio
   }
 });
 
-// Valid-shape diff bodies with semantically wrong content — these pass the Zod schema check
+// Valid-shape Merkle diff bodies with semantically wrong content — these pass the Zod schema check
 // and reach business logic, where wrong hash lengths, non-hex chars, or huge arrays may crash.
-// bucketSize is not accepted by the schema (server-side constant); all bodies use {root, buckets}.
 const VALID_HEX_64 = "a".repeat(64);
 
 const STRUCTURED_DIFF_BODIES = [
-  // Root hash too short (32 chars instead of 64)
-  { root: "a".repeat(32), buckets: [] },
-  // Non-hex characters in root and bucket hash
-  { root: "z".repeat(64), buckets: [{ start: 0, end: 500, hash: "z".repeat(64) }] },
-  // Bucket hash too short
-  { root: VALID_HEX_64, buckets: [{ start: 0, end: 500, hash: "a".repeat(32) }] },
-  // 5000 buckets — exercises unbounded array handling
-  { root: VALID_HEX_64, buckets: Array.from({ length: 5000 }, (_, idx) => ({ start: idx * 500, end: (idx + 1) * 500, hash: VALID_HEX_64 })) },
-  // Overlapping bucket ranges
-  { root: VALID_HEX_64, buckets: [{ start: 0, end: 500, hash: VALID_HEX_64 }, { start: 250, end: 750, hash: VALID_HEX_64 }] },
-  // start > end in a bucket
-  { root: VALID_HEX_64, buckets: [{ start: 500, end: 0, hash: VALID_HEX_64 }] },
-  // Zero-width bucket (start === end)
-  { root: VALID_HEX_64, buckets: [{ start: 500, end: 500, hash: VALID_HEX_64 }] },
+  // Node hash too short (32 chars instead of 64)
+  { nodes: [{ start: 0, end: 1000, hash: "a".repeat(32) }] },
+  // Non-hex characters in node hash
+  { nodes: [{ start: 0, end: 1000, hash: "z".repeat(64) }] },
+  // 3000 nodes — exceeds the 2000-node cap, should return 422
+  { nodes: Array.from({ length: 3000 }, (_, idx) => ({ start: idx * 100, end: (idx + 1) * 100, hash: VALID_HEX_64 })) },
+  // Overlapping node ranges
+  { nodes: [{ start: 0, end: 500, hash: VALID_HEX_64 }, { start: 250, end: 750, hash: VALID_HEX_64 }] },
+  // start > end in a node
+  { nodes: [{ start: 500, end: 0, hash: VALID_HEX_64 }] },
+  // Zero-width node (start === end)
+  { nodes: [{ start: 500, end: 500, hash: VALID_HEX_64 }] },
   // Negative start
-  { root: VALID_HEX_64, buckets: [{ start: -1, end: 499, hash: VALID_HEX_64 }] },
+  { nodes: [{ start: -1, end: 499, hash: VALID_HEX_64 }] },
   // Very large start/end values
-  { root: VALID_HEX_64, buckets: [{ start: Number.MAX_SAFE_INTEGER - 500, end: Number.MAX_SAFE_INTEGER, hash: VALID_HEX_64 }] },
-  // Correct root shape but missing buckets field entirely
+  { nodes: [{ start: Number.MAX_SAFE_INTEGER - 500, end: Number.MAX_SAFE_INTEGER, hash: VALID_HEX_64 }] },
+  // Missing nodes field entirely
   { root: VALID_HEX_64 },
-  // Spurious field that schema should strip, not crash on
-  { root: VALID_HEX_64, buckets: [], bucketSize: 1, entries: [] },
+  // Empty nodes array — should return 422 (min 1)
+  { nodes: [] },
+  // Spurious fields alongside valid nodes
+  { nodes: [{ start: 0, end: 1000, hash: VALID_HEX_64 }], bucketSize: 1, entries: [] },
 ];
 
 Deno.test("Proves POST /diff/:topic never crashes on structurally valid but semantically wrong bodies", async () => {

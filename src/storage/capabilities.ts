@@ -137,29 +137,29 @@ export interface IGetTopicType {
   getTopicType(topic: string): Promise<"event" | "object" | null>;
 }
 
-export type EventDiffBucket = { start: number; end: number; hash: string };
+// One node in an interactive Merkle diff request; start and end form a half-open range (start, end].
+export type MerkleNode = { start: number; end: number; hash: string };
 
-export type EventDiffRequest = {
-  root: string;
-  buckets: EventDiffBucket[];
-};
+// A node in the server's tree that diverges from the client's; isLeaf indicates the client should fetch this range.
+export type MerkleMismatch = { start: number; end: number; isLeaf: boolean };
 
-export type EventDiffResult =
+export type MerkleDiffRequest = { nodes: MerkleNode[] };
+
+export type MerkleDiffResponse =
   | { kind: "match" }
-  | { kind: "diff"; ranges: { start: number; end: number }[] };
+  | { kind: "diff"; mismatches: MerkleMismatch[] };
 
 export interface IDiffEvents {
   // Returns null if the topic does not exist
-  diffEvents(topic: string, req: EventDiffRequest): Promise<EventDiffResult | null>;
+  diffEvents(topic: string, req: MerkleDiffRequest): Promise<MerkleDiffResponse | null>;
 }
 
-// Object diff uses the same bucket hash protocol as event diff, over the seq dimension
-export type ObjectDiffRequest = EventDiffRequest;
-export type ObjectDiffResult = EventDiffResult;
+// Object diff uses the same Merkle protocol as event diff, over the seq dimension
+export type ObjectDiffResponse = MerkleDiffResponse;
 
 export interface IDiffObjects {
   // Returns null if the topic does not exist
-  diffObjects(topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null>;
+  diffObjects(topic: string, req: MerkleDiffRequest): Promise<ObjectDiffResponse | null>;
 }
 
 export interface ISweepTombstones {

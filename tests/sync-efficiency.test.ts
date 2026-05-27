@@ -91,10 +91,9 @@ Deno.test("Proves sync is bucket-efficient — incremental and deletion cycles r
       "initial sync: all objects replicated to client",
     );
 
-    // Second sync — first diff request for this topic. The server maintains the invariant
-    // that bucket hashes are cached in KV; on a cold topic the caches are absent, so the
-    // server computes and stores them all now (one-time cost). Writes thereafter only
-    // invalidate the specific bucket that changed, so subsequent diffs scan only new buckets.
+    // Second sync — first diff request for this topic. The server computes and caches the
+    // full Merkle tree (one-time cost). Writes thereafter only invalidate the O(depth=20)
+    // ancestor nodes of the changed entry, so subsequent diffs scan only affected leaves.
     await node.sync(EVENT_TOPIC);
     await node.sync(OBJECT_TOPIC);
 
@@ -130,18 +129,17 @@ Deno.test("Proves sync is bucket-efficient — incremental and deletion cycles r
       "incremental sync: new objects replicated",
     );
 
-    // Efficiency check: server must not scan all entries — only the new buckets.
-    // Event bucket_size=500: 2 new buckets → ~2k server listItems, not 3k.
+    // Efficiency check: Merkle tree only scans the affected leaf nodes, not the entire topic.
+    // With MERKLE_LEAF_SIZE=100 and INCREMENTAL_COUNT=1000, at most 10 leaves are scanned.
     assertLess(
       eventIncrementalOps.listItems,
       totalEvents,
-      "incremental event sync: server scanned fewer items than the total (bucket-efficient)",
+      "incremental event sync: server scanned fewer items than the total (Merkle-efficient)",
     );
-    // Object bucket_size=50: 20 new buckets → ~2k server listItems, not 3k.
     assertLess(
       objectIncrementalOps.listItems,
       totalObjects,
-      "incremental object sync: server scanned fewer items than the total (bucket-efficient)",
+      "incremental object sync: server scanned fewer items than the total (Merkle-efficient)",
     );
 
     // --- Phase 5: propagate an update and a deletion ---
@@ -163,18 +161,18 @@ Deno.test("Proves sync is bucket-efficient — incremental and deletion cycles r
     const obj0 = await node.getObject(OBJECT_TOPIC, "obj-0");
     assertEquals(obj0?.payload, null, "deleted object propagated as tombstone");
 
-    // Efficiency: only the 1–2 affected buckets per topic were re-read.
-    // Event: 1 changed bucket (IDs 1–500) → ~1k server listItems, well under 3k.
-    // Object: 2 changed buckets (original seq bucket + new tombstone seq bucket) → ~300 listItems.
+    // Efficiency: only the 1–2 affected Merkle leaves per topic were re-scanned.
+    // Event: 1 changed leaf (IDs 1–100) → ~100 server listItems, well under 1500.
+    // Object: 2 changed leaves (original seq leaf + new tombstone seq leaf) → ~200 listItems.
     assertLess(
       eventDeleteOps.listItems,
       totalEvents / 2,
-      "event deletion sync: only affected bucket re-read",
+      "event deletion sync: only affected leaf re-read",
     );
     assertLess(
       objectDeleteOps.listItems,
       totalObjects / 2,
-      "object deletion sync: only affected buckets re-read",
+      "object deletion sync: only affected leaves re-read",
     );
 
   } finally {

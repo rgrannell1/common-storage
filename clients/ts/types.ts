@@ -99,15 +99,16 @@ export type StreamObjectsInput = {
   signal?: AbortSignal;
 };
 
-export type EventDiffBucket = { start: number; end: number; hash: string };
+export type MerkleNode = { start: number; end: number; hash: string };
+
+export type MerkleMismatch = { start: number; end: number; isLeaf: boolean };
 
 export type PostDiffInput = {
   topic: string;
-  root: string;
-  buckets: EventDiffBucket[];
+  nodes: MerkleNode[];
 };
 
-export type PostDiffResult = { ranges: { start: number; end: number }[] } | null;
+export type PostDiffResult = { mismatches: MerkleMismatch[] } | null;
 
 export type CmstrClientConfig = {
   url: string;

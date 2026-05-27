@@ -2,9 +2,7 @@
 // IDB event store — implements ILocalEventStore over IndexedDB.
 
 import type { ILocalEventStore } from "../backend.ts";
-import type { EventEntry, ReadEventOptions, EventDiffRequest, EventDiffResult } from "../capabilities.ts";
-import { hashBucket, hashBucketRoot } from "../../core/hashing.ts";
-import { DEFAULT_EVENT_BUCKET_SIZE } from "../../commons/constants.ts";
+import type { EventEntry, ReadEventOptions } from "../capabilities.ts";
 import type { IDBDatabase } from "./types.ts";
 
 export const IDB_EVENT_STORE = "events";
@@ -15,6 +13,8 @@ type StoredEvent = {
   updatedAt: number;
   payload: unknown;
 };
+
+type EventSummary = { id: number; updatedAt: number };
 
 function toEntry(stored: StoredEvent): EventEntry {
   return { id: stored.id, createdAt: stored.createdAt, updatedAt: stored.updatedAt, payload: stored.payload };
@@ -61,45 +61,32 @@ export class IDBEventStore implements ILocalEventStore {
     return toEntry(entry);
   }
 
-  async diffEvents(topic: string, req: EventDiffRequest): Promise<EventDiffResult | null> {
-    const all = await this.readEvents(topic, {}) ?? [];
-    const bucketMap = new Map<number, Array<{ id: number; updatedAt: number }>>();
-    for (const entry of all) {
-      const start = Math.floor((entry.id - 1) / DEFAULT_EVENT_BUCKET_SIZE) * DEFAULT_EVENT_BUCKET_SIZE;
-      if (!bucketMap.has(start)) bucketMap.set(start, []);
-      bucketMap.get(start)!.push({ id: entry.id, updatedAt: entry.updatedAt });
+  // Returns summaries (id + updatedAt) for events with id in (start, end].
+  async readEventSummaries(topic: string, start: number, end: number): Promise<EventSummary[]> {
+    const tx = this.db.transaction(IDB_EVENT_STORE, "readonly");
+    const store = tx.objectStore(IDB_EVENT_STORE);
+    const range = IDBKeyRange.bound(this.#key(topic, start + 1), this.#key(topic, end));
+    const results: EventSummary[] = [];
+    let cursor = await store.openCursor(range);
+    while (cursor) {
+      const stored = cursor.value as StoredEvent;
+      results.push({ id: stored.id, updatedAt: stored.updatedAt });
+      cursor = await cursor.continue();
     }
-
-    // Build local bucket hashes and root
-    const bucketStarts = [...bucketMap.keys()].sort((first, second) => first - second);
-    const localHashes = await Promise.all(bucketStarts.map(async (start) => {
-      const sorted = (bucketMap.get(start) ?? []).sort((first, second) => first.id - second.id);
-      return { start, hash: await hashBucket(sorted) };
-    }));
-    const localRoot = await hashBucketRoot(localHashes.map(bucket => bucket.hash));
-    if (localRoot === req.root) return { kind: "match" };
-
-    // Return ranges where client's bucket hashes differ from local
-    const localHashMap = new Map(localHashes.map(bucket => [bucket.start, bucket.hash]));
-    const clientStarts = new Set(req.buckets.map(bucket => bucket.start));
-    const ranges: { start: number; end: number }[] = [];
-    for (const clientBucket of req.buckets) {
-      const localHash = localHashMap.get(clientBucket.start);
-      if (localHash !== clientBucket.hash) {
-        ranges.push({ start: clientBucket.start, end: clientBucket.end });
-      }
-    }
-    // Include local-only buckets the client did not cover
-    for (const start of bucketStarts) {
-      if (!clientStarts.has(start)) {
-        ranges.push({ start, end: start + DEFAULT_EVENT_BUCKET_SIZE });
-      }
-    }
-    return { kind: "diff", ranges };
+    return results;
   }
 
-  #key(topic: string, id: number): string {
-    return `${topic}:${id}`;
+  // Returns true if no event exists with id in (start, end].
+  async isEventRangeEmpty(topic: string, start: number, end: number): Promise<boolean> {
+    const tx = this.db.transaction(IDB_EVENT_STORE, "readonly");
+    const store = tx.objectStore(IDB_EVENT_STORE);
+    const range = IDBKeyRange.bound(this.#key(topic, start + 1), this.#key(topic, end));
+    const count = await store.count(range);
+    return count === 0;
+  }
+
+  #key(topic: string, id: number): [string, number] {
+    return [topic, id];
   }
 
   async #readByIds(topic: string, ids: number[]): Promise<EventEntry[]> {
@@ -113,10 +100,7 @@ export class IDBEventStore implements ILocalEventStore {
   async #readRange(topic: string, start: number, size?: number): Promise<EventEntry[]> {
     const tx = this.db.transaction(IDB_EVENT_STORE, "readonly");
     const store = tx.objectStore(IDB_EVENT_STORE);
-    // Use a cursor over the topic's key range
-    const lower = this.#key(topic, start);
-    const upper = `${topic}:￿`;
-    const range = IDBKeyRange.bound(lower, upper);
+    const range = IDBKeyRange.bound(this.#key(topic, start), this.#key(topic, Infinity));
     const results: EventEntry[] = [];
     let cursor = await store.openCursor(range);
     while (cursor) {
@@ -132,7 +116,10 @@ export class IDBEventStore implements ILocalEventStore {
   }
 
   async #nextId(topic: string): Promise<number> {
-    const all = await this.readEvents(topic, {}) ?? [];
-    return all.length > 0 ? all[all.length - 1].id + 1 : 1;
+    const tx = this.db.transaction(IDB_EVENT_STORE, "readonly");
+    const store = tx.objectStore(IDB_EVENT_STORE);
+    const range = IDBKeyRange.bound(this.#key(topic, 0), this.#key(topic, Infinity));
+    const cursor = await store.openCursor(range, "prev");
+    return cursor ? (cursor.key as [string, number])[1] + 1 : 1;
   }
 }

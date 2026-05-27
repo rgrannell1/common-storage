@@ -42,11 +42,17 @@ export const STREAM_POLL_INTERVAL_MS = 1_000;
 // Duration to tail remote NDJSON stream after a diff round-trip, in milliseconds
 export const TAIL_DURATION_MS = 5_000;
 
-// Bucket width for event topic diff requests; integer ID space divided into fixed ranges
-export const DEFAULT_EVENT_BUCKET_SIZE = 500;
+// Page size used when fetching entries in bulk (full fetch and range fetch)
+export const DEFAULT_FETCH_PAGE_SIZE = 500;
 
-// Bucket width for object topic diff requests; seq space divided into fixed ranges
-export const DEFAULT_OBJECT_BUCKET_SIZE = 50;
+// Number of entries per Merkle leaf node; leaf hashes cover IDs (start, start + MERKLE_LEAF_SIZE]
+export const MERKLE_LEAF_SIZE = 100;
+
+// Total ID/seq space the Merkle tree covers; MERKLE_LEAF_SIZE * 2^20 gives exactly 20 levels with 100-entry leaves
+export const MERKLE_TREE_END = MERKLE_LEAF_SIZE * (1 << 20);
+
+// Depth of the Merkle tree — number of levels from root to leaf (inclusive of both)
+export const MERKLE_TREE_DEPTH = 20;
 
 // Environment variable name holding the Macaroon root key
 export const ROOT_KEY_ENV_VAR = "COMMON_STORAGE_ROOT_KEY";

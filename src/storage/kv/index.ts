@@ -3,7 +3,7 @@
 // @work.md
 
 import type { IAtomicWriter, IStorageBackend } from "./backend.ts";
-import type { IFullStorage, TopicStats, Subscription, EventEntry, ReadEventOptions, UpdateEventTimestamps, EventDiffRequest, EventDiffResult, ObjectEntry, ObjectDiffRequest, ObjectDiffResult } from "../capabilities.ts";
+import type { IFullStorage, TopicStats, Subscription, EventEntry, ReadEventOptions, UpdateEventTimestamps, MerkleDiffRequest, MerkleDiffResponse, ObjectEntry, ObjectDiffResponse } from "../capabilities.ts";
 import type { ISyncBackend, ILocalEventStore, ILocalObjectStore } from "../backend.ts";
 import type { ICursorStore } from "../backend.ts";
 import type { TopicConfig } from "../../commons/config.ts";
@@ -143,7 +143,7 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage, ISyncBacken
     yield* this.eventStore.streamEvents(topic, startId, signal);
   }
 
-  diffEvents(topic: string, req: EventDiffRequest): Promise<EventDiffResult | null> {
+  diffEvents(topic: string, req: MerkleDiffRequest): Promise<MerkleDiffResponse | null> {
     return this.eventStore.diffEvents(topic, req);
   }
 
@@ -173,7 +173,7 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage, ISyncBacken
     yield* this.objectStore.streamObjects(topic, startSeq, signal);
   }
 
-  diffObjects(topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null> {
+  diffObjects(topic: string, req: MerkleDiffRequest): Promise<ObjectDiffResponse | null> {
     return this.objectStore.diffObjects(topic, req);
   }
 

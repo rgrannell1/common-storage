@@ -115,23 +115,19 @@ export const JsonPayloadSchema = z.unknown().refine(
 // SHA-256 hex digest — 64 lowercase hex characters
 export const HexHashSchema = z.string().regex(/^[0-9a-f]{64}$/, "must be a 64-character lowercase hex string");
 
-// Single bucket in an event diff request — covers IDs [start, end); end must exceed start
-export const EventDiffBucketSchema = z.object({
+// One node in a Merkle diff request — covers IDs (start, end]; end must exceed start
+export const MerkleNodeSchema = z.object({
   start: z.number().int().nonnegative(),
   end: z.number().int().positive(),
   hash: HexHashSchema,
-}).refine((bucket) => bucket.end > bucket.start, {
+}).refine((node) => node.end > node.start, {
   message: "end must be greater than start",
 });
 
-// Event diff request body — flat bucket hash tree for event topics; bucket size is fixed server-side
-export const EventDiffBodySchema = z.object({
-  root: HexHashSchema,
-  buckets: z.array(EventDiffBucketSchema),
+// Merkle diff request body — interactive reconciliation for both event and object topics
+export const MerkleDiffBodySchema = z.object({
+  nodes: z.array(MerkleNodeSchema).min(1).max(2000),
 });
-
-// Object diff request body — same bucket hash protocol as events, over the seq dimension
-export const ObjectDiffBodySchema = EventDiffBodySchema;
 
 // Comma-separated list of entry IDs coerced from a query string parameter; used in ?ids= lookups
 export const QueryIdsSchema = z.string()

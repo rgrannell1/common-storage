@@ -1,29 +1,32 @@
 // HTTP client for talking to a remote common-storage server during subscription sync.
 // All functions are stateless; callers supply the base URL and token on each call.
 
-import type { EventEntry, EventDiffRequest } from "../../storage/capabilities.ts";
+import type { EventEntry } from "../../storage/capabilities.ts";
 import { TAIL_DURATION_MS } from "../../commons/constants.ts";
 import { STATUS_NO_CONTENT } from "../commons/statuses.ts";
 
-type DiffResponse =
+type DiffRoundResponse =
   | { kind: "match" }
-  | { kind: "diff"; ranges: { start: number; end: number }[] };
+  | { kind: "diff"; mismatches: { start: number; end: number; isLeaf: boolean }[] };
 
 function authHeaders(token: string): Record<string, string> {
   return { "Authorization": `Bearer ${token}` };
 }
 
-export async function postDiff(baseUrl: string, topic: string, token: string, req: EventDiffRequest): Promise<DiffResponse> {
+export async function postDiffRound(
+  baseUrl: string,
+  topic: string,
+  token: string,
+  nodes: { start: number; end: number; hash: string }[],
+): Promise<DiffRoundResponse> {
   const res = await fetch(`${baseUrl}/diff/${topic}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
-    body: JSON.stringify(req),
+    body: JSON.stringify({ nodes }),
   });
-
   if (res.status === STATUS_NO_CONTENT) return { kind: "match" };
-
-  const body = await res.json() as { ranges: { start: number; end: number }[] };
-  return { kind: "diff", ranges: body.ranges };
+  const body = await res.json() as { mismatches: { start: number; end: number; isLeaf: boolean }[] };
+  return { kind: "diff", mismatches: body.mismatches };
 }
 
 export async function fetchRange(baseUrl: string, topic: string, token: string, start: number, size: number): Promise<EventEntry[]> {

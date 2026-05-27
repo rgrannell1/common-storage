@@ -1,12 +1,33 @@
 // Event write operations — writeEvent and updateEvent
 // @work.md
 
-import type { IStorageBackend } from "../backend.ts";
+import type { IStorageBackend, IAtomicWriter } from "../backend.ts";
 import type { EventEntry, UpdateEventTimestamps } from "../../capabilities.ts";
 import type { StoredTopic, StoredTopicStats, StoredEvent } from "../types/stored-types.ts";
-import { KV_TOPIC, KV_TOPIC_STATS, KV_EVENT, KV_EVENT_COUNTER, KV_BUCKET_HASH, KV_BUCKET_INDEX, KV_TOPIC_ROOT_HASH } from "../keys.ts";
-import { DEFAULT_EVENT_BUCKET_SIZE } from "../../../commons/constants.ts";
-import { bucketStartFor } from "../../../core/hashing.ts";
+import { KV_TOPIC, KV_TOPIC_STATS, KV_EVENT, KV_EVENT_COUNTER, KV_MERKLE_HASH } from "../keys.ts";
+import { MERKLE_LEAF_SIZE, MERKLE_TREE_END } from "../../../commons/constants.ts";
+
+// Returns the sequence of Merkle node ranges on the path from the leaf containing id to the root.
+// Each ancestor's cached hash must be invalidated when id is written.
+function merklePath(id: number): { start: number; end: number }[] {
+  const path: { start: number; end: number }[] = [];
+  let start = 0, end = MERKLE_TREE_END;
+  while (end - start > MERKLE_LEAF_SIZE) {
+    path.push({ start, end });
+    const mid = Math.floor((start + end) / 2);
+    if (id <= mid) { end = mid; } else { start = mid; }
+  }
+  path.push({ start, end }); // leaf
+  return path;
+}
+
+// Adds Merkle cache invalidation deletes to the atomic writer for an event at id.
+function invalidateMerklePath(atomic: IAtomicWriter, topic: string, id: number): IAtomicWriter {
+  for (const node of merklePath(id)) {
+    atomic = atomic.delete([...KV_MERKLE_HASH, topic, node.start, node.end]);
+  }
+  return atomic;
+}
 
 export async function writeEvent(storage: IStorageBackend, topic: string, payload: unknown): Promise<EventEntry | null> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
@@ -23,19 +44,16 @@ export async function writeEvent(storage: IStorageBackend, topic: string, payloa
 
     const entry: StoredEvent = { id, createdAt: now, updatedAt: now, payload };
     const newStats: StoredTopicStats = { count: (stats.value?.count ?? 0) + 1, lastUpdated: now };
-    const bucketStart = bucketStartFor(id, DEFAULT_EVENT_BUCKET_SIZE);
 
-    const result = await storage.atomic()
+    let atomic = storage.atomic()
       .check(counter)
       .check(stats)
       .set([...KV_EVENT_COUNTER, topic], id)
       .set([...KV_EVENT, topic, id], entry)
-      .set([...KV_TOPIC_STATS, topic], newStats)
-      .delete([...KV_BUCKET_HASH, topic, DEFAULT_EVENT_BUCKET_SIZE, bucketStart])
-      .set([...KV_BUCKET_INDEX, topic, DEFAULT_EVENT_BUCKET_SIZE, bucketStart], 1)
-      .delete([...KV_TOPIC_ROOT_HASH, topic, DEFAULT_EVENT_BUCKET_SIZE])
-      .commit();
+      .set([...KV_TOPIC_STATS, topic], newStats);
+    atomic = invalidateMerklePath(atomic, topic, id);
 
+    const result = await atomic.commit();
     if (result.ok) return entry;
   }
 }
@@ -64,16 +82,13 @@ export async function updateEvent(storage: IStorageBackend, topic: string, id: n
       count: (stats.value?.count ?? 0) + (isNew ? 1 : 0),
       lastUpdated: entry.updatedAt,
     };
-    const bucketStart = bucketStartFor(id, DEFAULT_EVENT_BUCKET_SIZE);
 
     let atomic = storage.atomic()
       .check(existing)
       .check(stats)
       .set([...KV_EVENT, topic, id], entry)
-      .set([...KV_TOPIC_STATS, topic], newStats)
-      .delete([...KV_BUCKET_HASH, topic, DEFAULT_EVENT_BUCKET_SIZE, bucketStart])
-      .set([...KV_BUCKET_INDEX, topic, DEFAULT_EVENT_BUCKET_SIZE, bucketStart], 1)
-      .delete([...KV_TOPIC_ROOT_HASH, topic, DEFAULT_EVENT_BUCKET_SIZE]);
+      .set([...KV_TOPIC_STATS, topic], newStats);
+    atomic = invalidateMerklePath(atomic, topic, id);
 
     if (isNew) {
       // Advance counter past this ID so future local writeEvent calls don't collide

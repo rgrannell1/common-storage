@@ -1,11 +1,10 @@
 // Integration tests for sweepTombstones — verifies that swept entries are removed from the
-// seq index and that bucket hash caches are invalidated so subsequent diffs recompute correctly.
+// seq index and that Merkle hash caches are invalidated so subsequent diffs recompute correctly.
 // @work.md
 
 import { DenoKVBackend } from "../src/storage/kv/index.ts";
-import { hashBucket, hashBucketRoot, bucketStartFor } from "../src/core/hashing.ts";
-
-const OBJECT_BUCKET_SIZE = 50;
+import { buildObjectMerkleTree } from "../src/core/diff.ts";
+import { MERKLE_TREE_END } from "../src/commons/constants.ts";
 
 async function makeStorage(): Promise<{ storage: DenoKVBackend; tmpPath: string }> {
   const tmpPath = await Deno.makeTempFile({ suffix: ".db" });
@@ -31,26 +30,26 @@ Deno.test("Proves sweepTombstones removes the primary and seq index entries", as
   }
 });
 
-Deno.test("Proves sweepTombstones invalidates bucket hash cache so subsequent diff recomputes", async () => {
+Deno.test("Proves sweepTombstones invalidates Merkle hash cache so subsequent diff recomputes", async () => {
   const { storage, tmpPath } = await makeStorage();
   try {
     await storage.upsertObject("things", "a", { value: 1 });
     const tombstone = await storage.deleteObject("things", "a");
     if (!tombstone) throw new Error("Expected tombstone");
 
-    const bucketStart = bucketStartFor(tombstone.seq, OBJECT_BUCKET_SIZE);
-    const tombstoneHash = await hashBucket([{ id: tombstone.seq, updatedAt: tombstone.updatedAt }]);
-    const root = await hashBucketRoot([tombstoneHash]);
-    const diffReq = { root, buckets: [{ start: bucketStart, end: bucketStart + OBJECT_BUCKET_SIZE, hash: tombstoneHash }] };
+    // Build a client Merkle tree that includes the tombstone
+    const tree = buildObjectMerkleTree([tombstone]);
+    const rootHash = await tree.hashForRange(0, MERKLE_TREE_END);
+    const diffReq = { nodes: [{ start: 0, end: MERKLE_TREE_END, hash: rootHash }] };
 
-    // Before sweep: diff should match
+    // Before sweep: diff should match — server also has the tombstone
     const before = await storage.diffObjects("things", diffReq);
     if (before?.kind !== "match") throw new Error(`Expected match before sweep, got ${JSON.stringify(before)}`);
 
-    // Sweep with a future cutoff — removes the tombstone and invalidates the cache
+    // Sweep with a future cutoff — removes the tombstone and invalidates the Merkle cache
     await storage.sweepTombstones("things", Date.now() + 1);
 
-    // After sweep: same request now mismatches — bucket is empty, cached hash was cleared
+    // After sweep: same request now mismatches — server's leaf is empty, client's hash still includes tombstone
     const after = await storage.diffObjects("things", diffReq);
     if (after?.kind !== "diff") throw new Error(`Expected diff after sweep, got ${JSON.stringify(after)}`);
   } finally {

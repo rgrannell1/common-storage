@@ -1,36 +1,79 @@
-// Platform-agnostic sync cycle: diff → fetch ranges → write locally → tail.
+// Platform-agnostic sync cycle: Merkle diff → fetch ranges → write locally → tail.
 // All platform dependencies (fetch, crypto.subtle) are Web standard APIs.
 // Deno.* never appears here.
 
 import type { ISyncBackend } from "../storage/backend.ts";
 import type { EventEntry, ObjectEntry } from "../storage/capabilities.ts";
-import { buildEventDiffRequest, buildObjectDiffRequest } from "./diff.ts";
+import { buildEventMerkleTree, buildObjectMerkleTree, type IMerkleTree } from "./diff.ts";
 
 // Discriminated change event emitted by watch() and returned by sync functions.
 export type ChangeEvent =
   | { type: "upsert"; topic: string; entry: EventEntry | ObjectEntry }
   | { type: "delete"; topic: string; id: string };
-import { DEFAULT_EVENT_BUCKET_SIZE, DEFAULT_OBJECT_BUCKET_SIZE, TAIL_DURATION_MS } from "../commons/constants.ts";
+import { DEFAULT_FETCH_PAGE_SIZE, TAIL_DURATION_MS, MERKLE_TREE_END, MERKLE_LEAF_SIZE } from "../commons/constants.ts";
 import { STATUS_NO_CONTENT } from "../api/commons/statuses.ts";
 
-type DiffResponse =
+type DiffRoundResponse =
   | { kind: "match" }
-  | { kind: "diff"; ranges: { start: number; end: number }[] };
+  | { kind: "diff"; mismatches: { start: number; end: number; isLeaf: boolean }[] };
+
+type MerkleRangeResult = { start: number; end: number }[];
 
 function authHeaders(token: string): Record<string, string> {
   return { "Authorization": `Bearer ${token}` };
 }
 
-async function postDiff(baseUrl: string, topic: string, token: string, body: unknown): Promise<DiffResponse> {
+async function postDiffRound(
+  baseUrl: string,
+  topic: string,
+  token: string,
+  nodes: { start: number; end: number; hash: string }[],
+): Promise<DiffRoundResponse> {
   const res = await fetch(`${baseUrl}/diff/${topic}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ nodes }),
   });
   if (res.status === STATUS_NO_CONTENT) return { kind: "match" };
   if (!res.ok) throw new Error(`POST /diff/${topic} failed: ${res.status}`);
-  const json = await res.json() as { ranges: { start: number; end: number }[] };
-  return { kind: "diff", ranges: json.ranges };
+  const json = await res.json() as { mismatches: { start: number; end: number; isLeaf: boolean }[] };
+  return { kind: "diff", mismatches: json.mismatches };
+}
+
+// Runs the interactive Merkle diff loop: sends the root, bisects mismatching non-leaf nodes,
+// and collects leaf ranges that need to be fetched.
+async function merkleDiff(
+  baseUrl: string,
+  topic: string,
+  token: string,
+  tree: IMerkleTree,
+): Promise<MerkleRangeResult> {
+  const rootHash = await tree.hashForRange(0, MERKLE_TREE_END);
+  let frontier = [{ start: 0, end: MERKLE_TREE_END, hash: rootHash }];
+  const leafRanges: { start: number; end: number }[] = [];
+
+  while (frontier.length > 0) {
+    const response = await postDiffRound(baseUrl, topic, token, frontier);
+    if (response.kind === "match") break;
+
+    const nextFrontier: typeof frontier = [];
+    for (const mismatch of response.mismatches) {
+      if (mismatch.isLeaf) {
+        leafRanges.push({ start: mismatch.start, end: mismatch.end });
+      } else {
+        const mid = Math.floor((mismatch.start + mismatch.end) / 2);
+        const [leftHash, rightHash] = await Promise.all([
+          tree.hashForRange(mismatch.start, mid),
+          tree.hashForRange(mid, mismatch.end),
+        ]);
+        nextFrontier.push({ start: mismatch.start, end: mid, hash: leftHash });
+        nextFrontier.push({ start: mid, end: mismatch.end, hash: rightHash });
+      }
+    }
+    frontier = nextFrontier;
+  }
+
+  return leafRanges;
 }
 
 async function fetchEventRange(baseUrl: string, topic: string, token: string, start: number, size: number): Promise<EventEntry[]> {
@@ -79,29 +122,32 @@ async function tailEventStream(baseUrl: string, topic: string, token: string, st
 }
 
 // Applies a remote event entry locally and returns a ChangeEvent for emission.
-async function applyEventEntry(backend: ISyncBackend, topic: string, entry: EventEntry): Promise<ChangeEvent> {
+// skipMerkle skips cache invalidation — used during first sync where no cache exists yet.
+async function applyEventEntry(backend: ISyncBackend, topic: string, entry: EventEntry, skipMerkle = false): Promise<ChangeEvent> {
   await backend.events.updateEvent(topic, entry.id, entry.payload, { createdAt: entry.createdAt, updatedAt: entry.updatedAt });
+  if (!skipMerkle) await backend.merkleEvents?.invalidatePath(topic, entry.id);
   return { type: "upsert", topic, entry };
 }
 
 // Applies a remote object entry locally (routes tombstones to deleteObject) and returns a ChangeEvent.
 // Remote seq and timestamps are preserved so local diff hashes match the server's.
-async function applyObjectEntry(backend: ISyncBackend, topic: string, entry: ObjectEntry): Promise<ChangeEvent> {
+// skipMerkle skips cache invalidation — used during first sync where no cache exists yet.
+async function applyObjectEntry(backend: ISyncBackend, topic: string, entry: ObjectEntry, skipMerkle = false): Promise<ChangeEvent> {
+  const existing = (!skipMerkle && backend.merkleObjects) ? await backend.objects.readObject(topic, entry.id) : undefined;
+  const oldSeq = existing?.seq;
   const timestamps = { seq: entry.seq, createdAt: entry.createdAt, updatedAt: entry.updatedAt };
   if (entry.payload === null) {
     await backend.objects.deleteObject(topic, entry.id, timestamps);
-    return { type: "delete", topic, id: entry.id };
+  } else {
+    await backend.objects.upsertObject(topic, entry.id, entry.payload, timestamps);
   }
-  await backend.objects.upsertObject(topic, entry.id, entry.payload, timestamps);
+  if (!skipMerkle) await backend.merkleObjects?.invalidatePaths(topic, entry.seq, oldSeq);
+  if (entry.payload === null) return { type: "delete", topic, id: entry.id };
   return { type: "upsert", topic, entry };
 }
 
-// Runs one full sync cycle for an event topic: diff → fetch divergent ranges → tail → write locally.
+// Runs one full sync cycle for an event topic: Merkle diff → fetch divergent ranges → tail → write locally.
 // Returns ChangeEvents for every entry written so the caller can emit them to watchers.
-//
-// NOTE: building the diff request requires a full scan of local events on every cycle. For topics
-// with large entry counts this is O(n). TODO: persist bucket hashes in the cursor store to avoid
-// the full re-scan.
 export async function syncEventTopic(
   backend: ISyncBackend,
   baseUrl: string,
@@ -110,39 +156,44 @@ export async function syncEventTopic(
   tailDurationMs?: number,
 ): Promise<ChangeEvent[]> {
   const cursor = await backend.cursors.getEventCursor(topic);
-  const local = await backend.events.readEvents(topic, {}) ?? [];
   const changes: ChangeEvent[] = [];
 
-  if (local.length === 0 && cursor === 0) {
-    // Full fetch on first sync
+  if (cursor === 0) {
+    // Full fetch on first sync — avoids Merkle traversal overhead when local state is empty.
+    // skipMerkle=true: no cache exists yet so invalidation is pure overhead.
     let start = 1;
     let maxId = 0;
     while (true) {
-      const entries = await fetchEventRange(baseUrl, topic, token, start, DEFAULT_EVENT_BUCKET_SIZE);
+      const entries = await fetchEventRange(baseUrl, topic, token, start, DEFAULT_FETCH_PAGE_SIZE);
       for (const entry of entries) {
-        changes.push(await applyEventEntry(backend, topic, entry));
+        changes.push(await applyEventEntry(backend, topic, entry, true));
         maxId = Math.max(maxId, entry.id);
       }
-      if (entries.length < DEFAULT_EVENT_BUCKET_SIZE) break;
+      if (entries.length < DEFAULT_FETCH_PAGE_SIZE) break;
       start = entries[entries.length - 1].id + 1;
     }
     // Tail catches writes that arrived on the remote during the bulk fetch window
     const tailed = await tailEventStream(baseUrl, topic, token, maxId + 1, tailDurationMs);
     for (const entry of tailed) {
-      changes.push(await applyEventEntry(backend, topic, entry));
+      changes.push(await applyEventEntry(backend, topic, entry, true));
       maxId = Math.max(maxId, entry.id);
     }
     if (maxId > 0) await backend.cursors.setEventCursor(topic, maxId);
     return changes;
   }
 
-  const diffReq = await buildEventDiffRequest(local);
-  const result = await postDiff(baseUrl, topic, token, diffReq);
-  if (result.kind === "match") return changes;
+  // Use IDB Merkle cache when available; fall back to loading all local entries.
+  const tree: IMerkleTree = backend.merkleEvents
+    ? backend.merkleEvents.forTopic(topic)
+    : buildEventMerkleTree(await backend.events.readEvents(topic, {}) ?? []);
+  const leafRanges = await merkleDiff(baseUrl, topic, token, tree);
 
-  let maxId = local.length > 0 ? local[local.length - 1].id : 0;
-  for (const range of result.ranges) {
-    const entries = await fetchEventRange(baseUrl, topic, token, range.start + 1, DEFAULT_EVENT_BUCKET_SIZE);
+  if (leafRanges.length === 0) return changes;
+
+  let maxId = cursor;
+  for (const range of leafRanges) {
+    // range.start is the exclusive lower bound; fetch from start+1
+    const entries = await fetchEventRange(baseUrl, topic, token, range.start + 1, MERKLE_LEAF_SIZE);
     for (const entry of entries) {
       changes.push(await applyEventEntry(backend, topic, entry));
       maxId = Math.max(maxId, entry.id);
@@ -159,7 +210,7 @@ export async function syncEventTopic(
   return changes;
 }
 
-// Runs one full sync cycle for an object topic: diff → fetch divergent ranges → write locally.
+// Runs one full sync cycle for an object topic: Merkle diff → fetch divergent ranges → write locally.
 // Returns ChangeEvents for every entry written so the caller can emit them to watchers.
 export async function syncObjectTopic(
   backend: ISyncBackend,
@@ -167,33 +218,39 @@ export async function syncObjectTopic(
   token: string,
   topic: string,
 ): Promise<ChangeEvent[]> {
-  const local = await backend.objects.readObjectsBySeq(topic, {}) ?? [];
+  const cursor = await backend.cursors.getObjectCursor(topic);
   const changes: ChangeEvent[] = [];
 
-  if (local.length === 0) {
+  if (cursor === 0) {
+    // Full fetch on first sync — avoids Merkle traversal overhead when local state is empty.
+    // skipMerkle=true: no cache exists yet so invalidation is pure overhead.
     let start = 1;
     let maxSeq = 0;
     while (true) {
-      const entries = await fetchObjectRange(baseUrl, topic, token, start, DEFAULT_OBJECT_BUCKET_SIZE);
+      const entries = await fetchObjectRange(baseUrl, topic, token, start, DEFAULT_FETCH_PAGE_SIZE);
       for (const entry of entries) {
-        changes.push(await applyObjectEntry(backend, topic, entry));
+        changes.push(await applyObjectEntry(backend, topic, entry, true));
         maxSeq = Math.max(maxSeq, entry.seq);
       }
-      if (entries.length < DEFAULT_OBJECT_BUCKET_SIZE) break;
+      if (entries.length < DEFAULT_FETCH_PAGE_SIZE) break;
       start = entries[entries.length - 1].seq + 1;
     }
     if (maxSeq > 0) await backend.cursors.setObjectCursor(topic, maxSeq);
     return changes;
   }
 
-  const diffReq = await buildObjectDiffRequest(local);
-  const result = await postDiff(baseUrl, topic, token, diffReq);
-  if (result.kind === "match") return changes;
+  // Use IDB Merkle cache when available; fall back to loading all local entries.
+  const tree: IMerkleTree = backend.merkleObjects
+    ? backend.merkleObjects.forTopic(topic)
+    : buildObjectMerkleTree(await backend.objects.readObjectsBySeq(topic, {}) ?? []);
+  const leafRanges = await merkleDiff(baseUrl, topic, token, tree);
 
-  let maxSeq = local.length > 0 ? local[local.length - 1].seq : 0;
-  for (const range of result.ranges) {
-    // range.start + 1: the bucket boundary is exclusive; fetch from one past the boundary
-    const entries = await fetchObjectRange(baseUrl, topic, token, range.start + 1, DEFAULT_OBJECT_BUCKET_SIZE);
+  if (leafRanges.length === 0) return changes;
+
+  let maxSeq = cursor;
+  for (const range of leafRanges) {
+    // range.start is the exclusive lower bound; fetch from start+1
+    const entries = await fetchObjectRange(baseUrl, topic, token, range.start + 1, MERKLE_LEAF_SIZE);
     for (const entry of entries) {
       changes.push(await applyObjectEntry(backend, topic, entry));
       maxSeq = Math.max(maxSeq, entry.seq);

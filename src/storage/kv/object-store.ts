@@ -2,7 +2,7 @@
 // @work.md
 
 import type { IStorageBackend } from "./backend.ts";
-import type { IObjectService, ObjectEntry, ObjectDiffRequest, ObjectDiffResult } from "../capabilities.ts";
+import type { IObjectService, ObjectEntry, MerkleDiffRequest, ObjectDiffResponse } from "../capabilities.ts";
 import type { ILocalObjectStore } from "../backend.ts";
 import * as Objects from "./objects.ts";
 
@@ -33,7 +33,7 @@ export class KvObjectStore implements IObjectService, ILocalObjectStore {
     yield* Objects.streamObjects(this.storage, topic, startSeq, signal);
   }
 
-  diffObjects(topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null> {
+  diffObjects(topic: string, req: MerkleDiffRequest): Promise<ObjectDiffResponse | null> {
     return Objects.diffObjects(this.storage, topic, req);
   }
 

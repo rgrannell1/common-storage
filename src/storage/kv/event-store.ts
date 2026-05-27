@@ -2,7 +2,7 @@
 // @work.md
 
 import type { IStorageBackend } from "./backend.ts";
-import type { IEventService, EventEntry, ReadEventOptions, UpdateEventTimestamps, EventDiffRequest, EventDiffResult } from "../capabilities.ts";
+import type { IEventService, EventEntry, ReadEventOptions, UpdateEventTimestamps, MerkleDiffRequest, MerkleDiffResponse } from "../capabilities.ts";
 import type { ILocalEventStore } from "../backend.ts";
 import * as Events from "./events/index.ts";
 
@@ -29,7 +29,7 @@ export class KvEventStore implements IEventService, ILocalEventStore {
     yield* Events.streamEvents(this.storage, topic, startId, signal);
   }
 
-  diffEvents(topic: string, req: EventDiffRequest): Promise<EventDiffResult | null> {
+  diffEvents(topic: string, req: MerkleDiffRequest): Promise<MerkleDiffResponse | null> {
     return Events.diffEvents(this.storage, topic, req);
   }
 }

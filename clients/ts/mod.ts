@@ -43,7 +43,8 @@ export type {
   StreamObjectsInput,
   PostDiffInput,
   PostDiffResult,
-  EventDiffBucket,
+  MerkleNode,
+  MerkleMismatch,
 } from "./types.ts";
 
 type RequestOptions = {

@@ -1,7 +1,7 @@
 // ISyncBackend — the shared storage interface for all CommonStorageNode backends.
 // DenoKVBackend satisfies this as a subset; IDBBackend implements it for browsers.
 
-import type { EventEntry, ReadEventOptions, ObjectEntry, EventDiffRequest, EventDiffResult, ObjectDiffRequest, ObjectDiffResult } from "./capabilities.ts";
+import type { EventEntry, ReadEventOptions, ObjectEntry } from "./capabilities.ts";
 
 // Tracks the last-seen sync position per topic. Used by node sync on both client and server.
 export interface ICursorStore {
@@ -19,7 +19,6 @@ export interface ILocalEventStore {
   updateEvent(topic: string, id: number, payload: unknown, timestamps?: { createdAt?: number; updatedAt?: number }): Promise<{ entry: EventEntry; created: boolean } | null>;
   // Appends a new event; server assigns the ID.
   writeEvent(topic: string, payload: unknown): Promise<EventEntry | null>;
-  diffEvents(topic: string, req: EventDiffRequest): Promise<EventDiffResult | null>;
 }
 
 // Timestamps (and remote seq) preserved during sync replication. seq is client-only — KV backends
@@ -37,7 +36,15 @@ export interface ILocalObjectStore {
   readObjectsBySeq(topic: string, opts: { start?: number; size?: number }): Promise<ObjectEntry[] | null>;
   upsertObject(topic: string, id: string, payload: unknown, timestamps?: ReplicaTimestamps): Promise<ObjectEntry | null>;
   deleteObject(topic: string, id: string, timestamps?: ReplicaTimestamps): Promise<ObjectEntry | null>;
-  diffObjects(topic: string, req: ObjectDiffRequest): Promise<ObjectDiffResult | null>;
+}
+
+// Persistent Merkle hash cache for a single topic dimension (events or objects).
+// When present in ISyncBackend, sync skips full entry reads and uses cached hashes instead.
+export interface ILocalMerkleStore {
+  hashForRange(topic: string, start: number, end: number): Promise<string>;
+  forTopic(topic: string): { hashForRange(start: number, end: number): Promise<string> };
+  invalidatePath(topic: string, id: number): Promise<void>;
+  invalidatePaths(topic: string, newId: number, oldId?: number): Promise<void>;
 }
 
 // Minimal backend interface for a CommonStorageNode — covers local reads, writes, diff, and cursor tracking.
@@ -46,4 +53,6 @@ export interface ISyncBackend {
   events: ILocalEventStore;
   objects: ILocalObjectStore;
   cursors: ICursorStore;
+  merkleEvents?: ILocalMerkleStore;
+  merkleObjects?: ILocalMerkleStore;
 }
