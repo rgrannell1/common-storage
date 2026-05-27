@@ -19,6 +19,61 @@ const METHODS_CAVEAT_PREFIX = "methods = ";
 
 export type { AuthError };
 
+// Caveats extracted from a deserialised Macaroon, without needing the root key
+export type ExtractedCaveats = {
+  // The token name used at mint time (the Macaroon identifier)
+  identifier: string;
+  // Topic restriction, if present
+  topic: string | undefined;
+  // Allowed HTTP methods, if restricted
+  methods: string[] | undefined;
+  // Expiry timestamp string, if present
+  expires: string | undefined;
+  // Raw text of any unrecognised caveats
+  unknown: string[];
+};
+
+const TOPIC_CAVEAT_PREFIX = "topic = ";
+const EXPIRES_CAVEAT_PREFIX = "time < ";
+
+// Parses a single first-party caveat raw value into its known field, or returns it as unknown
+function parseCaveat(raw: string, acc: ExtractedCaveats): void {
+  if (raw.startsWith(TOPIC_CAVEAT_PREFIX)) {
+    acc.topic = raw.slice(TOPIC_CAVEAT_PREFIX.length);
+  } else if (raw.startsWith(METHODS_CAVEAT_PREFIX)) {
+    acc.methods = raw.slice(METHODS_CAVEAT_PREFIX.length).split(",");
+  } else if (raw.startsWith(EXPIRES_CAVEAT_PREFIX)) {
+    acc.expires = raw.slice(EXPIRES_CAVEAT_PREFIX.length);
+  } else {
+    acc.unknown.push(raw);
+  }
+}
+
+// Extracts caveats from a serialised Macaroon without verifying the HMAC.
+// Safe to call with an untrusted token — no root key required.
+export function extractCaveats(token: string): Result<ExtractedCaveats, AuthError> {
+  let macaroon;
+  try {
+    macaroon = MacaroonsBuilder.deserialize(token);
+  } catch {
+    return err({ kind: "invalid" });
+  }
+
+  const caveats: ExtractedCaveats = {
+    identifier: macaroon.identifier as string,
+    topic: undefined,
+    methods: undefined,
+    expires: undefined,
+    unknown: [],
+  };
+
+  for (const packet of (macaroon.caveatPackets ?? []) as Array<{ rawValue: string }>) {
+    parseCaveat(packet.rawValue, caveats);
+  }
+
+  return ok(caveats);
+}
+
 export function mintToken(rootKey: string, name: string, caveats: TokenCaveatsConfig): string {
   let builder = new MacaroonsBuilder(MACAROON_LOCATION, rootKey, name);
 
