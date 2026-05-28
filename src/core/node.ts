@@ -109,6 +109,7 @@ export class CommonStorageNode {
   async postEvent(topic: string, payload: unknown): Promise<EventEntry | null> {
     const entry = await this.backend.events.writeEvent(topic, payload);
     if (entry) {
+      await this.backend.merkleEvents?.invalidatePath(topic, entry.id);
       this.#emit({ type: "upsert", topic, entry });
       await this.#pushEvent(topic, "POST", payload);
     }
@@ -118,6 +119,7 @@ export class CommonStorageNode {
   async putEvent(topic: string, id: number, payload: unknown): Promise<EventEntry | null> {
     const result = await this.backend.events.updateEvent(topic, id, payload);
     if (result) {
+      await this.backend.merkleEvents?.invalidatePath(topic, result.entry.id);
       this.#emit({ type: "upsert", topic, entry: result.entry });
       await this.#pushEvent(topic, "PUT", payload, id);
     }
@@ -197,25 +199,29 @@ export class CommonStorageNode {
     const url = method === "POST"
       ? `${sub.remoteUrl}/events/${topic}`
       : `${sub.remoteUrl}/events/${topic}/${id}`;
-    await fetch(url, {
+    const res = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sub.token}` },
       body: JSON.stringify({ payload }),
     }).catch(err => {
       this.logger.error("event push failed", undefined, { topic, method, error: String(err) });
+      return null;
     });
+    await res?.body?.cancel();
   }
 
   async #pushObject(topic: string, id: string, method: "PUT" | "DELETE", payload?: unknown): Promise<void> {
     const sub = this.subscriptions.find(declared => declared.topic === topic);
     if (!sub) return;
     const url = `${sub.remoteUrl}/objects/${topic}/${id}`;
-    await fetch(url, {
+    const res = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sub.token}` },
       body: method === "PUT" ? JSON.stringify({ payload }) : undefined,
     }).catch(err => {
       this.logger.error("object push failed", undefined, { topic, id, method, error: String(err) });
+      return null;
     });
+    await res?.body?.cancel();
   }
 }
