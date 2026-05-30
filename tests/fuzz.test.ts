@@ -157,6 +157,11 @@ async function assertNoCrash(res: Response, label: string): Promise<void> {
   }
 }
 
+// JSON write headers carrying an idempotency key, shared across the idempotency fuzz cases.
+function idempotencyHeaders(key: string): Record<string, string> {
+  return { "Content-Type": "application/json", "Idempotency-Key": key };
+}
+
 // -- Fuzz inputs for path segments --
 
 // Topic names covering empty, overlong, special chars, path traversal, unicode
@@ -275,11 +280,14 @@ Deno.test("Proves PUT /objects/:topic/:id never crashes on arbitrary bodies", as
   }
 });
 
-Deno.test("Proves POST /diff/:topic never crashes on arbitrary bodies for both topic types", async () => {
-  const { fetch, cleanup } = await makePersistentServer([{ name: "events" }], [{ name: "objects" }]);
+Deno.test("Proves POST /diff/:topic never crashes on arbitrary bodies for both types", async () => {
+  const eventCfg = [{ name: "events" }];
+  const objectCfg = [{ name: "objects" }];
+  const { fetch, cleanup } = await makePersistentServer(eventCfg, objectCfg);
   try {
     for (let idx = 0; idx < FUZZ_ITERATIONS; idx++) {
-      const topic = density(0, 2)() === 0 ? "events" : "objects";
+      const topicChoice = density(0, 2)();
+      const topic = topicChoice === 0 ? "events" : "objects";
       const res = await fetch(`/diff/${topic}`, buildFuzzInit("POST"));
       await assertNoCrash(res, `POST /diff/${topic} iter=${idx}`);
     }
@@ -289,36 +297,43 @@ Deno.test("Proves POST /diff/:topic never crashes on arbitrary bodies for both t
 });
 
 Deno.test("Proves all routes never crash when given arbitrary topic names", async () => {
-  const { fetch, cleanup } = await makePersistentServer([{ name: "events" }], [{ name: "objects" }]);
+  const eventCfg = [{ name: "events" }];
+  const objectCfg = [{ name: "objects" }];
+  const { fetch, cleanup } = await makePersistentServer(eventCfg, objectCfg);
   try {
     for (const topic of FUZZ_TOPIC_NAMES) {
       const encoded = encodeURIComponent(topic);
+      const eventsPath = `/events/${encoded}`;
+      const eventPath = `/events/${encoded}/1`;
+      const objectsPath = `/objects/${encoded}`;
+      const objectPath = `/objects/${encoded}/someId`;
+      const diffPath = `/diff/${encoded}`;
 
-      const postEventRes = await fetch(`/events/${encoded}`, buildFuzzInit("POST"));
+      const postEventRes = await fetch(eventsPath, buildFuzzInit("POST"));
       await assertNoCrash(postEventRes, `POST /events/${topic}`);
 
-      const putEventRes = await fetch(`/events/${encoded}/1`, buildFuzzInit("PUT"));
+      const putEventRes = await fetch(eventPath, buildFuzzInit("PUT"));
       await assertNoCrash(putEventRes, `PUT /events/${topic}/1`);
 
-      const putObjectRes = await fetch(`/objects/${encoded}/someId`, buildFuzzInit("PUT"));
+      const putObjectRes = await fetch(objectPath, buildFuzzInit("PUT"));
       await assertNoCrash(putObjectRes, `PUT /objects/${topic}/someId`);
 
-      const diffRes = await fetch(`/diff/${encoded}`, buildFuzzInit("POST"));
+      const diffRes = await fetch(diffPath, buildFuzzInit("POST"));
       await assertNoCrash(diffRes, `POST /diff/${topic}`);
 
-      const getEventsRes = await fetch(`/events/${encoded}`);
+      const getEventsRes = await fetch(eventsPath);
       await assertNoCrash(getEventsRes, `GET /events/${topic}`);
 
-      const getEventRes = await fetch(`/events/${encoded}/1`);
+      const getEventRes = await fetch(eventPath);
       await assertNoCrash(getEventRes, `GET /events/${topic}/1`);
 
-      const getObjectsRes = await fetch(`/objects/${encoded}`);
+      const getObjectsRes = await fetch(objectsPath);
       await assertNoCrash(getObjectsRes, `GET /objects/${topic}`);
 
-      const getObjectRes = await fetch(`/objects/${encoded}/someId`);
+      const getObjectRes = await fetch(objectPath);
       await assertNoCrash(getObjectRes, `GET /objects/${topic}/someId`);
 
-      const deleteObjectRes = await fetch(`/objects/${encoded}/someId`, { method: "DELETE" });
+      const deleteObjectRes = await fetch(objectPath, { method: "DELETE" });
       await assertNoCrash(deleteObjectRes, `DELETE /objects/${topic}/someId`);
     }
   } finally {
@@ -327,7 +342,9 @@ Deno.test("Proves all routes never crash when given arbitrary topic names", asyn
 });
 
 Deno.test("Proves GET routes never crash on arbitrary query parameter values", async () => {
-  const { fetch, cleanup } = await makePersistentServer([{ name: "events" }], [{ name: "objects" }]);
+  const eventCfg = [{ name: "events" }];
+  const objectCfg = [{ name: "objects" }];
+  const { fetch, cleanup } = await makePersistentServer(eventCfg, objectCfg);
   try {
     for (const rawVal of FUZZ_QUERY_VALUES) {
       let encoded: string;
@@ -338,22 +355,28 @@ Deno.test("Proves GET routes never crash on arbitrary query parameter values", a
         continue;
       }
 
-      const feedRes = await fetch(`/feed?human=${encoded}`);
+      const feedUrl = `/feed?human=${encoded}`;
+      const feedRes = await fetch(feedUrl);
       await assertNoCrash(feedRes, `GET /feed?human=${rawVal}`);
 
-      const eventsFilterRes = await fetch(`/events/events?filter=${encoded}`);
+      const eventsFilterUrl = `/events/events?filter=${encoded}`;
+      const eventsFilterRes = await fetch(eventsFilterUrl);
       await assertNoCrash(eventsFilterRes, `GET /events/events?filter=${rawVal}`);
 
-      const eventsPagRes = await fetch(`/events/events?start=${encoded}&size=${encoded}`);
+      const eventsPagUrl = `/events/events?start=${encoded}&size=${encoded}`;
+      const eventsPagRes = await fetch(eventsPagUrl);
       await assertNoCrash(eventsPagRes, `GET /events/events?start=${rawVal}&size=${rawVal}`);
 
-      const eventsIdsRes = await fetch(`/events/events?ids=${encoded}`);
+      const eventsIdsUrl = `/events/events?ids=${encoded}`;
+      const eventsIdsRes = await fetch(eventsIdsUrl);
       await assertNoCrash(eventsIdsRes, `GET /events/events?ids=${rawVal}`);
 
-      const objectsFilterRes = await fetch(`/objects/objects?filter=${encoded}`);
+      const objectsFilterUrl = `/objects/objects?filter=${encoded}`;
+      const objectsFilterRes = await fetch(objectsFilterUrl);
       await assertNoCrash(objectsFilterRes, `GET /objects/objects?filter=${rawVal}`);
 
-      const objectsPagRes = await fetch(`/objects/objects?start=${encoded}&size=${encoded}`);
+      const objectsPagUrl = `/objects/objects?start=${encoded}&size=${encoded}`;
+      const objectsPagRes = await fetch(objectsPagUrl);
       await assertNoCrash(objectsPagRes, `GET /objects/objects?start=${rawVal}&size=${rawVal}`);
     }
   } finally {
@@ -389,8 +412,10 @@ const FUZZ_IDEMPOTENCY_KEYS = [
   JSON.stringify({ nested: "object" }),
 ];
 
-Deno.test("Proves write routes never crash on extreme Idempotency-Key header values", async () => {
-  const { fetch, cleanup } = await makePersistentServer([{ name: "events" }], [{ name: "objects" }]);
+Deno.test("Proves write routes never crash on extreme Idempotency-Key values", async () => {
+  const eventCfg = [{ name: "events" }];
+  const objectCfg = [{ name: "objects" }];
+  const { fetch, cleanup } = await makePersistentServer(eventCfg, objectCfg);
   try {
     for (const idempotencyKey of FUZZ_IDEMPOTENCY_KEYS) {
       // Use per-operation suffixes so each route gets an independent cache namespace —
@@ -403,53 +428,59 @@ Deno.test("Proves write routes never crash on extreme Idempotency-Key header val
       // client-side before they reach the server, so there is nothing server-side to test.
       if (!isSendableHeaderValue(postKey)) continue;
 
+      const payload = JSON.stringify({ payload: {} });
       const postRes = await fetch("/events/events", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Idempotency-Key": postKey },
-        body: JSON.stringify({ payload: {} }),
+        headers: idempotencyHeaders(postKey),
+        body: payload,
       });
-      await assertNoCrash(postRes, `POST /events/events with Idempotency-Key length=${postKey.length}`);
+      const postKeyLen = postKey.length;
+      await assertNoCrash(postRes, `POST /events with idem-key len=${postKeyLen}`);
 
       const putRes = await fetch("/events/events/1", {
         method: "PUT",
-        headers: { "Content-Type": "application/json", "Idempotency-Key": putEventKey },
-        body: JSON.stringify({ payload: {} }),
+        headers: idempotencyHeaders(putEventKey),
+        body: payload,
       });
-      await assertNoCrash(putRes, `PUT /events/events/1 with Idempotency-Key length=${putEventKey.length}`);
+      const putEventKeyLen = putEventKey.length;
+      await assertNoCrash(putRes, `PUT /events/1 with idem-key len=${putEventKeyLen}`);
 
       const putObjectRes = await fetch("/objects/objects/test-id", {
         method: "PUT",
-        headers: { "Content-Type": "application/json", "Idempotency-Key": putObjectKey },
-        body: JSON.stringify({ payload: {} }),
+        headers: idempotencyHeaders(putObjectKey),
+        body: payload,
       });
-      await assertNoCrash(putObjectRes, `PUT /objects/objects/test-id with Idempotency-Key length=${putObjectKey.length}`);
+      const putObjectKeyLen = putObjectKey.length;
+      await assertNoCrash(putObjectRes, `PUT /objects with idem-key len=${putObjectKeyLen}`);
     }
   } finally {
     await cleanup();
   }
 });
 
-// Regression test for the cross-operation idempotency key contamination bug:
-// POST writes EventEntry to the cache; PUT reads it back expecting PutEventResult.
-// Accessing .entry on a plain EventEntry returns undefined → parseResponse fails → 500.
-Deno.test("Proves POST then PUT with the same Idempotency-Key on the same topic does not 500", async () => {
+// Regression test for cross-operation idempotency cache contamination:
+// POST writes EventEntry to cache; PUT reads it expecting PutEventResult.
+// .entry on EventEntry is undefined → parseResponse fails → 500.
+Deno.test("Proves POST/PUT with same Idempotency-Key on same topic does not 500", async () => {
   const { fetch, cleanup } = await makePersistentServer([{ name: "events" }]);
   try {
     const sharedKey = "shared-idempotency-key";
+    const payload = JSON.stringify({ payload: {} });
 
     const postRes = await fetch("/events/events", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Idempotency-Key": sharedKey },
-      body: JSON.stringify({ payload: {} }),
+      headers: idempotencyHeaders(sharedKey),
+      body: payload,
     });
     await assertNoCrash(postRes, "POST /events/events with shared idempotency key");
 
     const putRes = await fetch("/events/events/1", {
       method: "PUT",
-      headers: { "Content-Type": "application/json", "Idempotency-Key": sharedKey },
-      body: JSON.stringify({ payload: {} }),
+      headers: idempotencyHeaders(sharedKey),
+      body: payload,
     });
-    await assertNoCrash(putRes, "PUT /events/events/1 with same idempotency key as prior POST");
+    const msg = "PUT /events/events/1 with same idem-key as prior POST";
+    await assertNoCrash(putRes, msg);
   } finally {
     await cleanup();
   }
@@ -600,16 +631,21 @@ const FUZZ_FILTER_PARAMS = [
 ];
 
 Deno.test("Proves ?filter= param never crashes on adversarial JMESPath expressions", async () => {
-  const { fetch, cleanup } = await makePersistentServer([{ name: "events" }], [{ name: "objects" }]);
+  const eventCfg = [{ name: "events" }];
+  const objectCfg = [{ name: "objects" }];
+  const { fetch, cleanup } = await makePersistentServer(eventCfg, objectCfg);
   try {
     for (const filterVal of FUZZ_FILTER_PARAMS) {
       const encoded = encodeURIComponent(filterVal);
+      const preview = filterVal.slice(0, 50);
 
-      const eventsRes = await fetch(`/events/events?filter=${encoded}`);
-      await assertNoCrash(eventsRes, `GET /events/events?filter=${filterVal.slice(0, 50)}`);
+      const eventsUrl = `/events/events?filter=${encoded}`;
+      const eventsRes = await fetch(eventsUrl);
+      await assertNoCrash(eventsRes, `GET /events/events?filter=${preview}`);
 
-      const objectsRes = await fetch(`/objects/objects?filter=${encoded}`);
-      await assertNoCrash(objectsRes, `GET /objects/objects?filter=${filterVal.slice(0, 50)}`);
+      const objectsUrl = `/objects/objects?filter=${encoded}`;
+      const objectsRes = await fetch(objectsUrl);
+      await assertNoCrash(objectsRes, `GET /objects/objects?filter=${preview}`);
     }
   } finally {
     await cleanup();
@@ -620,15 +656,25 @@ Deno.test("Proves ?filter= param never crashes on adversarial JMESPath expressio
 // and reach business logic, where wrong hash lengths, non-hex chars, or huge arrays may crash.
 const VALID_HEX_64 = "a".repeat(64);
 
+const threeThousandNodes = Array.from(
+  { length: 3000 },
+  (_, idx) => ({ start: idx * 100, end: (idx + 1) * 100, hash: VALID_HEX_64 })
+);
+
 const STRUCTURED_DIFF_BODIES = [
   // Node hash too short (32 chars instead of 64)
   { nodes: [{ start: 0, end: 1000, hash: "a".repeat(32) }] },
   // Non-hex characters in node hash
   { nodes: [{ start: 0, end: 1000, hash: "z".repeat(64) }] },
-  // 3000 nodes — exceeds the 2000-node cap, should return 422
-  { nodes: Array.from({ length: 3000 }, (_, idx) => ({ start: idx * 100, end: (idx + 1) * 100, hash: VALID_HEX_64 })) },
+  // 3000 nodes — exceeds 2000-node cap, should return 422
+  { nodes: threeThousandNodes },
   // Overlapping node ranges
-  { nodes: [{ start: 0, end: 500, hash: VALID_HEX_64 }, { start: 250, end: 750, hash: VALID_HEX_64 }] },
+  {
+    nodes: [
+      { start: 0, end: 500, hash: VALID_HEX_64 },
+      { start: 250, end: 750, hash: VALID_HEX_64 },
+    ],
+  },
   // start > end in a node
   { nodes: [{ start: 500, end: 0, hash: VALID_HEX_64 }] },
   // Zero-width node (start === end)
@@ -636,17 +682,29 @@ const STRUCTURED_DIFF_BODIES = [
   // Negative start
   { nodes: [{ start: -1, end: 499, hash: VALID_HEX_64 }] },
   // Very large start/end values
-  { nodes: [{ start: Number.MAX_SAFE_INTEGER - 500, end: Number.MAX_SAFE_INTEGER, hash: VALID_HEX_64 }] },
+  {
+    nodes: [{
+      start: Number.MAX_SAFE_INTEGER - 500,
+      end: Number.MAX_SAFE_INTEGER,
+      hash: VALID_HEX_64,
+    }],
+  },
   // Missing nodes field entirely
   { root: VALID_HEX_64 },
   // Empty nodes array — should return 422 (min 1)
   { nodes: [] },
   // Spurious fields alongside valid nodes
-  { nodes: [{ start: 0, end: 1000, hash: VALID_HEX_64 }], bucketSize: 1, entries: [] },
+  {
+    nodes: [{ start: 0, end: 1000, hash: VALID_HEX_64 }],
+    bucketSize: 1,
+    entries: [],
+  },
 ];
 
-Deno.test("Proves POST /diff/:topic never crashes on structurally valid but semantically wrong bodies", async () => {
-  const { fetch, cleanup } = await makePersistentServer([{ name: "events" }], [{ name: "objects" }]);
+Deno.test("Proves POST /diff/:topic never crashes on semantically wrong diff bodies", async () => {
+  const eventCfg = [{ name: "events" }];
+  const objectCfg = [{ name: "objects" }];
+  const { fetch, cleanup } = await makePersistentServer(eventCfg, objectCfg);
   try {
     for (const [bodyIdx, body] of STRUCTURED_DIFF_BODIES.entries()) {
       for (const topic of ["events", "objects"]) {

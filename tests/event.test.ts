@@ -33,7 +33,8 @@ Deno.test("Proves GET /events/:topic/:id returns a written entry", async () => {
 
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     if (entry.id !== 1) throw new Error(`Expected id 1, got ${entry.id}`);
-    if (entry.payload.value !== 42) throw new Error(`Expected payload.value 42, got ${entry.payload.value}`);
+    const payloadValue = entry.payload.value;
+    if (payloadValue !== 42) throw new Error(`Expected payload.value 42, got ${payloadValue}`);
   } finally {
     await cleanup();
   }

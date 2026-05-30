@@ -12,14 +12,18 @@ await Deno.writeTextFile(SCHEMA_PATH, JSON.stringify({
   additionalProperties: false,
 }));
 
-Deno.test("Proves POST /events/:topic returns 201 for a payload matching the topic schema", async () => {
+Deno.test(
+  "Proves POST /events/:topic returns 201 for a payload matching the topic schema",
+  async () => {
   const { request, cleanup } = await makeTestContext([{ name: "typed", schema: SCHEMA_PATH }]);
   const res = await request("/events/typed", jsonPost({ payload: { name: "hello" } }));
   assertEquals(res.status, 201);
   await cleanup();
 });
 
-Deno.test("Proves POST /events/:topic returns 422 for a payload violating the topic schema", async () => {
+Deno.test(
+  "Proves POST /events/:topic returns 422 for a payload violating the topic schema",
+  async () => {
   const { request, cleanup } = await makeTestContext([{ name: "typed", schema: SCHEMA_PATH }]);
   const res = await request("/events/typed", jsonPost({ payload: { name: 42 } }));
   assertEquals(res.status, 422);
@@ -33,21 +37,27 @@ Deno.test("Proves POST /events/:topic with no schema accepts any JSON payload", 
   await cleanup();
 });
 
-Deno.test("Proves PUT /events/:topic/:id returns 422 for a payload violating the topic schema", async () => {
+Deno.test(
+  "Proves PUT /events/:topic/:id returns 422 for a payload violating the topic schema",
+  async () => {
   const { request, cleanup } = await makeTestContext([{ name: "typed", schema: SCHEMA_PATH }]);
   const res = await request("/events/typed/1", jsonPut({ payload: { name: 99 } }));
   assertEquals(res.status, 422);
   await cleanup();
 });
 
-Deno.test("Proves PUT /objects/:topic/:id returns 422 for a payload violating the topic schema", async () => {
+Deno.test(
+  "Proves PUT /objects/:topic/:id returns 422 for a payload violating the topic schema",
+  async () => {
   const { request, cleanup } = await makeTestContext([], [{ name: "typed", schema: SCHEMA_PATH }]);
   const res = await request("/objects/typed/obj1", jsonPut({ payload: { name: 99 } }));
   assertEquals(res.status, 422);
   await cleanup();
 });
 
-Deno.test("Proves PUT /objects/:topic/:id returns 200 for a payload matching the topic schema", async () => {
+Deno.test(
+  "Proves PUT /objects/:topic/:id returns 200 for a payload matching the topic schema",
+  async () => {
   const { request, cleanup } = await makeTestContext([], [{ name: "typed", schema: SCHEMA_PATH }]);
   const res = await request("/objects/typed/obj1", jsonPut({ payload: { name: "valid" } }));
   assertEquals(res.status, 200);

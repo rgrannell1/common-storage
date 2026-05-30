@@ -6,8 +6,16 @@ import { ok, type Result } from "../../commons/types/result.ts";
 import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
 import { queryParser, responseParser } from "../parsers/combinators.ts";
-import { HumanFlagSchema, TopicSummarySchema, SubscriptionSummarySchema } from "../parsers/schemas.ts";
-import type { IGetSubscriptions, IGetTopicNames, IGetTopicStats } from "../../storage/capabilities.ts";
+import {
+  HumanFlagSchema,
+  TopicSummarySchema,
+  SubscriptionSummarySchema,
+} from "../parsers/schemas.ts";
+import type {
+  IGetSubscriptions,
+  IGetTopicNames,
+  IGetTopicStats,
+} from "../../storage/capabilities.ts";
 
 const FeedRequestSchema = z.object({
   human: HumanFlagSchema,
@@ -33,7 +41,10 @@ function formatTimestamp(ts: number, human: boolean): number | string {
   return human ? new Date(ts).toISOString() : ts;
 }
 
-async function getFeed(deps: FeedDeps, params: FeedRequest): Promise<Result<FeedResponse, RouteError>> {
+async function getFeed(
+  deps: FeedDeps,
+  params: FeedRequest,
+): Promise<Result<FeedResponse, RouteError>> {
   const names = await deps.storage.getTopicNames();
   const topicStats = await Promise.all(names.map(deps.storage.getTopicStats.bind(deps.storage)));
 
@@ -55,7 +66,9 @@ async function getFeed(deps: FeedDeps, params: FeedRequest): Promise<Result<Feed
   return ok({ topics, subscriptions: formattedSubscriptions });
 }
 
-export function getFeedRoute(deps: FeedDeps): Route<null, FeedRequest, FeedResponse, RouteSuccess, RouteError> {
+export function getFeedRoute(
+  deps: FeedDeps,
+): Route<null, FeedRequest, FeedResponse, RouteSuccess, RouteError> {
   return {
     parseRequest: queryParser(FeedRequestSchema),
     handle: getFeed.bind(null, deps),

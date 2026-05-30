@@ -22,8 +22,9 @@ type BucketCounts = {
   previous: number;
 };
 
-// Return the current and previous bucket keys for a given KV prefix and timestamp.
-function bucketKeys(prefix: string[], nowMs: number): { currentKey: string[]; previousKey: string[] } {
+// Return the current and previous bucket keys for a KV prefix and timestamp.
+type BucketKeyPair = { currentKey: string[]; previousKey: string[] };
+function bucketKeys(prefix: string[], nowMs: number): BucketKeyPair {
   const currentMinute = Math.floor(nowMs / RATE_LIMIT_BUCKET_MS);
   return {
     currentKey: [...prefix, String(currentMinute)],
@@ -32,7 +33,11 @@ function bucketKeys(prefix: string[], nowMs: number): { currentKey: string[]; pr
 }
 
 // Read current and previous bucket counts from KV.
-async function readBuckets(storage: IStorageBackend, prefix: string[], nowMs: number): Promise<BucketCounts> {
+async function readBuckets(
+  storage: IStorageBackend,
+  prefix: string[],
+  nowMs: number,
+): Promise<BucketCounts> {
   const { currentKey, previousKey } = bucketKeys(prefix, nowMs);
   const [current, previous] = await Promise.all([
     storage.get<number>(currentKey),
@@ -45,7 +50,11 @@ async function readBuckets(storage: IStorageBackend, prefix: string[], nowMs: nu
 }
 
 // Increment the current bucket counter in KV. Entries expire after two bucket widths.
-async function incrementBucket(storage: IStorageBackend, prefix: string[], nowMs: number): Promise<void> {
+async function incrementBucket(
+  storage: IStorageBackend,
+  prefix: string[],
+  nowMs: number,
+): Promise<void> {
   const { currentKey } = bucketKeys(prefix, nowMs);
   const current = await storage.get<number>(currentKey);
   await storage.setWithExpiry(currentKey, (current ?? 0) + 1, RATE_LIMIT_BUCKET_MS * 2);
@@ -59,7 +68,11 @@ function slidingWindowCount(counts: BucketCounts, nowMs: number): number {
 }
 
 // Check and record a global rate limit hit. Returns true if the limit is exceeded.
-async function checkGlobalLimit(storage: IStorageBackend, limit: number, nowMs: number): Promise<boolean> {
+async function checkGlobalLimit(
+  storage: IStorageBackend,
+  limit: number,
+  nowMs: number,
+): Promise<boolean> {
   const counts = await readBuckets(storage, KV_RATE_LIMIT_GLOBAL, nowMs);
   if (slidingWindowCount(counts, nowMs) >= limit) {
     return true;
@@ -69,7 +82,12 @@ async function checkGlobalLimit(storage: IStorageBackend, limit: number, nowMs: 
 }
 
 // Check and record a per-IP rate limit hit. Returns true if the limit is exceeded.
-async function checkIpLimit(storage: IStorageBackend, ip: string, limit: number, nowMs: number): Promise<boolean> {
+async function checkIpLimit(
+  storage: IStorageBackend,
+  ip: string,
+  limit: number,
+  nowMs: number,
+): Promise<boolean> {
   const prefix = [...KV_RATE_LIMIT_IP, ip];
   const counts = await readBuckets(storage, prefix, nowMs);
   if (slidingWindowCount(counts, nowMs) >= limit) {
@@ -79,15 +97,18 @@ async function checkIpLimit(storage: IStorageBackend, ip: string, limit: number,
   return false;
 }
 
-// Uses ctx.json so that security headers applied earlier in the chain are included on 429 responses.
+// Uses ctx.json so security headers applied earlier in the chain are included on 429 responses.
 function tooManyRequests(ctx: Context): Response {
   return ctx.json({ error: "Rate limit exceeded" }, STATUS_TOO_MANY_REQUESTS);
 }
 
 // Hono middleware factory. Applies per-IP and global sliding window rate limits.
-// IP is read from CF-Connecting-IP only; X-Forwarded-For is intentionally omitted as it is spoofable
-// on deployments not behind Cloudflare (e.g. cs.local). Unknown IPs share a single "unknown" bucket.
-export function rateLimitMiddleware(storage: IStorageBackend, config?: RateLimitConfig): MiddlewareHandler {
+// IP is read from CF-Connecting-IP only; X-Forwarded-For is omitted as it is spoofable
+// on deployments not behind Cloudflare (e.g., cs.local). Unknown IPs share a single bucket.
+export function rateLimitMiddleware(
+  storage: IStorageBackend,
+  config?: RateLimitConfig,
+): MiddlewareHandler {
   const ipLimit = config?.ipLimit ?? DEFAULT_IP_LIMIT;
   const globalLimit = config?.globalLimit ?? DEFAULT_GLOBAL_LIMIT;
 

@@ -20,11 +20,15 @@ function matchesFilter(expr: string, entry: Entry): boolean {
   return !isFalsy(result);
 }
 
-export function applyFilter<EntryType extends Entry>(entries: EntryType[], expr: string): Result<EntryType[], RouteError> {
+export function applyFilter<EntryType extends Entry>(
+  entries: EntryType[],
+  expr: string,
+): Result<EntryType[], RouteError> {
   try {
     return ok(entries.filter(matchesFilter.bind(null, expr)));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return err({ kind: "validation_error", message: `Invalid filter expression: ${message}` });
+    const msg = `Invalid filter expression: ${message}`;
+    return err({ kind: "validation_error", message: msg });
   }
 }

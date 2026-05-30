@@ -48,7 +48,8 @@ export const DEFAULT_FETCH_PAGE_SIZE = 500;
 // Number of entries per Merkle leaf node; leaf hashes cover IDs (start, start + MERKLE_LEAF_SIZE]
 export const MERKLE_LEAF_SIZE = 100;
 
-// Total ID/seq space the Merkle tree covers; MERKLE_LEAF_SIZE * 2^10 gives exactly 10 levels with 100-entry leaves (~102k max entries)
+// Total ID/seq space the Merkle tree covers; MERKLE_LEAF_SIZE * 2^10 gives exactly 10 levels
+// with 100-entry leaves (~102k max entries)
 export const MERKLE_TREE_END = MERKLE_LEAF_SIZE * (1 << 10);
 
 // Depth of the Merkle tree — number of levels from root to leaf (inclusive of both)
@@ -60,7 +61,8 @@ export const ROOT_KEY_ENV_VAR = "COMMON_STORAGE_ROOT_KEY";
 // Maximum JSON-encoded payload size in bytes; Deno KV hard-limits stored values at 65536 bytes
 export const MAX_PAYLOAD_BYTES = 60_000;
 
-// Maximum byte length of an Idempotency-Key header value; keeps the KV key well under Deno KV's 2KB total key limit
+// Maximum byte length of an Idempotency-Key header value; keeps the KV key well under
+// Deno KV's 2KB total key limit
 export const MAX_IDEMPOTENCY_KEY_BYTES = 512;
 
 // Tombstones older than this are eligible for GC
@@ -75,7 +77,8 @@ export const GC_CRON = "0 0 * * *";
 // Cron job name for the tombstone GC sweep
 export const GC_CRON_NAME = "cmstr-gc";
 
-// Env var name to override the config file path; useful on Deno Deploy where XDG paths do not exist
+// Env var name to override the config file path; useful on Deno Deploy where XDG paths
+// do not exist
 export const CMSTR_CONFIG_PATH_ENV_VAR = "CMSTR_CONFIG_PATH";
 
 // KV key prefix for persisted metrics counters (total, byMethod, byStatus)
@@ -117,13 +120,16 @@ export const DEFAULT_GLOBAL_LIMIT = 10_000;
 // Width of each rate-limit time bucket in milliseconds
 export const RATE_LIMIT_BUCKET_MS = 60_000;
 
-// Maximum request body size in bytes accepted by the body-limit middleware; bodies exceeding this are rejected with 413
+// Maximum request body size in bytes accepted by the body-limit middleware; bodies
+// exceeding this are rejected with 413
 export const MAX_REQUEST_BODY_BYTES = 128 * 1_024;
 
-// TTL for idempotency cache entries in KV; after this window a retry key may re-execute the operation
+// TTL for idempotency cache entries in KV; after this window a retry key may re-execute
+// the operation
 export const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1_000;
 
-// Seconds browsers may cache CORS preflight responses; reduces OPTIONS round-trips on repeated cross-origin calls
+// Seconds browsers may cache CORS preflight responses; reduces OPTIONS round-trips on
+// repeated cross-origin calls
 export const CORS_MAX_AGE_SECONDS = 3600;
 
 // Rate window widths in minutes used by the metrics collector snapshot

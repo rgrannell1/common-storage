@@ -7,7 +7,13 @@ import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
 import { pathParamParser, mergeParser, rawBodyParser } from "../parsers/combinators.ts";
 import { TopicNameSchema, MerkleDiffBodySchema } from "../parsers/schemas.ts";
-import type { IGetTopicType, IDiffEvents, IDiffObjects, MerkleDiffRequest, MerkleDiffResponse } from "../../storage/capabilities.ts";
+import type {
+  IGetTopicType,
+  IDiffEvents,
+  IDiffObjects,
+  MerkleDiffRequest,
+  MerkleDiffResponse,
+} from "../../storage/capabilities.ts";
 
 const PostDiffPathSchema = z.object({
   topic: TopicNameSchema,
@@ -34,7 +40,10 @@ async function handleDiff(
 }
 
 // Dispatches to the correct diff function based on the topic type.
-async function postDiff(deps: PostDiffDeps, params: PostDiffRequest): Promise<Result<MerkleDiffResponse, RouteError>> {
+async function postDiff(
+  deps: PostDiffDeps,
+  params: PostDiffRequest,
+): Promise<Result<MerkleDiffResponse, RouteError>> {
   const topicType = await deps.storage.getTopicType(params.topic);
   if (topicType === null) return err({ kind: "not_found", resource: params.topic });
 
@@ -45,14 +54,17 @@ async function postDiff(deps: PostDiffDeps, params: PostDiffRequest): Promise<Re
   return handleDiff(params.topic, params.body, diffFn);
 }
 
-// Translates a MerkleDiffResponse into its HTTP response form: 204 on match, 200 with mismatches otherwise.
+// Translates a MerkleDiffResponse into its HTTP response form: 204 on match, 200
+// with mismatches otherwise.
 function diffResponseParser(value: unknown): Result<RouteSuccess, RouteError> {
   const result = value as MerkleDiffResponse;
   if (result.kind === "match") return ok({ kind: "no_content" });
   return ok({ kind: "ok", body: { mismatches: result.mismatches } });
 }
 
-export function postDiffRoute(deps: PostDiffDeps): Route<unknown, PostDiffRequest, MerkleDiffResponse, RouteSuccess, RouteError> {
+export function postDiffRoute(
+  deps: PostDiffDeps,
+): Route<unknown, PostDiffRequest, MerkleDiffResponse, RouteSuccess, RouteError> {
   return {
     parseRequest: mergeParser(pathParamParser(PostDiffPathSchema), rawBodyParser),
     handle: postDiff.bind(null, deps),

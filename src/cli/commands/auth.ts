@@ -23,14 +23,22 @@ async function printQr(label: string, url: string): Promise<void> {
   console.log(qr);
 }
 
-async function printTokenQr(rootKey: string, baseUrl: string, tokenDef: TokenConfig): Promise<void> {
+async function printTokenQr(
+  rootKey: string,
+  baseUrl: string,
+  tokenDef: TokenConfig,
+): Promise<void> {
   const token = mintToken(rootKey, tokenDef.name, tokenDef.caveats);
   const url   = buildTokenUrl(baseUrl, token);
   await printQr(tokenDef.name, url);
 }
 
 // Prints QR codes for a named token, or all token definitions if name is undefined
-export async function auth(alias: string, name: string | undefined, cfgArg: string | null): Promise<void> {
+export async function auth(
+  alias: string,
+  name: string | undefined,
+  cfgArg: string | null,
+): Promise<void> {
   const config  = await loadConfig(resolveConfigFilePath(cfgArg));
   const rootKey = resolveEnvVar(config.rootKey);
   const baseUrl = resolveAliasUrl(config, alias);

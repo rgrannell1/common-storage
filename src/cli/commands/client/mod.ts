@@ -4,7 +4,14 @@
 import { CmstrClient, CmstrError } from "../../../../clients/ts/mod.ts";
 import { loadConfig } from "../../../commons/config.ts";
 import { resolveConfigFilePath } from "../../paths.ts";
-import { parseParams, requireParam, parsePayload, parseOptionalInt, parseRequiredInt, parseIntList } from "./params.ts";
+import {
+  parseParams,
+  requireParam,
+  parsePayload,
+  parseOptionalInt,
+  parseRequiredInt,
+  parseIntList,
+} from "./params.ts";
 import { resolveServer, LOCAL_ALIAS } from "./server.ts";
 
 function printResult(result: unknown): void {

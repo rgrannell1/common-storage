@@ -3,7 +3,10 @@
 
 import { makePersistentServer, jsonPost } from "./helpers.ts";
 
-async function readNdjsonLines(body: ReadableStream<Uint8Array>, count: number): Promise<unknown[]> {
+async function readNdjsonLines(
+  body: ReadableStream<Uint8Array>,
+  count: number,
+): Promise<unknown[]> {
   const results: unknown[] = [];
   let buffer = "";
 
@@ -46,8 +49,9 @@ Deno.test("Proves GET /events/:topic streams existing entries as NDJSON", async 
     });
 
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
-    if (res.headers.get("Content-Type") !== "application/x-ndjson") {
-      throw new Error(`Expected application/x-ndjson content-type, got ${res.headers.get("Content-Type")}`);
+    const contentType = res.headers.get("Content-Type");
+    if (contentType !== "application/x-ndjson") {
+      throw new Error(`Expected application/x-ndjson content-type, got ${contentType}`);
     }
 
     const entries = await readNdjsonLines(res.body!, 3) as Array<{ id: number }>;
@@ -61,7 +65,9 @@ Deno.test("Proves GET /events/:topic streams existing entries as NDJSON", async 
   }
 });
 
-Deno.test("Proves GET /events/:topic streams new entries written after the connection opens", async () => {
+Deno.test(
+  "Proves GET /events/:topic streams new entries written after the connection opens",
+  async () => {
   const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   const controller = new AbortController();
 
@@ -76,10 +82,12 @@ Deno.test("Proves GET /events/:topic streams new entries written after the conne
     // Write an entry after the stream is open
     await (await fetch("/events/logs", jsonPost({ payload: { live: true } }))).json();
 
-    const entries = await readNdjsonLines(res.body!, 1) as Array<{ id: number; payload: { live: boolean } }>;
+    type EventEntry = { id: number; payload: { live: boolean } };
+    const entries = await readNdjsonLines(res.body!, 1) as EventEntry[];
 
     if (entries.length !== 1) throw new Error(`Expected 1 entry, got ${entries.length}`);
-    if (entries[0].payload.live !== true) throw new Error(`Expected live=true, got ${JSON.stringify(entries[0].payload)}`);
+    const payload = JSON.stringify(entries[0].payload);
+    if (entries[0].payload.live !== true) throw new Error(`Expected live=true, got ${payload}`);
   } finally {
     controller.abort();
     await cleanup();

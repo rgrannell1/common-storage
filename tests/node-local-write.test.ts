@@ -99,7 +99,9 @@ const WRITE_CASES: WriteCase[] = [
 ];
 
 for (const testCase of WRITE_CASES) {
-  Deno.test(`Proves ${testCase.label} invalidates the Merkle hash cache for the written event`, async () => {
+  Deno.test(
+    `Proves ${testCase.label} invalidates the Merkle hash cache for the written event`,
+    async () => {
     const tmpPath = await Deno.makeTempFile({ suffix: ".db" });
     const { backend, merkleStore, storage } = await openClientWithTracker(tmpPath);
 
@@ -116,11 +118,13 @@ for (const testCase of WRITE_CASES) {
 
       const writtenId = await testCase.write(node);
 
-      assertEquals(writtenId !== null, true, `${testCase.label} must return the written entry`);
+      const returnedEntryMsg = `${testCase.label} must return the written entry`;
+      assertEquals(writtenId !== null, true, returnedEntryMsg);
+      const invalidateMsg = `${testCase.label} must call invalidatePath for id ${writtenId}`;
       assertEquals(
         merkleStore.invalidatedIds.includes(writtenId!),
         true,
-        `${testCase.label} must call invalidatePath for id ${writtenId}`,
+        invalidateMsg,
       );
     } finally {
       await storage.close();
@@ -177,11 +181,14 @@ Deno.test("Proves sync after postEvent does not download duplicate events", asyn
     const afterFirstSync = (await node.getEvents(TOPIC) ?? []).length;
     assertEquals(afterFirstSync, 5, "first sync: all 5 posted events present");
 
-    // Second sync: cursor > 0, Merkle diff runs. Local tree must match server (both have the
-    // same 5 events at the same IDs), so no range fetches happen and count stays at 5.
+    // Second sync: cursor > 0, Merkle diff runs. Local tree must match server
+    // (both have the same 5 events at the same IDs), so no range fetches happen
+    // and count stays at 5.
     await node.sync(TOPIC);
     const afterSecondSync = (await node.getEvents(TOPIC) ?? []).length;
-    assertEquals(afterSecondSync, 5, "second sync must not download duplicate copies of locally-posted events");
+    const noDuplicateMsg =
+      "second sync must not download duplicate copies of locally-posted events";
+    assertEquals(afterSecondSync, 5, noDuplicateMsg);
   } finally {
     await server.shutdown();
     await serverStorage.close();
@@ -191,7 +198,9 @@ Deno.test("Proves sync after postEvent does not download duplicate events", asyn
   }
 });
 
-Deno.test("Proves postEvent adopts the server-assigned id when client and server event counters diverge", async () => {
+Deno.test(
+  "Proves postEvent adopts the server-assigned id when client and server event counters diverge",
+  async () => {
   const serverTmpPath = await Deno.makeTempFile({ suffix: ".db" });
   const serverStorage = new DenoKVBackend(serverTmpPath);
   await serverStorage.init();
@@ -238,16 +247,23 @@ Deno.test("Proves postEvent adopts the server-assigned id when client and server
       await res.body?.cancel();
     }
 
-    // Client counter is 0, so the optimistic local write lands at id 1; the server assigns id 4.
+    // Client counter is 0, so the optimistic local write lands at id 1; the
+    // server assigns id 4.
     const entry = await node.postEvent(TOPIC, { mine: true });
-    assertEquals(entry?.id, 4, "postEvent must return the server-assigned id, not the optimistic local id");
-    assertEquals(await node.getEvent(TOPIC, 4) !== null, true, "entry must be stored locally at the server id");
-    assertEquals(await node.getEvent(TOPIC, 1), null, "the optimistic local id must be relocated away, leaving no phantom");
+    const serverAssignedMsg =
+      "postEvent must return the server-assigned id, not the optimistic local id";
+    assertEquals(entry?.id, 4, serverAssignedMsg);
+    const storedAtServerIdMsg = "entry must be stored locally at the server id";
+    assertEquals(await node.getEvent(TOPIC, 4) !== null, true, storedAtServerIdMsg);
+    const noPhantomMsg = "the optimistic local id must be relocated away, leaving no phantom";
+    assertEquals(await node.getEvent(TOPIC, 1), null, noPhantomMsg);
 
     // Sync pulls the 3 seeds; the client's own write is not duplicated.
     await node.sync(TOPIC);
     const all = await node.getEvents(TOPIC) ?? [];
-    assertEquals(all.length, 4, "after sync: 3 seeded events + 1 own write, with no duplicate of the relocated write");
+    const syncMsg =
+      "after sync: 3 seeded events + 1 own write, with no duplicate of the relocated write";
+    assertEquals(all.length, 4, syncMsg);
   } finally {
     await server.shutdown();
     await serverStorage.close();

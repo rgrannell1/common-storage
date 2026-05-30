@@ -18,7 +18,10 @@ export async function getTopicNames(storage: IStorageBackend): Promise<string[]>
   return names;
 }
 
-export async function getTopicStats(storage: IStorageBackend, topic: string): Promise<TopicStats | null> {
+export async function getTopicStats(
+  storage: IStorageBackend,
+  topic: string,
+): Promise<TopicStats | null> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
   if (!meta) return null;
   const stats = await storage.get<StoredTopicStats>([...KV_TOPIC_STATS, topic]);
@@ -31,7 +34,10 @@ export async function getTopicStats(storage: IStorageBackend, topic: string): Pr
   };
 }
 
-export async function getTopicType(storage: IStorageBackend, topic: string): Promise<"event" | "object" | null> {
+export async function getTopicType(
+  storage: IStorageBackend,
+  topic: string,
+): Promise<"event" | "object" | null> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
   return meta?.type ?? null;
 }
@@ -40,7 +46,11 @@ export function getSubscriptions(): Promise<Subscription[]> {
   return Promise.resolve([]);
 }
 
-export async function createTopics(storage: IStorageBackend, events: TopicConfig[], objects: TopicConfig[]): Promise<void> {
+export async function createTopics(
+  storage: IStorageBackend,
+  events: TopicConfig[],
+  objects: TopicConfig[],
+): Promise<void> {
   const now = Date.now();
   for (const topic of events) {
     await createTopic(storage, topic, "event", now);
@@ -50,7 +60,12 @@ export async function createTopics(storage: IStorageBackend, events: TopicConfig
   }
 }
 
-async function createTopic(storage: IStorageBackend, topic: TopicConfig, type: "event" | "object", now: number): Promise<void> {
+async function createTopic(
+  storage: IStorageBackend,
+  topic: TopicConfig,
+  type: "event" | "object",
+  now: number,
+): Promise<void> {
   const metaKey = [...KV_TOPIC, topic.name];
   const statsKey = [...KV_TOPIC_STATS, topic.name];
   const stored: StoredTopic = { type, schema: topic.schema, createdAt: now };

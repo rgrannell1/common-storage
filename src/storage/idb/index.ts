@@ -63,7 +63,8 @@ export class IDBBackend implements ISyncBackend {
           store.deleteIndex("by-seq");
           store.createIndex("by-seq", ["topic", "seq"], { unique: false });
         }
-        // v2 → v3: event store uses compound [topic, id] keys; cursor store reset; merkle stores added.
+        // v2 → v3: event store uses compound [topic, id] keys; cursor store reset; merkle
+        // stores added.
         if (oldVersion < 3) {
           for (const store of [IDB_EVENT_STORE, IDB_CURSOR_STORE]) {
             db.deleteObjectStore(store);

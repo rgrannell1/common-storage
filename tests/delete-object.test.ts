@@ -27,7 +27,9 @@ Deno.test("Proves DELETE /objects/:topic/:id is idempotent for a missing entry",
   }
 });
 
-Deno.test("Proves DELETE /objects/:topic/:id writes a tombstone for an existing entry", async () => {
+Deno.test(
+  "Proves DELETE /objects/:topic/:id writes a tombstone for an existing entry",
+  async () => {
   const { request, cleanup } = await makeTestContext([], [{ name: "things" }]);
   try {
     await request("/objects/things/key1", jsonPut({ payload: { value: 1 } }));
@@ -38,7 +40,9 @@ Deno.test("Proves DELETE /objects/:topic/:id writes a tombstone for an existing 
   }
 });
 
-Deno.test("Proves DELETE /objects/:topic/:id tombstone is readable via GET with payload null", async () => {
+Deno.test(
+  "Proves DELETE /objects/:topic/:id tombstone is readable via GET with payload null",
+  async () => {
   const { fetch, cleanup } = await makePersistentServer([], [{ name: "things" }]);
   try {
     await (await fetch("/objects/things/key1", {
@@ -52,7 +56,10 @@ Deno.test("Proves DELETE /objects/:topic/:id tombstone is readable via GET with 
     const entry = await res.json() as { payload: unknown };
 
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
-    if (entry.payload !== null) throw new Error(`Expected payload null for tombstone, got ${JSON.stringify(entry.payload)}`);
+    if (entry.payload !== null) {
+      const payload = JSON.stringify(entry.payload);
+      throw new Error(`Expected payload null for tombstone, got ${payload}`);
+    }
   } finally {
     await cleanup();
   }

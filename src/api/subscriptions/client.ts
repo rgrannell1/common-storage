@@ -1,13 +1,13 @@
 // HTTP client for talking to a remote common-storage server during subscription sync.
 // All functions are stateless; callers supply the base URL and token on each call.
 
-import type { EventEntry } from "../../storage/capabilities.ts";
+import type { EventEntry, MerkleMismatch } from "../../storage/capabilities.ts";
 import { TAIL_DURATION_MS } from "../../commons/constants.ts";
 import { STATUS_NO_CONTENT } from "../commons/statuses.ts";
 
 type DiffRoundResponse =
   | { kind: "match" }
-  | { kind: "diff"; mismatches: { start: number; end: number; isLeaf: boolean }[] };
+  | { kind: "diff"; mismatches: MerkleMismatch[] };
 
 function authHeaders(token: string): Record<string, string> {
   return { "Authorization": `Bearer ${token}` };
@@ -25,11 +25,17 @@ export async function postDiffRound(
     body: JSON.stringify({ nodes }),
   });
   if (res.status === STATUS_NO_CONTENT) return { kind: "match" };
-  const body = await res.json() as { mismatches: { start: number; end: number; isLeaf: boolean }[] };
+  const body = await res.json() as { mismatches: MerkleMismatch[] };
   return { kind: "diff", mismatches: body.mismatches };
 }
 
-export async function fetchRange(baseUrl: string, topic: string, token: string, start: number, size: number): Promise<EventEntry[]> {
+export async function fetchRange(
+  baseUrl: string,
+  topic: string,
+  token: string,
+  start: number,
+  size: number,
+): Promise<EventEntry[]> {
   const res = await fetch(`${baseUrl}/events/${topic}?start=${start}&size=${size}`, {
     headers: authHeaders(token),
   });
@@ -37,8 +43,13 @@ export async function fetchRange(baseUrl: string, topic: string, token: string, 
   return body.entries ?? [];
 }
 
-// Tails the remote NDJSON stream for up to TAIL_DURATION_MS, collecting entries that arrive after startId.
-export async function tailEvents(baseUrl: string, topic: string, token: string, startId: number): Promise<EventEntry[]> {
+// Tails the remote NDJSON stream for up to TAIL_DURATION_MS, collecting entries after startId.
+export async function tailEvents(
+  baseUrl: string,
+  topic: string,
+  token: string,
+  startId: number,
+): Promise<EventEntry[]> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TAIL_DURATION_MS);
 

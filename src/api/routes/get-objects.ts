@@ -5,8 +5,21 @@ import { z } from "zod";
 import { ok, err, type Result } from "../../commons/types/result.ts";
 import type { Route } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
-import { pathParamParser, queryParser, mergeAll, acceptParser, abortSignalParser, responseParser } from "../parsers/combinators.ts";
-import { TopicNameSchema, ObjectEntrySchema, QueryStartSchema, QuerySizeSchema, QueryFilterSchema } from "../parsers/schemas.ts";
+import {
+  pathParamParser,
+  queryParser,
+  mergeAll,
+  acceptParser,
+  abortSignalParser,
+  responseParser,
+} from "../parsers/combinators.ts";
+import {
+  TopicNameSchema,
+  ObjectEntrySchema,
+  QueryStartSchema,
+  QuerySizeSchema,
+  QueryFilterSchema,
+} from "../parsers/schemas.ts";
 import { applyFilter } from "../parsers/filter.ts";
 import type { IReadObjectsBySeq, IStreamObjects, ObjectEntry } from "../../storage/capabilities.ts";
 
@@ -20,7 +33,11 @@ const GetObjectsQuerySchema = z.object({
   filter: QueryFilterSchema.optional(),
 });
 
-type GetObjectsRequest = z.infer<typeof GetObjectsPathSchema> & z.infer<typeof GetObjectsQuerySchema> & { stream: boolean; signal: AbortSignal };
+type GetObjectsRequest = z.infer<typeof GetObjectsPathSchema> &
+  z.infer<typeof GetObjectsQuerySchema> & {
+    stream: boolean;
+    signal: AbortSignal;
+  };
 
 type GetObjectsDeps = {
   storage: IReadObjectsBySeq & IStreamObjects;
@@ -46,13 +63,19 @@ function buildNdjsonStream(generator: AsyncGenerator<ObjectEntry>): ReadableStre
     .pipeThrough(new TextEncoderStream());
 }
 
-function streamObjectsResponse(deps: GetObjectsDeps, params: GetObjectsRequest): Result<GetObjectsResponse, RouteError> {
+function streamObjectsResponse(
+  deps: GetObjectsDeps,
+  params: GetObjectsRequest,
+): Result<GetObjectsResponse, RouteError> {
   const startSeq = params.start ?? 1;
   const generator = deps.storage.streamObjects(params.topic, startSeq, params.signal);
   return ok({ kind: "stream", stream: buildNdjsonStream(generator) });
 }
 
-async function seqPaginatedResponse(deps: GetObjectsDeps, params: GetObjectsRequest): Promise<Result<GetObjectsResponse, RouteError>> {
+async function seqPaginatedResponse(
+  deps: GetObjectsDeps,
+  params: GetObjectsRequest,
+): Promise<Result<GetObjectsResponse, RouteError>> {
   const size = params.size ?? 100;
   const fetched = await deps.storage.readObjectsBySeq(params.topic, { start: params.start, size });
 
@@ -71,13 +94,18 @@ async function seqPaginatedResponse(deps: GetObjectsDeps, params: GetObjectsRequ
 
 // All reads go through seqPaginatedResponse to bound memory usage.
 // Clients wanting the full topic can stream via Accept: application/x-ndjson.
-function getObjects(deps: GetObjectsDeps, params: GetObjectsRequest): Promise<Result<GetObjectsResponse, RouteError>> {
+function getObjects(
+  deps: GetObjectsDeps,
+  params: GetObjectsRequest,
+): Promise<Result<GetObjectsResponse, RouteError>> {
   if (params.stream) return Promise.resolve(streamObjectsResponse(deps, params));
   return seqPaginatedResponse(deps, params);
 }
 
 function objectsResponseParser(value: unknown): Result<RouteSuccess, RouteError> {
-  if (value !== null && typeof value === "object" && "kind" in value && (value as GetObjectsStream).kind === "stream") {
+  const isStreamResponse = value !== null && typeof value === "object" &&
+    "kind" in value && (value as GetObjectsStream).kind === "stream";
+  if (isStreamResponse) {
     return ok(value as RouteSuccess);
   }
   // Paginated response (has entries + next)
@@ -87,7 +115,9 @@ function objectsResponseParser(value: unknown): Result<RouteSuccess, RouteError>
   return err({ kind: "internal", message: "Unexpected response shape from getObjects" });
 }
 
-export function getObjectsRoute(deps: GetObjectsDeps): Route<null, GetObjectsRequest, GetObjectsResponse, RouteSuccess, RouteError> {
+export function getObjectsRoute(
+  deps: GetObjectsDeps,
+): Route<null, GetObjectsRequest, GetObjectsResponse, RouteSuccess, RouteError> {
   return {
     parseRequest: mergeAll(
       pathParamParser(GetObjectsPathSchema),

@@ -1,34 +1,43 @@
 // Integration tests for POST /diff/:topic — interactive Merkle tree reconciliation
 // @work.md
 
-import { makePersistentServer, jsonPost, jsonPut, discard } from "./helpers.ts";
+import {
+  discard,
+  jsonPost,
+  jsonPut,
+  makePersistentServer,
+  type PersistentFetch,
+} from "./helpers.ts";
 import { hashBucket, hashMerkleInternalNode } from "../src/core/hashing.ts";
 import { MERKLE_LEAF_SIZE, MERKLE_TREE_END } from "../src/commons/constants.ts";
 import { buildEventMerkleTree, buildObjectMerkleTree } from "../src/core/diff.ts";
 
-// SHA-256 of an empty input — empty leaf bucket hash (depth 0 only; non-leaf empty nodes use emptyTable[depth])
+// SHA-256 of empty input — empty leaf bucket hash; non-leaf nodes use emptyTable[depth]
 const EMPTY_HASH = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
 type MerkleMismatch = { start: number; end: number; isLeaf: boolean };
 type DiffResponse = { mismatches?: MerkleMismatch[] };
 
-type EventEntry = { id: number; createdAt: number; updatedAt: number; payload: unknown };
-type ObjectEntry = { id: string; seq: number; createdAt: number; updatedAt: number; payload: unknown };
+type EventEntry = {
+  id: number;
+  createdAt: number;
+  updatedAt: number;
+  payload: unknown;
+};
+type ObjectEntry = {
+  id: string;
+  seq: number;
+  createdAt: number;
+  updatedAt: number;
+  payload: unknown;
+};
 
-function post(fetch: (url: string, init?: RequestInit) => Promise<Response>, url: string, body: unknown): Promise<Response> {
-  return fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+function post(fetch: PersistentFetch, url: string, body: unknown): Promise<Response> {
+  return fetch(url, jsonPost(body));
 }
 
 // Sends the root node of a full Merkle tree and returns the diff response.
-function sendRoot(
-  fetch: (url: string, init?: RequestInit) => Promise<Response>,
-  topic: string,
-  rootHash: string,
-): Promise<Response> {
+function sendRoot(fetch: PersistentFetch, topic: string, rootHash: string): Promise<Response> {
   return post(fetch, `/diff/${topic}`, {
     nodes: [{ start: 0, end: MERKLE_TREE_END, hash: rootHash }],
   });
@@ -37,9 +46,8 @@ function sendRoot(
 Deno.test("Proves POST /diff/:topic returns 404 for an unknown topic", async () => {
   const { fetch, cleanup } = await makePersistentServer();
   try {
-    const res = await post(fetch, "/diff/nonexistent", {
-      nodes: [{ start: 0, end: MERKLE_TREE_END, hash: EMPTY_HASH }],
-    });
+    const diffBody = { nodes: [{ start: 0, end: MERKLE_TREE_END, hash: EMPTY_HASH }] };
+    const res = await post(fetch, "/diff/nonexistent", diffBody);
     if (res.status !== 404) throw new Error(`Expected 404, got ${res.status}`);
     await res.body?.cancel();
   } finally {
@@ -92,10 +100,13 @@ Deno.test("Proves POST /diff/:topic returns 204 when object topic state matches"
   }
 });
 
-Deno.test("Proves POST /diff/:topic returns a mismatch when object root hash diverges", async () => {
+Deno.test(
+  "Proves POST /diff/:topic returns mismatches when object root hash diverges",
+  async () => {
   const { fetch, cleanup } = await makePersistentServer([], [{ name: "items" }]);
   try {
-    await discard(await fetch("/objects/items/abc", jsonPut({ payload: { value: 1 } })));
+    const putRes = await fetch("/objects/items/abc", jsonPut({ payload: { value: 1 } }));
+    await discard(putRes);
 
     const res = await sendRoot(fetch, "items", "a".repeat(64));
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
@@ -111,7 +122,8 @@ Deno.test("Proves POST /diff/:topic returns a mismatch when object root hash div
 Deno.test("Proves POST /diff/:topic returns 204 when event leaf hashes match exactly", async () => {
   const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   try {
-    const entry = await (await fetch("/events/logs", jsonPost({ payload: {} }))).json() as EventEntry;
+    const entryRes = await fetch("/events/logs", jsonPost({ payload: {} }));
+    const entry = await entryRes.json() as EventEntry;
 
     const tree = buildEventMerkleTree([entry]);
     const rootHash = await tree.hashForRange(0, MERKLE_TREE_END);
@@ -124,10 +136,11 @@ Deno.test("Proves POST /diff/:topic returns 204 when event leaf hashes match exa
   }
 });
 
-Deno.test("Proves POST /diff/:topic returns 204 when object leaf hashes match exactly", async () => {
+Deno.test("Proves POST /diff/:topic returns 204 when object leaf hashes match", async () => {
   const { fetch, cleanup } = await makePersistentServer([], [{ name: "items" }]);
   try {
-    const entry = await (await fetch("/objects/items/abc", jsonPut({ payload: { value: 1 } }))).json() as ObjectEntry;
+    const putRes = await fetch("/objects/items/abc", jsonPut({ payload: { value: 1 } }));
+    const entry = await putRes.json() as ObjectEntry;
 
     const tree = buildObjectMerkleTree([entry]);
     const rootHash = await tree.hashForRange(0, MERKLE_TREE_END);
@@ -140,14 +153,16 @@ Deno.test("Proves POST /diff/:topic returns 204 when object leaf hashes match ex
   }
 });
 
-Deno.test("Proves POST /diff/:topic converges to a leaf mismatch through interactive traversal", async () => {
+Deno.test("Proves POST /diff/:topic converges to leaf mismatches interactively", async () => {
   const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   try {
-    const entry = await (await fetch("/events/logs", jsonPost({ payload: {} }))).json() as EventEntry;
+    const entryRes = await fetch("/events/logs", jsonPost({ payload: {} }));
+    const entry = await entryRes.json() as EventEntry;
 
     // Client has no local entries — compute correct empty-tree hashes for each subtree
     const clientTree = buildEventMerkleTree([]);
-    let frontier = [{ start: 0, end: MERKLE_TREE_END, hash: await clientTree.hashForRange(0, MERKLE_TREE_END) }];
+    const rootHash = await clientTree.hashForRange(0, MERKLE_TREE_END);
+    let frontier = [{ start: 0, end: MERKLE_TREE_END, hash: rootHash }];
     const leafRanges: { start: number; end: number }[] = [];
 
     for (let round = 0; round < 25; round++) {
@@ -175,7 +190,11 @@ Deno.test("Proves POST /diff/:topic converges to a leaf mismatch through interac
     }
 
     // Exactly one leaf should differ — the leaf containing the single written entry
-    if (leafRanges.length !== 1) throw new Error(`Expected exactly 1 leaf mismatch, got ${leafRanges.length}: ${JSON.stringify(leafRanges)}`);
+    if (leafRanges.length !== 1) {
+      const leafJson = JSON.stringify(leafRanges);
+      const msg = `Expected 1 leaf mismatch, got ${leafRanges.length}: ${leafJson}`;
+      throw new Error(msg);
+    }
 
     const [leaf] = leafRanges;
     if (leaf.end - leaf.start > MERKLE_LEAF_SIZE) {
@@ -193,7 +212,8 @@ Deno.test("Proves POST /diff/:topic includes tombstoned entries in object diff",
   const { fetch, cleanup } = await makePersistentServer([], [{ name: "items" }]);
   try {
     await discard(await fetch("/objects/items/gone", jsonPut({ payload: {} })));
-    const tombstone = await (await fetch("/objects/items/gone", { method: "DELETE" })).json() as ObjectEntry;
+    const deleteRes = await fetch("/objects/items/gone", { method: "DELETE" });
+    const tombstone = await deleteRes.json() as ObjectEntry;
 
     const tree = buildObjectMerkleTree([tombstone]);
     const rootHash = await tree.hashForRange(0, MERKLE_TREE_END);
@@ -201,11 +221,17 @@ Deno.test("Proves POST /diff/:topic includes tombstoned entries in object diff",
     // Correct tombstone hash — no diff
     const matchRes = await sendRoot(fetch, "items", rootHash);
     await discard(matchRes);
-    if (matchRes.status !== 204) throw new Error(`Expected 204 with correct tombstone hash, got ${matchRes.status}`);
+    const expectedMatch = 204;
+    if (matchRes.status !== expectedMatch) {
+      throw new Error(`Expected 204 with correct tombstone hash, got ${matchRes.status}`);
+    }
 
     // Wrong hash — server reports a mismatch
     const mismatchRes = await sendRoot(fetch, "items", "a".repeat(64));
-    if (mismatchRes.status !== 200) throw new Error(`Expected 200 with wrong tombstone hash, got ${mismatchRes.status}`);
+    const expectedMismatch = 200;
+    if (mismatchRes.status !== expectedMismatch) {
+      throw new Error(`Expected 200 with wrong tombstone hash, got ${mismatchRes.status}`);
+    }
     const body = await mismatchRes.json() as DiffResponse;
     if (!body.mismatches || body.mismatches.length === 0) {
       throw new Error(`Expected mismatches for tombstone, got ${JSON.stringify(body)}`);
@@ -242,7 +268,9 @@ Deno.test("Proves POST /diff/:topic returns 204 when multiple events are in sync
   try {
     const entries: EventEntry[] = [];
     for (let idx = 0; idx < 5; idx++) {
-      entries.push(await (await fetch("/events/logs", jsonPost({ payload: { idx } }))).json() as EventEntry);
+      const res = await fetch("/events/logs", jsonPost({ payload: { idx } }));
+      const entry = await res.json() as EventEntry;
+      entries.push(entry);
     }
 
     const tree = buildEventMerkleTree(entries);
@@ -256,10 +284,11 @@ Deno.test("Proves POST /diff/:topic returns 204 when multiple events are in sync
   }
 });
 
-Deno.test("Proves POST /diff/:topic with correct leaf hash for only part of the tree returns mismatch for uncovered server nodes", async () => {
+Deno.test("Proves POST /diff/:topic detects server nodes not covered by client hash", async () => {
   const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   try {
-    const entry = await (await fetch("/events/logs", jsonPost({ payload: {} }))).json() as EventEntry;
+    const entryRes = await fetch("/events/logs", jsonPost({ payload: {} }));
+    const entry = await entryRes.json() as EventEntry;
 
     // Build the correct leaf hash for the entry's leaf, send it with the wrong parent hash
     const tree = buildEventMerkleTree([entry]);
@@ -267,8 +296,9 @@ Deno.test("Proves POST /diff/:topic with correct leaf hash for only part of the 
     const leafHash = await tree.hashForRange(leafStart, leafStart + MERKLE_LEAF_SIZE);
 
     // Send just the leaf node with the correct hash — server should return 204 if it matches
+    const leafEnd = leafStart + MERKLE_LEAF_SIZE;
     const res = await post(fetch, "/diff/logs", {
-      nodes: [{ start: leafStart, end: leafStart + MERKLE_LEAF_SIZE, hash: leafHash }],
+      nodes: [{ start: leafStart, end: leafEnd, hash: leafHash }],
     });
     await discard(res);
     if (res.status !== 204) throw new Error(`Expected 204 for correct leaf, got ${res.status}`);
@@ -277,12 +307,15 @@ Deno.test("Proves POST /diff/:topic with correct leaf hash for only part of the 
   }
 });
 
-Deno.test("Proves POST /diff/:topic hashBucket and hashMerkleInternalNode produce verifiable hashes", async () => {
+Deno.test("Proves hashBucket and hashMerkleInternalNode produce verifiable hashes", async () => {
   // Validates that the hash primitives produce the right output so tests above are meaningful.
   const leafHash = await hashBucket([{ id: 1, updatedAt: 1000 }]);
   const emptyHash = await hashBucket([]);
   if (emptyHash !== EMPTY_HASH) throw new Error(`Empty bucket hash mismatch: ${emptyHash}`);
 
   const parentHash = await hashMerkleInternalNode(leafHash, emptyHash);
-  if (parentHash.length !== 64) throw new Error(`Internal node hash has wrong length: ${parentHash.length}`);
+  const expectedLen = 64;
+  if (parentHash.length !== expectedLen) {
+    throw new Error(`Internal node hash has wrong length: ${parentHash.length}`);
+  }
 });

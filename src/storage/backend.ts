@@ -1,7 +1,8 @@
 // ISyncBackend — the shared storage interface for all CommonStorageNode backends.
 // DenoKVBackend satisfies this as a subset; IDBBackend implements it for browsers.
 
-import type { EventEntry, ReadEventOptions, ObjectEntry } from "./capabilities.ts";
+import type { EventEntry, ReadEventOptions, ObjectEntry, WriteFailure } from "./capabilities.ts";
+import type { Result } from "../commons/types/result.ts";
 
 // Tracks the last-seen sync position per topic. Used by node sync on both client and server.
 export interface ICursorStore {
@@ -16,9 +17,14 @@ export interface ILocalEventStore {
   readEvent(topic: string, id: number): Promise<EventEntry | null>;
   readEvents(topic: string, opts: ReadEventOptions): Promise<EventEntry[] | null>;
   // Upserts an event at the given ID; used during sync replication.
-  updateEvent(topic: string, id: number, payload: unknown, timestamps?: { createdAt?: number; updatedAt?: number }): Promise<{ entry: EventEntry; created: boolean } | null>;
+  updateEvent(
+    topic: string,
+    id: number,
+    payload: unknown,
+    timestamps?: { createdAt?: number; updatedAt?: number },
+  ): Promise<Result<{ entry: EventEntry; created: boolean }, WriteFailure>>;
   // Appends a new event; server assigns the ID.
-  writeEvent(topic: string, payload: unknown): Promise<EventEntry | null>;
+  writeEvent(topic: string, payload: unknown): Promise<Result<EventEntry, WriteFailure>>;
   // Removes an event by ID. Client-only: used to relocate an optimistic write to the
   // server-assigned ID once the push response returns. Server backends may omit it.
   deleteEvent?(topic: string, id: number): Promise<void>;
@@ -36,9 +42,21 @@ export type ReplicaTimestamps = {
 // Read/write interface for object topics.
 export interface ILocalObjectStore {
   readObject(topic: string, id: string): Promise<ObjectEntry | null>;
-  readObjectsBySeq(topic: string, opts: { start?: number; size?: number }): Promise<ObjectEntry[] | null>;
-  upsertObject(topic: string, id: string, payload: unknown, timestamps?: ReplicaTimestamps): Promise<ObjectEntry | null>;
-  deleteObject(topic: string, id: string, timestamps?: ReplicaTimestamps): Promise<ObjectEntry | null>;
+  readObjectsBySeq(
+    topic: string,
+    opts: { start?: number; size?: number },
+  ): Promise<ObjectEntry[] | null>;
+  upsertObject(
+    topic: string,
+    id: string,
+    payload: unknown,
+    timestamps?: ReplicaTimestamps,
+  ): Promise<Result<ObjectEntry, WriteFailure>>;
+  deleteObject(
+    topic: string,
+    id: string,
+    timestamps?: ReplicaTimestamps,
+  ): Promise<ObjectEntry | null>;
 }
 
 // Persistent Merkle hash cache for a single topic dimension (events or objects).
@@ -50,8 +68,9 @@ export interface ILocalMerkleStore {
   invalidatePaths(topic: string, newId: number, oldId?: number): Promise<void>;
 }
 
-// Minimal backend interface for a CommonStorageNode — covers local reads, writes, diff, and cursor tracking.
-// Does not include rate limiting, metrics, or idempotency — those are server-only concerns.
+// Minimal backend interface for a CommonStorageNode — covers local reads, writes, diff,
+// and cursor tracking. Does not include rate limiting, metrics, or idempotency — those
+// are server-only concerns.
 export interface ISyncBackend {
   events: ILocalEventStore;
   objects: ILocalObjectStore;

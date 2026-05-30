@@ -20,7 +20,10 @@ type DeleteObjectDeps = {
   storage: IDeleteObject;
 };
 
-async function deleteObject(deps: DeleteObjectDeps, params: DeleteObjectRequest): Promise<Result<ObjectEntry, RouteError>> {
+async function deleteObject(
+  deps: DeleteObjectDeps,
+  params: DeleteObjectRequest,
+): Promise<Result<ObjectEntry, RouteError>> {
   const tombstone = await deps.storage.deleteObject(params.topic, params.id);
 
   if (tombstone === null) {
@@ -30,7 +33,9 @@ async function deleteObject(deps: DeleteObjectDeps, params: DeleteObjectRequest)
   return ok(tombstone);
 }
 
-export function deleteObjectRoute(deps: DeleteObjectDeps): Route<null, DeleteObjectRequest, ObjectEntry, RouteSuccess, RouteError> {
+export function deleteObjectRoute(
+  deps: DeleteObjectDeps,
+): Route<null, DeleteObjectRequest, ObjectEntry, RouteSuccess, RouteError> {
   return {
     parseRequest: pathParamParser(DeleteObjectPathSchema),
     handle: deleteObject.bind(null, deps),

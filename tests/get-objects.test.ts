@@ -35,7 +35,9 @@ Deno.test("Proves GET /objects/:topic returns an empty page when no entries exis
   }
 });
 
-Deno.test("Proves GET /objects/:topic returns all written entries as a paginated page", async () => {
+Deno.test(
+  "Proves GET /objects/:topic returns all written entries as a paginated page",
+  async () => {
   const { fetch, cleanup } = await makePersistentServer([], [{ name: "things" }]);
   try {
     const putInit = (payload: unknown): RequestInit => ({
@@ -51,7 +53,8 @@ Deno.test("Proves GET /objects/:topic returns all written entries as a paginated
     const body = await res.json() as { entries: Array<{ id: string }>; next: number | null };
 
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
-    if (body.entries.length !== 2) throw new Error(`Expected 2 entries, got ${body.entries.length}`);
+    const entriesLength = body.entries.length;
+    if (entriesLength !== 2) throw new Error(`Expected 2 entries, got ${entriesLength}`);
 
     const ids = body.entries.map(entry => entry.id).sort();
     if (ids[0] !== "key1" || ids[1] !== "key2") {
@@ -73,13 +76,18 @@ Deno.test("Proves GET /objects/:topic includes tombstones with payload null", as
     await (await fetch("/objects/things/key1", { method: "DELETE" })).json();
 
     const res = await fetch("/objects/things");
-    const body = await res.json() as { entries: Array<{ id: string; payload: unknown }>; next: number | null };
+    type ObjectEntry = { id: string; payload: unknown };
+    type PageBody = { entries: ObjectEntry[]; next: number | null };
+    const body = await res.json() as PageBody;
 
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
 
     const tombstone = body.entries.find(entry => entry.id === "key1");
     if (!tombstone) throw new Error("Expected tombstone entry for key1 to be present");
-    if (tombstone.payload !== null) throw new Error(`Expected tombstone payload to be null, got ${JSON.stringify(tombstone.payload)}`);
+    if (tombstone.payload !== null) {
+      const tombstonePayload = JSON.stringify(tombstone.payload);
+      throw new Error(`Expected tombstone payload to be null, got ${tombstonePayload}`);
+    }
   } finally {
     await cleanup();
   }

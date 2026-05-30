@@ -1,13 +1,35 @@
-// Object topic read/write — implements IUpsertObject, IReadObject, IDeleteObject, IReadObjects, IReadObjectsBySeq, IStreamObjects, IDiffObjects
+// Object topic read/write.
+// Implements: IUpsertObject, IReadObject, IDeleteObject, IReadObjects,
+// IReadObjectsBySeq, IStreamObjects, IDiffObjects.
 // @work.md
 
 import type { IStorageBackend, IAtomicWriter } from "./backend.ts";
-import type { ObjectEntry, MerkleDiffRequest, ObjectDiffResponse, MerkleMismatch } from "../capabilities.ts";
+import type {
+  ObjectEntry,
+  MerkleDiffRequest,
+  ObjectDiffResponse,
+  MerkleMismatch,
+  WriteFailure,
+} from "../capabilities.ts";
 import { hashBucket, hashMerkleInternalNode } from "../../core/hashing.ts";
+import { ok, err, type Result } from "../../commons/types/result.ts";
 import { waitForPoll } from "./base.ts";
+import { payloadTooLarge } from "./payload-guard.ts";
 import type { StoredTopic, StoredTopicStats, StoredObject } from "./types/stored-types.ts";
-import { KV_TOPIC, KV_TOPIC_STATS, KV_OBJECT, KV_OBJECT_SEQ, KV_OBJECT_COUNTER, KV_MERKLE_HASH } from "./keys.ts";
-import { TOMBSTONE_RETENTION_MS, MERKLE_LEAF_SIZE, MERKLE_TREE_END, MERKLE_TREE_DEPTH } from "../../commons/constants.ts";
+import {
+  KV_TOPIC,
+  KV_TOPIC_STATS,
+  KV_OBJECT,
+  KV_OBJECT_SEQ,
+  KV_OBJECT_COUNTER,
+  KV_MERKLE_HASH,
+} from "./keys.ts";
+import {
+  TOMBSTONE_RETENTION_MS,
+  MERKLE_LEAF_SIZE,
+  MERKLE_TREE_END,
+  MERKLE_TREE_DEPTH,
+} from "../../commons/constants.ts";
 
 type BucketEntry = { id: number; updatedAt: number };
 
@@ -15,7 +37,8 @@ function byIdAscending(first: BucketEntry, second: BucketEntry): number {
   return first.id - second.id;
 }
 
-// Returns the Merkle path from the leaf containing seq to the root — all nodes to invalidate on write.
+// Returns the Merkle path from the leaf containing seq to the root.
+// Identifies all nodes to invalidate on write.
 function merklePath(seq: number): { start: number; end: number }[] {
   const path: { start: number; end: number }[] = [];
   let start = 0, end = MERKLE_TREE_END;
@@ -37,7 +60,12 @@ function invalidateMerklePath(atomic: IAtomicWriter, topic: string, seq: number)
 }
 
 // When seq changes (object update), both old and new seq paths must be invalidated.
-function invalidateMerklePaths(atomic: IAtomicWriter, topic: string, newSeq: number, oldSeq: number | undefined): IAtomicWriter {
+function invalidateMerklePaths(
+  atomic: IAtomicWriter,
+  topic: string,
+  newSeq: number,
+  oldSeq: number | undefined,
+): IAtomicWriter {
   atomic = invalidateMerklePath(atomic, topic, newSeq);
   if (oldSeq !== undefined && oldSeq !== newSeq) {
     atomic = invalidateMerklePath(atomic, topic, oldSeq);
@@ -65,7 +93,12 @@ async function buildEmptyHashTable(): Promise<string[]> {
 }
 
 // Checks whether the seq range (start, end] is empty.
-async function isObjectRangeEmpty(storage: IStorageBackend, topic: string, start: number, end: number): Promise<boolean> {
+async function isObjectRangeEmpty(
+  storage: IStorageBackend,
+  topic: string,
+  start: number,
+  end: number,
+): Promise<boolean> {
   for await (const _ of storage.list<StoredObject>({
     start: [...KV_OBJECT_SEQ, topic, start + 1],
     end: [...KV_OBJECT_SEQ, topic, end + 1],
@@ -76,7 +109,12 @@ async function isObjectRangeEmpty(storage: IStorageBackend, topic: string, start
 }
 
 // Scans seq index entries in (start, end] and hashes them.
-async function computeLeafHash(storage: IStorageBackend, topic: string, start: number, end: number): Promise<string> {
+async function computeLeafHash(
+  storage: IStorageBackend,
+  topic: string,
+  start: number,
+  end: number,
+): Promise<string> {
   const entries: BucketEntry[] = [];
   for await (const item of storage.list<StoredObject>({
     start: [...KV_OBJECT_SEQ, topic, start + 1],
@@ -87,7 +125,8 @@ async function computeLeafHash(storage: IStorageBackend, topic: string, start: n
   return hashBucket(entries.sort(byIdAscending));
 }
 
-// Returns the cached hash for a Merkle node over the seq dimension, computing and caching on a miss.
+// Returns the cached hash for a Merkle node over the seq dimension.
+// Computes and caches on a miss.
 // Uses sequential child computation to avoid concurrent promise explosion for deep trees.
 // Empty subtrees are detected cheaply and resolved using a precomputed constant.
 async function serverNodeHash(
@@ -113,9 +152,16 @@ async function serverNodeHash(
       return emptyTable[Math.min(MERKLE_TREE_DEPTH, Math.max(0, depth))];
     }
     const mid = Math.floor((start + end) / 2);
-    // Sequential — conservative; empty short-circuit makes Promise.all safe too, but sequential keeps KV round-trips bounded
+    // Sequential — conservative; empty short-circuit makes Promise.all safe too,
+    // but sequential keeps KV round-trips bounded.
     const leftHash = await serverNodeHash(storage, topic, start, mid, emptyTable);
-    const rightHash = await serverNodeHash(storage, topic, mid, end, emptyTable);
+    const rightHash = await serverNodeHash(
+      storage,
+      topic,
+      mid,
+      end,
+      emptyTable,
+    );
     hash = await hashMerkleInternalNode(leftHash, rightHash);
   }
 
@@ -123,16 +169,26 @@ async function serverNodeHash(
   return hash;
 }
 
-export async function diffObjects(storage: IStorageBackend, topic: string, req: MerkleDiffRequest): Promise<ObjectDiffResponse | null> {
+export async function diffObjects(
+  storage: IStorageBackend,
+  topic: string,
+  req: MerkleDiffRequest,
+): Promise<ObjectDiffResponse | null> {
   const meta = await storage.get([...KV_TOPIC, topic]);
   if (!meta) return null;
 
   const emptyTable = await getEmptyHashTable();
-  const serverHashes = await Promise.all(req.nodes.map(node => serverNodeHash(storage, topic, node.start, node.end, emptyTable)));
+  const nodeHashFactory = (node: typeof req.nodes[0]) =>
+    serverNodeHash(storage, topic, node.start, node.end, emptyTable);
+  const serverHashes = await Promise.all(req.nodes.map(nodeHashFactory));
 
+  const mismatchMapper = (node: typeof req.nodes[0]) => {
+    const isLeaf = node.end - node.start <= MERKLE_LEAF_SIZE;
+    return { start: node.start, end: node.end, isLeaf };
+  };
   const mismatches: MerkleMismatch[] = req.nodes
     .filter((node, idx) => serverHashes[idx] !== node.hash)
-    .map(node => ({ start: node.start, end: node.end, isLeaf: node.end - node.start <= MERKLE_LEAF_SIZE }));
+    .map(mismatchMapper);
 
   if (mismatches.length === 0) return { kind: "match" };
   return { kind: "diff", mismatches };
@@ -144,9 +200,11 @@ export async function upsertObject(
   id: string,
   payload: unknown,
   timestamps?: { createdAt?: number; updatedAt?: number; seq?: number },
-): Promise<ObjectEntry | null> {
+): Promise<Result<ObjectEntry, WriteFailure>> {
+  if (payloadTooLarge(payload)) return err({ kind: "payload_too_large" });
+
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
-  if (!meta) return null;
+  if (!meta) return err({ kind: "topic_not_found" });
 
   while (true) {
     const [existing, stats, counter] = await Promise.all([
@@ -191,7 +249,7 @@ export async function upsertObject(
     atomic = invalidateMerklePaths(atomic, topic, newSeq, oldSeq);
 
     const result = await atomic.commit();
-    if (result.ok) return entry;
+    if (result.ok) return ok(entry);
   }
 }
 
@@ -247,7 +305,12 @@ export async function deleteObject(
   }
 }
 
-export async function* streamObjects(storage: IStorageBackend, topic: string, startSeq: number, signal: AbortSignal): AsyncGenerator<ObjectEntry> {
+export async function* streamObjects(
+  storage: IStorageBackend,
+  topic: string,
+  startSeq: number,
+  signal: AbortSignal,
+): AsyncGenerator<ObjectEntry> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
   if (!meta) return;
 
@@ -274,7 +337,10 @@ export async function* streamObjects(storage: IStorageBackend, topic: string, st
   }
 }
 
-export async function readObjects(storage: IStorageBackend, topic: string): Promise<ObjectEntry[] | null> {
+export async function readObjects(
+  storage: IStorageBackend,
+  topic: string,
+): Promise<ObjectEntry[] | null> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
   if (!meta) return null;
 
@@ -285,7 +351,11 @@ export async function readObjects(storage: IStorageBackend, topic: string): Prom
   return entries;
 }
 
-export async function readObjectsBySeq(storage: IStorageBackend, topic: string, opts: { start?: number; size?: number }): Promise<ObjectEntry[] | null> {
+export async function readObjectsBySeq(
+  storage: IStorageBackend,
+  topic: string,
+  opts: { start?: number; size?: number },
+): Promise<ObjectEntry[] | null> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
   if (!meta) return null;
 
@@ -302,7 +372,11 @@ export async function readObjectsBySeq(storage: IStorageBackend, topic: string, 
   return entries;
 }
 
-export async function readObject(storage: IStorageBackend, topic: string, id: string): Promise<ObjectEntry | null> {
+export async function readObject(
+  storage: IStorageBackend,
+  topic: string,
+  id: string,
+): Promise<ObjectEntry | null> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
   if (!meta) return null;
 
@@ -313,7 +387,11 @@ export async function readObject(storage: IStorageBackend, topic: string, id: st
 // concurrent resurrection (upsert after delete) causes the atomic to fail safely — the entry
 // is no longer a tombstone and should not be swept. Also invalidates the Merkle hash cache so
 // the next diff recomputes the affected leaf rather than returning a stale match.
-export async function sweepTombstones(storage: IStorageBackend, topic: string, cutoff?: number): Promise<void> {
+export async function sweepTombstones(
+  storage: IStorageBackend,
+  topic: string,
+  cutoff?: number,
+): Promise<void> {
   const effectiveCutoff = cutoff ?? Date.now() - TOMBSTONE_RETENTION_MS;
   for await (const item of storage.list<StoredObject>({ prefix: [...KV_OBJECT, topic] })) {
     if (item.value.payload === null && item.value.updatedAt < effectiveCutoff) {

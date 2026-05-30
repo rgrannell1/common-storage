@@ -7,7 +7,12 @@ import type { StoredTopic, StoredEvent } from "../types/stored-types.ts";
 import { KV_TOPIC, KV_EVENT } from "../keys.ts";
 import { waitForPoll } from "../base.ts";
 
-export async function* streamEvents(storage: IStorageBackend, topic: string, startId: number, signal: AbortSignal): AsyncGenerator<EventEntry> {
+export async function* streamEvents(
+  storage: IStorageBackend,
+  topic: string,
+  startId: number,
+  signal: AbortSignal,
+): AsyncGenerator<EventEntry> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
   if (!meta) return;
 

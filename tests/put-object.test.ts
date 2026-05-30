@@ -43,13 +43,16 @@ Deno.test("Proves PUT /objects/:topic/:id returns 200 for a new entry", async ()
 
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     if (entry.id !== "key1") throw new Error(`Expected id "key1", got "${entry.id}"`);
-    if (entry.payload.value !== 1) throw new Error(`Expected payload.value 1, got ${entry.payload.value}`);
+    const value = entry.payload.value;
+    if (value !== 1) throw new Error(`Expected payload.value 1, got ${value}`);
   } finally {
     await cleanup();
   }
 });
 
-Deno.test("Proves PUT /objects/:topic/:id returns 200 when updating an existing entry", async () => {
+Deno.test(
+  "Proves PUT /objects/:topic/:id returns 200 when updating an existing entry",
+  async () => {
   const { fetch, cleanup } = await makePersistentServer([], [{ name: "things" }]);
   try {
     await discard(await fetch("/objects/things/key1", jsonPut({ payload: { value: 1 } })));
@@ -57,7 +60,8 @@ Deno.test("Proves PUT /objects/:topic/:id returns 200 when updating an existing 
     const entry = await res.json() as { payload: { value: number } };
 
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
-    if (entry.payload.value !== 2) throw new Error(`Expected payload.value 2, got ${entry.payload.value}`);
+    const updatedValue = entry.payload.value;
+    if (updatedValue !== 2) throw new Error(`Expected payload.value 2, got ${updatedValue}`);
   } finally {
     await cleanup();
   }

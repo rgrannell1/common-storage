@@ -2,8 +2,9 @@
 // IDB event store — implements ILocalEventStore over IndexedDB.
 
 import type { ILocalEventStore } from "../backend.ts";
-import type { EventEntry, ReadEventOptions } from "../capabilities.ts";
+import type { EventEntry, ReadEventOptions, WriteFailure } from "../capabilities.ts";
 import type { IDBDatabase } from "./types.ts";
+import { ok, type Result } from "../../commons/types/result.ts";
 
 export const IDB_EVENT_STORE = "events";
 
@@ -17,7 +18,12 @@ type StoredEvent = {
 type EventSummary = { id: number; updatedAt: number };
 
 function toEntry(stored: StoredEvent): EventEntry {
-  return { id: stored.id, createdAt: stored.createdAt, updatedAt: stored.updatedAt, payload: stored.payload };
+  return {
+    id: stored.id,
+    createdAt: stored.createdAt,
+    updatedAt: stored.updatedAt,
+    payload: stored.payload,
+  };
 }
 
 export class IDBEventStore implements ILocalEventStore {
@@ -40,7 +46,7 @@ export class IDBEventStore implements ILocalEventStore {
     id: number,
     payload: unknown,
     timestamps?: { createdAt?: number; updatedAt?: number },
-  ): Promise<{ entry: EventEntry; created: boolean } | null> {
+  ): Promise<Result<{ entry: EventEntry; created: boolean }, WriteFailure>> {
     const existing = await this.readEvent(topic, id);
     const now = Date.now();
     const entry: StoredEvent = {
@@ -50,15 +56,15 @@ export class IDBEventStore implements ILocalEventStore {
       payload,
     };
     await this.#put(topic, entry);
-    return { entry: toEntry(entry), created: existing === null };
+    return ok({ entry: toEntry(entry), created: existing === null });
   }
 
-  async writeEvent(topic: string, payload: unknown): Promise<EventEntry | null> {
+  async writeEvent(topic: string, payload: unknown): Promise<Result<EventEntry, WriteFailure>> {
     const nextId = await this.#nextId(topic);
     const now = Date.now();
     const entry: StoredEvent = { id: nextId, createdAt: now, updatedAt: now, payload };
     await this.#put(topic, entry);
-    return toEntry(entry);
+    return ok(toEntry(entry));
   }
 
   // Removes an event by ID. Used to relocate an optimistic write to the server-assigned ID.
@@ -95,7 +101,8 @@ export class IDBEventStore implements ILocalEventStore {
   }
 
   async #readByIds(topic: string, ids: number[]): Promise<EventEntry[]> {
-    const results = await Promise.all(ids.map(id => this.db.get(IDB_EVENT_STORE, this.#key(topic, id))));
+    const keys = ids.map(id => this.#key(topic, id));
+    const results = await Promise.all(keys.map(key => this.db.get(IDB_EVENT_STORE, key)));
     return results
       .filter((result): result is StoredEvent => result !== undefined)
       .map(toEntry)

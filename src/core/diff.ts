@@ -18,7 +18,7 @@ export function getEmptyHashTable(): Promise<string[]> {
   return emptyHashTablePromise;
 }
 
-// Returns the Merkle path from the leaf containing id to the root — all node ranges to invalidate on write.
+// Returns the Merkle path from the leaf containing id to the root — node ranges to invalidate.
 export function merklePath(id: number): { start: number; end: number }[] {
   const path: { start: number; end: number }[] = [];
   let rangeStart = 0, rangeEnd = MERKLE_TREE_END;

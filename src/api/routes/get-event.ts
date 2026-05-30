@@ -20,7 +20,10 @@ type GetEventDeps = {
   storage: IReadEvent;
 };
 
-async function getEvent(deps: GetEventDeps, params: GetEventRequest): Promise<Result<EventEntry, RouteError>> {
+async function getEvent(
+  deps: GetEventDeps,
+  params: GetEventRequest,
+): Promise<Result<EventEntry, RouteError>> {
   const entry = await deps.storage.readEvent(params.topic, params.id);
 
   if (entry === null) {
@@ -30,7 +33,9 @@ async function getEvent(deps: GetEventDeps, params: GetEventRequest): Promise<Re
   return ok(entry);
 }
 
-export function getEventRoute(deps: GetEventDeps): Route<null, GetEventRequest, EventEntry, RouteSuccess, RouteError> {
+export function getEventRoute(
+  deps: GetEventDeps,
+): Route<null, GetEventRequest, EventEntry, RouteSuccess, RouteError> {
   return {
     parseRequest: pathParamParser(GetEventPathSchema),
     handle: getEvent.bind(null, deps),

@@ -1,14 +1,35 @@
-// Lint plugin — enforces that no identifier in a declaration context is a single letter.
-// Catches variable declarations, function/arrow parameters, and TypeScript type parameters.
-// The bare underscore `_` is exempt as the standard discard convention.
+// Lint plugin — local style rules for Common Storage.
+// no-single-letter-vars: no identifier in a declaration context may be a single letter.
+//   Catches variable declarations, function/arrow parameters, and TypeScript type parameters.
+//   The bare underscore `_` is exempt as the standard discard convention.
+// max-line-length: no source line may exceed MAX_LINE_LENGTH characters.
+
+// Maximum allowed characters per source line — discourages overly long lines.
+const MAX_LINE_LENGTH = 100;
 
 function isSingleLetter(name: string): boolean {
   return name.length === 1 && name !== "_";
 }
 
+// Reports every line in the source that exceeds MAX_LINE_LENGTH characters.
+function reportLongLines(ctx: Deno.lint.RuleContext): void {
+  const lines = ctx.sourceCode.text.split("\n");
+  let offset = 0;
+  for (const line of lines) {
+    if (line.length > MAX_LINE_LENGTH) {
+      ctx.report({
+        range: [offset, offset + line.length],
+        message: `Line exceeds ${MAX_LINE_LENGTH} characters (${line.length}).`,
+      });
+    }
+    offset += line.length + 1; // +1 for the stripped newline
+  }
+}
+
 function reportIfSingleLetter(ctx: Deno.lint.RuleContext, node: Deno.lint.Identifier): void {
   if (isSingleLetter(node.name)) {
-    ctx.report({ node, message: `Single-letter identifier '${node.name}' is not allowed — use a descriptive name.` });
+    const msg = `Single-letter identifier '${node.name}' is not allowed — use a descriptive name.`;
+    ctx.report({ node, message: msg });
   }
 }
 
@@ -38,6 +59,15 @@ export default {
           },
           TSTypeParameter(node: Deno.lint.TSTypeParameter) {
             if (node.name.type === "Identifier") reportIfSingleLetter(ctx, node.name);
+          },
+        };
+      },
+    },
+    "max-line-length": {
+      create(ctx: Deno.lint.RuleContext) {
+        return {
+          Program() {
+            reportLongLines(ctx);
           },
         };
       },

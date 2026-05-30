@@ -10,24 +10,40 @@ import { STREAM_POLL_INTERVAL_MS } from "../../commons/constants.ts";
 export function waitForPoll(signal: AbortSignal): Promise<void> {
   return new Promise<void>((resolve) => {
     const timer = setTimeout(resolve, STREAM_POLL_INTERVAL_MS);
-    signal.addEventListener("abort", () => { clearTimeout(timer); resolve(); }, { once: true });
+    const handleAbort = () => { clearTimeout(timer); resolve(); };
+    signal.addEventListener("abort", handleAbort, { once: true });
   });
 }
 
-export async function kvGet<Value>(kv: Deno.Kv, key: readonly Deno.KvKeyPart[]): Promise<Value | null> {
+export async function kvGet<Value>(
+  kv: Deno.Kv,
+  key: readonly Deno.KvKeyPart[],
+): Promise<Value | null> {
   const entry = await kv.get<Value>(key);
   return entry.value;
 }
 
-export function kvGetEntry<Value>(kv: Deno.Kv, key: readonly Deno.KvKeyPart[]): Promise<Deno.KvEntryMaybe<Value>> {
+export function kvGetEntry<Value>(
+  kv: Deno.Kv,
+  key: readonly Deno.KvKeyPart[],
+): Promise<Deno.KvEntryMaybe<Value>> {
   return kv.get<Value>(key);
 }
 
-export async function kvSet<Value>(kv: Deno.Kv, key: readonly Deno.KvKeyPart[], value: Value): Promise<void> {
+export async function kvSet<Value>(
+  kv: Deno.Kv,
+  key: readonly Deno.KvKeyPart[],
+  value: Value,
+): Promise<void> {
   await kv.set(key, value);
 }
 
-export async function kvSetWithExpiry<Value>(kv: Deno.Kv, key: readonly Deno.KvKeyPart[], value: Value, expireInMs: number): Promise<void> {
+export async function kvSetWithExpiry<Value>(
+  kv: Deno.Kv,
+  key: readonly Deno.KvKeyPart[],
+  value: Value,
+  expireInMs: number,
+): Promise<void> {
   await kv.set(key, value, { expireIn: expireInMs });
 }
 
@@ -40,7 +56,8 @@ export async function* kvList<Value>(
   selector: Deno.KvListSelector,
   options?: { limit?: number },
 ): AsyncGenerator<Deno.KvEntry<Value>> {
-  const kvOptions: Deno.KvListOptions = options?.limit !== undefined ? { limit: options.limit } : {};
+  const hasLimit = options?.limit !== undefined;
+  const kvOptions: Deno.KvListOptions = hasLimit ? { limit: options!.limit } : {};
   yield* kv.list<Value>(selector, kvOptions);
 }
 

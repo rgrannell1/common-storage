@@ -4,7 +4,7 @@ import { z } from "zod";
 import { ok, err, type Result } from "../../commons/types/result.ts";
 import type { RequestParts, RequestParser, ResponseParser } from "../../commons/types/parser.ts";
 import type { RouteError, RouteSuccess } from "../../commons/types/responses.ts";
-import { MAX_IDEMPOTENCY_KEY_BYTES } from "../../commons/constants.ts";
+import type { IValidateTopicPayload } from "./payload-schema.ts";
 
 // Builds a RequestParser that extracts query params from the URL matching the schema's shape.
 // Boolean fields are read as flags (present = true, absent = false); all others as strings.
@@ -38,9 +38,12 @@ export function queryParser<Shape extends z.ZodRawShape>(schema: z.ZodObject<Sha
   };
 }
 
-// Builds a ResponseParser that validates the outbound value against a schema and wraps it in RouteSuccess.
-// kind defaults to "ok"; pass "created" for 201 responses.
-export function responseParser<SchemaOutput>(schema: z.ZodType<SchemaOutput>, kind: "ok" | "created" = "ok"): ResponseParser<RouteSuccess, RouteError> {
+// Builds a ResponseParser that validates the outbound value against a schema and wraps
+// it in RouteSuccess. kind defaults to "ok"; pass "created" for 201 responses.
+export function responseParser<SchemaOutput>(
+  schema: z.ZodType<SchemaOutput>,
+  kind: "ok" | "created" = "ok",
+): ResponseParser<RouteSuccess, RouteError> {
   return (value: unknown): Result<RouteSuccess, RouteError> => {
     const parsed = schema.safeParse(value);
 
@@ -53,7 +56,9 @@ export function responseParser<SchemaOutput>(schema: z.ZodType<SchemaOutput>, ki
 }
 
 // Builds a RequestParser that reads and validates path parameters against a schema's shape.
-export function pathParamParser<SchemaShape extends z.ZodRawShape>(schema: z.ZodObject<SchemaShape>) {
+export function pathParamParser<SchemaShape extends z.ZodRawShape>(
+  schema: z.ZodObject<SchemaShape>,
+) {
   return (parts: RequestParts<unknown>): Result<z.infer<z.ZodObject<SchemaShape>>, RouteError> => {
     const parsed = schema.safeParse(parts.params);
 
@@ -88,17 +93,16 @@ export function bodyParser<SchemaOutput>(schema: z.ZodType<SchemaOutput>) {
   };
 }
 
-// Extracts the Idempotency-Key header as an optional string; rejects keys exceeding the length limit.
-export function idempotencyKeyParser() {
-  return (parts: RequestParts<unknown>): Result<{ idempotencyKey: string | undefined }, RouteError> => {
-    const raw = parts.headers.get("Idempotency-Key");
-    if (raw === null) return ok({ idempotencyKey: undefined });
-
-    if (raw.length > MAX_IDEMPOTENCY_KEY_BYTES) {
-      return err({ kind: "parse_request", field: "Idempotency-Key", message: `Idempotency-Key must be at most ${MAX_IDEMPOTENCY_KEY_BYTES} bytes` });
-    }
-
-    return ok({ idempotencyKey: raw });
+// Validates the request payload against the topic's registered JSON Schema. Reads the topic from
+// the path params and the payload from the body; contributes no fields, only a pass/fail verdict.
+// Returns a validation_error (422) on a schema mismatch.
+export function payloadParser(validator: IValidateTopicPayload) {
+  return (parts: RequestParts<unknown>): Result<Record<string, never>, RouteError> => {
+    const topic = parts.params.topic;
+    const payload = (parts.body as { payload?: unknown } | null)?.payload;
+    const error = validator.validate(topic, payload);
+    if (error !== null) return err({ kind: "validation_error", message: error });
+    return ok({});
   };
 }
 
@@ -110,16 +114,10 @@ export function acceptParser(mediaType: string) {
   };
 }
 
-// Captures the raw request body without validation; for routes that defer body parsing until the topic type is known.
+// Captures the raw request body without validation; for routes that defer body parsing until
+// the topic type is known.
 export function rawBodyParser(parts: RequestParts<unknown>): Result<{ body: unknown }, RouteError> {
   return ok({ body: parts.body });
-}
-
-// Extracts the verified Macaroon identifier from RequestParts so handlers can scope caches per caller.
-export function tokenIdParser() {
-  return (parts: RequestParts<unknown>): Result<{ tokenId: string }, RouteError> => {
-    return ok({ tokenId: parts.tokenId });
-  };
 }
 
 // Extracts the request AbortSignal so handlers can cancel work when the client disconnects.
@@ -146,8 +144,11 @@ export function mergeParser<ParsedA, ParsedB>(
   };
 }
 
-// Merges any number of RequestParsers, intersecting their output types. The caller's route type annotation provides the concrete result type.
+// Merges any number of RequestParsers, intersecting their output types. The caller's route
+// type annotation provides the concrete result type.
 // deno-lint-ignore no-explicit-any
-export function mergeAll(...parsers: Array<RequestParser<any, unknown, RouteError>>): RequestParser<any, unknown, RouteError> {
+type AnyRequestParser = RequestParser<any, unknown, RouteError>;
+
+export function mergeAll(...parsers: AnyRequestParser[]): AnyRequestParser {
   return parsers.reduce(mergeParser);
 }

@@ -1,9 +1,22 @@
-// DenoKVBackend — raw KV primitives + composer that wires the four service stores into IFullStorage.
+// DenoKVBackend — raw KV primitives + composer that wires the four service stores.
 // Also implements ISyncBackend so it can be used directly with CommonStorageNode.
 // @work.md
 
 import type { IAtomicWriter, IStorageBackend } from "./backend.ts";
-import type { IFullStorage, TopicStats, Subscription, EventEntry, ReadEventOptions, UpdateEventTimestamps, MerkleDiffRequest, MerkleDiffResponse, ObjectEntry, ObjectDiffResponse } from "../capabilities.ts";
+import type {
+  IFullStorage,
+  TopicStats,
+  Subscription,
+  EventEntry,
+  ReadEventOptions,
+  UpdateEventTimestamps,
+  MerkleDiffRequest,
+  MerkleDiffResponse,
+  ObjectEntry,
+  ObjectDiffResponse,
+  WriteFailure,
+} from "../capabilities.ts";
+import type { Result } from "../../commons/types/result.ts";
 import type { ISyncBackend, ILocalEventStore, ILocalObjectStore } from "../backend.ts";
 import type { ICursorStore } from "../backend.ts";
 import type { TopicConfig } from "../../commons/config.ts";
@@ -73,7 +86,11 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage, ISyncBacken
     return kvSet<Value>(this.kv!, key, value);
   }
 
-  setWithExpiry<Value>(key: readonly Deno.KvKeyPart[], value: Value, expireInMs: number): Promise<void> {
+  setWithExpiry<Value>(
+    key: readonly Deno.KvKeyPart[],
+    value: Value,
+    expireInMs: number,
+  ): Promise<void> {
     this.#assertInitialised();
     if (this.ops) this.ops.writes++;
     return kvSetWithExpiry<Value>(this.kv!, key, value, expireInMs);
@@ -85,7 +102,10 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage, ISyncBacken
     return kvDelete(this.kv!, key);
   }
 
-  async *list<Value>(selector: Deno.KvListSelector, options?: { limit?: number }): AsyncGenerator<Deno.KvEntry<Value>> {
+  async *list<Value>(
+    selector: Deno.KvListSelector,
+    options?: { limit?: number },
+  ): AsyncGenerator<Deno.KvEntry<Value>> {
     this.#assertInitialised();
     if (this.ops) this.ops.lists++;
     for await (const item of kvList<Value>(this.kv!, selector, options)) {
@@ -123,7 +143,7 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage, ISyncBacken
 
   // -- IEventService --
 
-  writeEvent(topic: string, payload: unknown): Promise<EventEntry | null> {
+  writeEvent(topic: string, payload: unknown): Promise<Result<EventEntry, WriteFailure>> {
     return this.eventStore.writeEvent(topic, payload);
   }
 
@@ -135,11 +155,20 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage, ISyncBacken
     return this.eventStore.readEvent(topic, id);
   }
 
-  updateEvent(topic: string, id: number, payload: unknown, timestamps?: UpdateEventTimestamps): Promise<{ entry: EventEntry; created: boolean } | null> {
+  updateEvent(
+    topic: string,
+    id: number,
+    payload: unknown,
+    timestamps?: UpdateEventTimestamps,
+  ): Promise<Result<{ entry: EventEntry; created: boolean }, WriteFailure>> {
     return this.eventStore.updateEvent(topic, id, payload, timestamps);
   }
 
-  async *streamEvents(topic: string, startId: number, signal: AbortSignal): AsyncGenerator<EventEntry> {
+  async *streamEvents(
+    topic: string,
+    startId: number,
+    signal: AbortSignal,
+  ): AsyncGenerator<EventEntry> {
     yield* this.eventStore.streamEvents(topic, startId, signal);
   }
 
@@ -149,7 +178,12 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage, ISyncBacken
 
   // -- IObjectService --
 
-  upsertObject(topic: string, id: string, payload: unknown, timestamps?: { createdAt?: number; updatedAt?: number; seq?: number }): Promise<ObjectEntry | null> {
+  upsertObject(
+    topic: string,
+    id: string,
+    payload: unknown,
+    timestamps?: { createdAt?: number; updatedAt?: number; seq?: number },
+  ): Promise<Result<ObjectEntry, WriteFailure>> {
     return this.objectStore.upsertObject(topic, id, payload, timestamps);
   }
 
@@ -157,7 +191,11 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage, ISyncBacken
     return this.objectStore.readObject(topic, id);
   }
 
-  deleteObject(topic: string, id: string, timestamps?: { createdAt?: number; updatedAt?: number; seq?: number }): Promise<ObjectEntry | null> {
+  deleteObject(
+    topic: string,
+    id: string,
+    timestamps?: { createdAt?: number; updatedAt?: number; seq?: number },
+  ): Promise<ObjectEntry | null> {
     return this.objectStore.deleteObject(topic, id, timestamps);
   }
 
@@ -165,11 +203,18 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage, ISyncBacken
     return this.objectStore.readObjects(topic);
   }
 
-  readObjectsBySeq(topic: string, opts: { start?: number; size?: number }): Promise<ObjectEntry[] | null> {
+  readObjectsBySeq(
+    topic: string,
+    opts: { start?: number; size?: number },
+  ): Promise<ObjectEntry[] | null> {
     return this.objectStore.readObjectsBySeq(topic, opts);
   }
 
-  async *streamObjects(topic: string, startSeq: number, signal: AbortSignal): AsyncGenerator<ObjectEntry> {
+  async *streamObjects(
+    topic: string,
+    startSeq: number,
+    signal: AbortSignal,
+  ): AsyncGenerator<ObjectEntry> {
     yield* this.objectStore.streamObjects(topic, startSeq, signal);
   }
 
@@ -183,11 +228,20 @@ export class DenoKVBackend implements IStorageBackend, IFullStorage, ISyncBacken
 
   // -- IIdempotencyService --
 
-  readIdempotencyEntry(namespace: string, topic: string, key: string): Promise<unknown | null> {
+  readIdempotencyEntry(
+    namespace: string,
+    topic: string,
+    key: string,
+  ): Promise<unknown | null> {
     return this.idempotencyStore.readIdempotencyEntry(namespace, topic, key);
   }
 
-  writeIdempotencyEntry(namespace: string, topic: string, key: string, entry: unknown): Promise<void> {
+  writeIdempotencyEntry(
+    namespace: string,
+    topic: string,
+    key: string,
+    entry: unknown,
+  ): Promise<void> {
     return this.idempotencyStore.writeIdempotencyEntry(namespace, topic, key, entry);
   }
 

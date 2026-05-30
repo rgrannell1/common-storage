@@ -8,15 +8,22 @@ export type RequestParts<Body> = {
   body: Body;
   params: Record<string, string>;
   signal: AbortSignal;
-  // Macaroon identifier of the verified token; set by auth middleware; used to scope idempotency caches per caller
+  // Macaroon identifier of the verified token; set by auth middleware; used to scope
+  // idempotency caches per caller
   tokenId: string;
 };
 
-export type RequestParser<Parsed, Body, Failure> = (parts: RequestParts<Body>) => Result<Parsed, Failure>;
+export type RequestParser<Parsed, Body, Failure> = (
+  parts: RequestParts<Body>,
+) => Result<Parsed, Failure>;
 
-export type ResponseParser<Parsed, Failure> = (value: unknown) => Result<Parsed, Failure>;
+export type ResponseParser<Parsed, Failure> = (
+  value: unknown,
+) => Result<Parsed, Failure>;
 
-export type RouteHandler<Params, Output, Failure> = (params: Params) => Promise<Result<Output, Failure>>;
+export type RouteHandler<Params, Output, Failure> = (
+  params: Params,
+) => Promise<Result<Output, Failure>>;
 
 export type Route<Body, Params, HandlerOutput, ResponseOutput, Failure> = {
   parseRequest: RequestParser<Params, Body, Failure>;

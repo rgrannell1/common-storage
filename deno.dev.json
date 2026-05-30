@@ -16,6 +16,8 @@
     "@std/testing/time": "jsr:@std/testing@^1/time",
     "@deno-libs/superfetch": "jsr:@deno-libs/superfetch@^3",
     "jmespath": "npm:jmespath@^0.16",
-    "peach": "../peach.ts/src/mod.ts"
+    "peach": "../peach.ts/src/mod.ts",
+    "qrcode": "npm:qrcode@^1.5.4",
+    "@types/qrcode": "npm:@types/qrcode@^1.5.6"
   }
 }

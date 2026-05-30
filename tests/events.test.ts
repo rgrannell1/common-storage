@@ -106,7 +106,10 @@ Deno.test("Proves GET /events/:topic ?size limits the number of entries returned
     const res = await fetch("/events/logs?size=2");
     const { entries } = await res.json() as { entries: unknown[] };
 
-    if (entries.length !== 2) throw new Error(`Expected 2 entries with size=2, got ${entries.length}`);
+    const expectedSize = 2;
+    if (entries.length !== expectedSize) {
+      throw new Error(`Expected ${expectedSize} entries with size=2, got ${entries.length}`);
+    }
   } finally {
     await cleanup();
   }
@@ -129,7 +132,10 @@ Deno.test("Proves GET /events/:topic ?start returns entries from that ID onward"
     const res = await fetch("/events/logs?start=2");
     const { entries } = await res.json() as { entries: Array<{ id: number }> };
 
-    if (entries.length !== 2) throw new Error(`Expected 2 entries with start=2, got ${entries.length}`);
+    const startExpectedSize = 2;
+    if (entries.length !== startExpectedSize) {
+      throw new Error(`Expected ${startExpectedSize} entries with start=2, got ${entries.length}`);
+    }
     if (entries[0].id !== 2) throw new Error(`Expected first entry id=2, got ${entries[0].id}`);
   } finally {
     await cleanup();
@@ -144,12 +150,14 @@ type NextIdCase = {
 };
 
 const NEXT_ID_CASES: NextIdCase[] = [
-  // full page: server cannot tell if more entries exist, so next points past last returned id
+  // full page: server cannot tell if more entries exist, so next points past
+  // last returned id
   { label: "full page → next points past last entry", writeCount: 3, size: 2, expectedNext: 3 },
   // partial page: fewer entries than requested, topic is exhausted
-  { label: "partial page → next is null",             writeCount: 3, size: 4, expectedNext: null },
-  // exact fit: server still cannot distinguish end-of-topic from a full page without a lookahead read
-  { label: "exact fit → next is non-null",            writeCount: 3, size: 3, expectedNext: 4 },
+  { label: "partial page → next is null", writeCount: 3, size: 4, expectedNext: null },
+  // exact fit: server still cannot distinguish end-of-topic from a full page
+  // without a lookahead read
+  { label: "exact fit → next is non-null", writeCount: 3, size: 3, expectedNext: 4 },
 ];
 
 for (const { label, writeCount, size, expectedNext } of NEXT_ID_CASES) {
@@ -191,22 +199,38 @@ Deno.test("Proves GET /events/:topic next id can be used to continue pagination"
       await (await fetch("/events/logs", postInit)).json();
     }
 
-    const page1 = await (await fetch("/events/logs?size=2")).json() as { entries: Array<{ id: number }>; next: number | null };
-    if (page1.entries.length !== 2) throw new Error(`Page 1: expected 2 entries, got ${page1.entries.length}`);
+    type PageResponse = { entries: Array<{ id: number }>; next: number | null };
+    const page1 = await (await fetch("/events/logs?size=2")).json() as PageResponse;
+    if (page1.entries.length !== 2) {
+      throw new Error(`Page 1: expected 2 entries, got ${page1.entries.length}`);
+    }
     if (page1.next === null) throw new Error("Page 1: expected non-null next");
 
-    // Page 2 returns exactly size=2 entries, so next is non-null — server cannot distinguish end-of-topic from a full page
-    const page2 = await (await fetch(`/events/logs?size=2&start=${page1.next}`)).json() as { entries: Array<{ id: number }>; next: number | null };
-    if (page2.entries.length !== 2) throw new Error(`Page 2: expected 2 entries, got ${page2.entries.length}`);
-    if (page2.next === null) throw new Error("Page 2: expected non-null next (exact fit, lookahead required to confirm end)");
+    // Page 2 returns exactly size=2 entries, so next is non-null — server cannot
+    // distinguish end-of-topic from a full page
+    const page2Url = `/events/logs?size=2&start=${page1.next}`;
+    const page2 = await (await fetch(page2Url)).json() as PageResponse;
+    if (page2.entries.length !== 2) {
+      throw new Error(`Page 2: expected 2 entries, got ${page2.entries.length}`);
+    }
+    const page2ErrorMsg =
+      "Page 2: expected non-null next (exact fit, lookahead required to confirm end)";
+    if (page2.next === null) throw new Error(page2ErrorMsg);
 
     // Page 3 is empty — confirms topic is exhausted
-    const page3 = await (await fetch(`/events/logs?size=2&start=${page2.next}`)).json() as { entries: Array<{ id: number }>; next: number | null };
-    if (page3.entries.length !== 0) throw new Error(`Page 3: expected 0 entries, got ${page3.entries.length}`);
+    const page3Url = `/events/logs?size=2&start=${page2.next}`;
+    const page3 = await (await fetch(page3Url)).json() as PageResponse;
+    if (page3.entries.length !== 0) {
+      throw new Error(`Page 3: expected 0 entries, got ${page3.entries.length}`);
+    }
     if (page3.next !== null) throw new Error(`Page 3: expected null next, got ${page3.next}`);
 
     const allIds = [...page1.entries, ...page2.entries].map(entry => entry.id);
-    if (allIds.join(",") !== "1,2,3,4") throw new Error(`Expected ids 1,2,3,4 across pages, got ${allIds.join(",")}`);
+    const expectedIds = "1,2,3,4";
+    const actualIds = allIds.join(",");
+    if (actualIds !== expectedIds) {
+      throw new Error(`Expected ids ${expectedIds} across pages, got ${actualIds}`);
+    }
   } finally {
     await cleanup();
   }
@@ -237,9 +261,19 @@ for (const { label, body } of INVALID_POST_EVENT_PAYLOAD_CASES) {
 Deno.test("Proves POST /events/:topic never returns 5xx for arbitrary JSON payloads", async () => {
   const { request, cleanup } = await makeTestContext([{ name: "logs" }]);
   try {
-    const keyFuzzer = Peach.String.from(Peach.String.letters(Peach.Number.uniform), Peach.Number.uniform(1, 10));
-    const valueFuzzer = Peach.String.from(Peach.String.letters(Peach.Number.uniform), Peach.Number.uniform(0, 20));
-    const payloadFuzzer = Peach.Object.from(keyFuzzer, valueFuzzer, Peach.Number.uniform(0, 5));
+    const keyFuzzer = Peach.String.from(
+      Peach.String.letters(Peach.Number.uniform),
+      Peach.Number.uniform(1, 10)
+    );
+    const valueFuzzer = Peach.String.from(
+      Peach.String.letters(Peach.Number.uniform),
+      Peach.Number.uniform(0, 20)
+    );
+    const payloadFuzzer = Peach.Object.from(
+      keyFuzzer,
+      valueFuzzer,
+      Peach.Number.uniform(0, 5)
+    );
 
     for (let idx = 0; idx < 50; idx++) {
       const res = await request("/events/logs", jsonPost({ payload: payloadFuzzer() }));

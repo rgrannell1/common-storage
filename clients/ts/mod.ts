@@ -111,11 +111,13 @@ export class CmstrClient {
       ids: input.ids?.join(","),
       filter: input.filter,
     };
-    return await this.request("GET", `/events/${encodeURIComponent(input.topic)}`, { query }) as EventsResponse;
+    const path = `/events/${encodeURIComponent(input.topic)}`;
+    return await this.request("GET", path, { query }) as EventsResponse;
   }
 
   async getEvent(input: GetEventInput): Promise<EventEntry> {
-    return await this.request("GET", `/events/${encodeURIComponent(input.topic)}/${input.id}`) as EventEntry;
+    const path = `/events/${encodeURIComponent(input.topic)}/${input.id}`;
+    return await this.request("GET", path) as EventEntry;
   }
 
   async postEvent(input: PostEventInput): Promise<EventEntry> {
@@ -134,22 +136,29 @@ export class CmstrClient {
 
   async getObjects(input: GetObjectsInput): Promise<ObjectEntry[]> {
     const query: Record<string, string | undefined> = { filter: input.filter };
-    return await this.request("GET", `/objects/${encodeURIComponent(input.topic)}`, { query }) as ObjectEntry[];
+    const path = `/objects/${encodeURIComponent(input.topic)}`;
+    return await this.request("GET", path, { query }) as ObjectEntry[];
   }
 
   async getObject(input: GetObjectInput): Promise<ObjectEntry> {
-    return await this.request("GET", `/objects/${encodeURIComponent(input.topic)}/${encodeURIComponent(input.id)}`) as ObjectEntry;
+    const encodedId = encodeURIComponent(input.id);
+    const path = `/objects/${encodeURIComponent(input.topic)}/${encodedId}`;
+    return await this.request("GET", path) as ObjectEntry;
   }
 
   async putObject(input: PutObjectInput): Promise<ObjectEntry> {
-    return await this.request("PUT", `/objects/${encodeURIComponent(input.topic)}/${encodeURIComponent(input.id)}`, {
+    const encodedId = encodeURIComponent(input.id);
+    const path = `/objects/${encodeURIComponent(input.topic)}/${encodedId}`;
+    return await this.request("PUT", path, {
       body: { payload: input.payload },
       idempotencyKey: input.idempotencyKey,
     }) as ObjectEntry;
   }
 
   async deleteObject(input: DeleteObjectInput): Promise<ObjectEntry> {
-    return await this.request("DELETE", `/objects/${encodeURIComponent(input.topic)}/${encodeURIComponent(input.id)}`) as ObjectEntry;
+    const encodedId = encodeURIComponent(input.id);
+    const path = `/objects/${encodeURIComponent(input.topic)}/${encodedId}`;
+    return await this.request("DELETE", path) as ObjectEntry;
   }
 
   async postDiff(input: PostDiffInput): Promise<PostDiffResult> {
@@ -168,7 +177,9 @@ export class CmstrClient {
       headers: { Authorization: `Bearer ${this.token}`, Accept: "application/x-ndjson" },
     });
 
-    if (!response.ok || !response.body) throw new CmstrError(response.status, await response.json());
+    if (!response.ok || !response.body) {
+      throw new CmstrError(response.status, await response.json());
+    }
 
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
     let remainder = "";
@@ -202,7 +213,9 @@ export class CmstrClient {
       headers: { Authorization: `Bearer ${this.token}`, Accept: "application/x-ndjson" },
     });
 
-    if (!response.ok || !response.body) throw new CmstrError(response.status, await response.json());
+    if (!response.ok || !response.body) {
+      throw new CmstrError(response.status, await response.json());
+    }
 
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
     let remainder = "";

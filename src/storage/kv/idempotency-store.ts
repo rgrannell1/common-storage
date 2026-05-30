@@ -12,7 +12,18 @@ export class KvIdempotencyStore implements IIdempotencyService {
     return Idempotency.readIdempotencyEntry(this.storage, namespace, topic, key);
   }
 
-  writeIdempotencyEntry(namespace: string, topic: string, key: string, entry: unknown): Promise<void> {
-    return Idempotency.writeIdempotencyEntry(this.storage, namespace, topic, key, entry);
+  writeIdempotencyEntry(
+    namespace: string,
+    topic: string,
+    key: string,
+    entry: unknown,
+  ): Promise<void> {
+    return Idempotency.writeIdempotencyEntry(
+      this.storage,
+      namespace,
+      topic,
+      key,
+      entry,
+    );
   }
 }

@@ -27,10 +27,19 @@ export class IDBMerkleStore implements ILocalMerkleStore {
   constructor(
     private readonly db: IDBDatabase,
     private readonly storeName: string,
-    // Reads entry summaries with id (or seq for objects) in (start, end], sorted ascending.
-    private readonly readSummaries: (topic: string, start: number, end: number) => Promise<RangeSummary[]>,
+    // Reads entry summaries with id (or seq for objects) in (start, end], sorted
+    // ascending.
+    private readonly readSummaries: (
+      topic: string,
+      start: number,
+      end: number,
+    ) => Promise<RangeSummary[]>,
     // Returns true if no entry exists with id (or seq) in (start, end].
-    private readonly isRangeEmpty: (topic: string, start: number, end: number) => Promise<boolean>,
+    private readonly isRangeEmpty: (
+      topic: string,
+      start: number,
+      end: number,
+    ) => Promise<boolean>,
   ) {}
 
   // Returns a topic-bound view compatible with IMerkleTree for use in merkleDiff.
@@ -56,7 +65,8 @@ export class IDBMerkleStore implements ILocalMerkleStore {
     await tx.done;
   }
 
-  // Invalidates both old and new seq paths in a single transaction — handles objects where seq changes on update.
+  // Invalidates both old and new seq paths in a single transaction — handles objects
+  // where seq changes on update.
   async invalidatePaths(topic: string, newId: number, oldId?: number): Promise<void> {
     if (oldId === undefined || oldId === newId) {
       return this.invalidatePath(topic, newId);

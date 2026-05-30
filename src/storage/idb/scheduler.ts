@@ -7,7 +7,10 @@ export class SetIntervalScheduler implements IScheduler {
 
   schedule(id: string, intervalMs: number, fn: () => Promise<void>): void {
     if (this.handles.has(id)) return;
-    const handle = setInterval(() => { fn().catch(err => console.error("[cmstr] unhandled scheduler error", err)); }, intervalMs);
+    const callback = () => {
+      fn().catch(err => console.error("[cmstr] unhandled scheduler error", err));
+    };
+    const handle = setInterval(callback, intervalMs);
     this.handles.set(id, handle);
   }
 

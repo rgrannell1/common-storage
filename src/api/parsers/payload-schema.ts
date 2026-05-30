@@ -1,4 +1,5 @@
-// Ajv-based topic payload validation — compiles JSON Schema files at startup, validates writes at runtime
+// Ajv-based topic payload validation — compiles JSON Schema files at startup, validates
+// writes at runtime
 // @work.md
 
 // deno-lint-ignore-file no-explicit-any

@@ -20,7 +20,13 @@ function frequencyToCron(frequencySeconds: number): string {
   return hours === 1 ? "0 * * * *" : `0 */${hours} * * *`;
 }
 
-export function startSubscriptions(configs: SubscriptionConfig[], storage: SchedulerStorage, logger: ILogger): () => void {
+type CleanupFunction = () => void;
+
+export function startSubscriptions(
+  configs: SubscriptionConfig[],
+  storage: SchedulerStorage,
+  logger: ILogger,
+): CleanupFunction {
   const cleanups = configs.map(config =>
     startCron(`cmstr-sub-${config.topic}`, frequencyToCron(config.frequency), async () => {
       try {

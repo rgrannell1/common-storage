@@ -8,8 +8,11 @@ import type { TokenCaveatsConfig } from "./config.ts";
 import { ok, err, type Result } from "./types/result.ts";
 import type { AuthError } from "./types/auth.ts";
 
-const { MacaroonsBuilder, MacaroonsVerifier, verifier: macaroonVerifiers } = macaroons as any;
-const TimestampCaveatVerifier = macaroonVerifiers.TimestampCaveatVerifier as (caveat: string) => boolean;
+const { MacaroonsBuilder, MacaroonsVerifier, verifier: macaroonVerifiers } =
+  macaroons as any;
+const TimestampCaveatVerifier = macaroonVerifiers.TimestampCaveatVerifier as (
+  caveat: string,
+) => boolean;
 
 // Embedded in every minted Macaroon as the location field
 const MACAROON_LOCATION = "common-storage";
@@ -81,7 +84,8 @@ export function mintToken(rootKey: string, name: string, caveats: TokenCaveatsCo
     builder = builder.add_first_party_caveat(`topic = ${caveats.topic}`);
   }
   if (caveats.methods !== undefined) {
-    builder = builder.add_first_party_caveat(`${METHODS_CAVEAT_PREFIX}${caveats.methods.join(",")}`);
+    const methodsCaveat = `${METHODS_CAVEAT_PREFIX}${caveats.methods.join(",")}`;
+    builder = builder.add_first_party_caveat(methodsCaveat);
   }
   if (caveats.expires !== undefined) {
     builder = builder.add_first_party_caveat(`time < ${caveats.expires}`);
@@ -93,7 +97,8 @@ export function mintToken(rootKey: string, name: string, caveats: TokenCaveatsCo
 // Verifies a serialised Macaroon token against the root key and request context.
 // Two-pass: first satisfies all caveats to isolate the HMAC check (→ invalid),
 // then re-verifies with real context to distinguish caveat failures (→ forbidden).
-// Returns the Macaroon identifier (the name used at mint time) on success; used to scope idempotency caches per caller.
+// Returns the Macaroon identifier (the name used at mint time) on success; used to scope
+// idempotency caches per caller.
 export function verifyToken(
   rootKey: string,
   token: string,

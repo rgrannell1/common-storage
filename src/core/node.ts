@@ -20,7 +20,7 @@ export type EventSubscription = {
   remoteUrl: string;
   token: string;
   intervalMs: number;
-  // How long to tail the NDJSON stream after each diff round-trip (ms). Defaults to TAIL_DURATION_MS.
+  // Tail duration in ms after each diff round-trip. Defaults to TAIL_DURATION_MS.
   tailDurationMs?: number;
 };
 
@@ -60,8 +60,14 @@ export class CommonStorageNode {
     this.scheduler = services.scheduler;
     this.logger = services.logger ?? new NoopLogger();
 
-    const events = (subscriptions.events ?? []).map(sub => ({ topicType: "event" as const, ...sub }));
-    const objects = (subscriptions.objects ?? []).map(sub => ({ topicType: "object" as const, ...sub }));
+    const events = (subscriptions.events ?? []).map((sub) => ({
+      topicType: "event" as const,
+      ...sub,
+    }));
+    const objects = (subscriptions.objects ?? []).map((sub) => ({
+      topicType: "object" as const,
+      ...sub,
+    }));
     this.subscriptions = [...events, ...objects];
   }
 
@@ -69,7 +75,8 @@ export class CommonStorageNode {
 
   start(): void {
     for (const sub of this.subscriptions) {
-      this.scheduler.schedule(`cmstr-sync-${sub.topic}`, sub.intervalMs, () => this.sync(sub.topic));
+      const syncId = `cmstr-sync-${sub.topic}`;
+      this.scheduler.schedule(syncId, sub.intervalMs, () => this.sync(sub.topic));
     }
   }
 
@@ -107,8 +114,9 @@ export class CommonStorageNode {
   // -- Event topic writes (optimistic: local first, then push to remote) --
 
   async postEvent(topic: string, payload: unknown): Promise<EventEntry | null> {
-    const local = await this.backend.events.writeEvent(topic, payload);
-    if (!local) return null;
+    const localResult = await this.backend.events.writeEvent(topic, payload);
+    if (!localResult.ok) return null;
+    const local = localResult.value;
 
     await this.backend.merkleEvents?.invalidatePath(topic, local.id);
     this.#emit({ type: "upsert", topic, entry: local });
@@ -124,7 +132,11 @@ export class CommonStorageNode {
   // Replaces an optimistic local event with the server's authoritative copy: deletes the
   // local entry if its ID differs, then writes the server ID + timestamps so local diff
   // hashes match the server exactly. Invalidates both Merkle paths and emits the result.
-  async #adoptServerEvent(topic: string, local: EventEntry, remote: EventEntry): Promise<EventEntry> {
+  async #adoptServerEvent(
+    topic: string,
+    local: EventEntry,
+    remote: EventEntry,
+  ): Promise<EventEntry> {
     if (remote.id !== local.id) {
       await this.backend.events.deleteEvent?.(topic, local.id);
       await this.backend.merkleEvents?.invalidatePath(topic, local.id);
@@ -133,7 +145,7 @@ export class CommonStorageNode {
       createdAt: remote.createdAt,
       updatedAt: remote.updatedAt,
     });
-    const entry = result?.entry ?? remote;
+    const entry = result.ok ? result.value.entry : remote;
     await this.backend.merkleEvents?.invalidatePath(topic, remote.id);
     this.#emit({ type: "upsert", topic, entry });
     return entry;
@@ -141,12 +153,12 @@ export class CommonStorageNode {
 
   async putEvent(topic: string, id: number, payload: unknown): Promise<EventEntry | null> {
     const result = await this.backend.events.updateEvent(topic, id, payload);
-    if (result) {
-      await this.backend.merkleEvents?.invalidatePath(topic, result.entry.id);
-      this.#emit({ type: "upsert", topic, entry: result.entry });
-      await this.#pushEvent(topic, "PUT", payload, id);
-    }
-    return result?.entry ?? null;
+    if (!result.ok) return null;
+    const entry = result.value.entry;
+    await this.backend.merkleEvents?.invalidatePath(topic, entry.id);
+    this.#emit({ type: "upsert", topic, entry });
+    await this.#pushEvent(topic, "PUT", payload, id);
+    return entry;
   }
 
   // -- Object topic reads --
@@ -155,18 +167,21 @@ export class CommonStorageNode {
     return this.backend.objects.readObject(topic, id);
   }
 
-  getObjects(topic: string, opts: { start?: number; size?: number } = {}): Promise<ObjectEntry[] | null> {
+  getObjects(
+    topic: string,
+    opts: { start?: number; size?: number } = {},
+  ): Promise<ObjectEntry[] | null> {
     return this.backend.objects.readObjectsBySeq(topic, opts);
   }
 
   // -- Object topic writes (optimistic: local first, then push to remote) --
 
   async putObject(topic: string, id: string, payload: unknown): Promise<ObjectEntry | null> {
-    const entry = await this.backend.objects.upsertObject(topic, id, payload);
-    if (entry) {
-      this.#emit({ type: "upsert", topic, entry });
-      await this.#pushObject(topic, id, "PUT", payload);
-    }
+    const result = await this.backend.objects.upsertObject(topic, id, payload);
+    if (!result.ok) return null;
+    const entry = result.value;
+    this.#emit({ type: "upsert", topic, entry });
+    await this.#pushObject(topic, id, "PUT", payload);
     return entry;
   }
 
@@ -219,7 +234,12 @@ export class CommonStorageNode {
   // Pushes a write to the remote and returns the server's authoritative EventEntry on success
   // (carrying the server-assigned ID and timestamps), or null if the push failed or the topic
   // is not a subscription. Callers use the returned entry to reconcile local optimistic state.
-  async #pushEvent(topic: string, method: "POST" | "PUT", payload: unknown, id?: number): Promise<EventEntry | null> {
+  async #pushEvent(
+    topic: string,
+    method: "POST" | "PUT",
+    payload: unknown,
+    id?: number,
+  ): Promise<EventEntry | null> {
     const sub = this.subscriptions.find(declared => declared.topic === topic);
     if (!sub) return null;
     const url = method === "POST"
@@ -241,7 +261,12 @@ export class CommonStorageNode {
     return await res.json().catch(() => null) as EventEntry | null;
   }
 
-  async #pushObject(topic: string, id: string, method: "PUT" | "DELETE", payload?: unknown): Promise<void> {
+  async #pushObject(
+    topic: string,
+    id: string,
+    method: "PUT" | "DELETE",
+    payload?: unknown,
+  ): Promise<void> {
     const sub = this.subscriptions.find(declared => declared.topic === topic);
     if (!sub) return;
     const url = `${sub.remoteUrl}/objects/${topic}/${id}`;

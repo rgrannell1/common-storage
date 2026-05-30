@@ -6,19 +6,33 @@ import type { EventEntry, ReadEventOptions } from "../../capabilities.ts";
 import type { StoredTopic, StoredEvent } from "../types/stored-types.ts";
 import { KV_TOPIC, KV_EVENT } from "../keys.ts";
 
-export async function readEvent(storage: IStorageBackend, topic: string, id: number): Promise<EventEntry | null> {
+export async function readEvent(
+  storage: IStorageBackend,
+  topic: string,
+  id: number,
+): Promise<EventEntry | null> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
   if (!meta) return null;
 
   return storage.get<StoredEvent>([...KV_EVENT, topic, id]);
 }
 
-async function readEventsByIds(storage: IStorageBackend, topic: string, ids: number[]): Promise<EventEntry[]> {
-  const results = await Promise.all(ids.map(id => storage.get<StoredEvent>([...KV_EVENT, topic, id])));
+async function readEventsByIds(
+  storage: IStorageBackend,
+  topic: string,
+  ids: number[],
+): Promise<EventEntry[]> {
+  const getEvent = (eventId: number) =>
+    storage.get<StoredEvent>([...KV_EVENT, topic, eventId]);
+  const results = await Promise.all(ids.map(getEvent));
   return results.flatMap(item => item !== null ? [item] : []);
 }
 
-export async function readEvents(storage: IStorageBackend, topic: string, opts: ReadEventOptions): Promise<EventEntry[] | null> {
+export async function readEvents(
+  storage: IStorageBackend,
+  topic: string,
+  opts: ReadEventOptions,
+): Promise<EventEntry[] | null> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
   if (!meta) return null;
 

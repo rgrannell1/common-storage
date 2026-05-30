@@ -1,6 +1,6 @@
 // KV-backed request metrics collector and Hono middleware for aspect-oriented stat gathering.
-// Counters and per-minute buckets are persisted to KV so they survive isolate restarts on Deno Deploy.
-// Storage concerns live in emitter.ts.
+// Counters and per-minute buckets are persisted to KV so they survive isolate restarts on
+// Deno Deploy. Storage concerns live in emitter.ts.
 
 import type { MiddlewareHandler } from "hono";
 import type { IStorageBackend } from "../../storage/kv/backend.ts";
@@ -88,7 +88,10 @@ export class MetricsCollector {
       now - METRICS_RATE_WINDOW_1D_MINUTES * MS_PER_MINUTE,
     ];
     const totals: [number, number, number, number] = [0, 0, 0, 0];
-    for await (const { key, value } of this.#storage.list<MinuteBucket>({ prefix: METRICS_BUCKET_PREFIX })) {
+    const bucketList = this.#storage.list<MinuteBucket>({
+      prefix: METRICS_BUCKET_PREFIX,
+    });
+    for await (const { key, value } of bucketList) {
       const minuteStart = Number(key.at(-1));
       if (!Number.isFinite(minuteStart)) continue;
       for (let idx = 0; idx < cutoffs.length; idx++) {
@@ -100,7 +103,10 @@ export class MetricsCollector {
 
   async snapshot(): Promise<MetricsSnapshot> {
     const now = Date.now();
-    const counters = await this.#storage.get<MetricsCounters>(METRICS_COUNTERS_KEY) ?? emptyCounters();
+    const countersRaw = await this.#storage.get<MetricsCounters>(
+      METRICS_COUNTERS_KEY,
+    );
+    const counters = countersRaw ?? emptyCounters();
     const [rate1m, rate5m, rate1h, rate1d] = await this.#computeRates(now);
 
     return {
@@ -114,7 +120,8 @@ export class MetricsCollector {
 
 // Hono middleware that records method and response status into the collector after each request.
 // Awaited so the KV write completes before the isolate exits on Deno Deploy.
-// Errors from record() are swallowed — a KV failure must not convert a successful response into 500.
+// Errors from record() are swallowed — a KV failure must not convert a successful response
+// into 500.
 export function metricsMiddleware(collector: MetricsCollector): MiddlewareHandler {
   return async (ctx, next) => {
     await next();

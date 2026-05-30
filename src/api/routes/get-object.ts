@@ -20,7 +20,10 @@ type GetObjectDeps = {
   storage: IReadObject;
 };
 
-async function getObject(deps: GetObjectDeps, params: GetObjectRequest): Promise<Result<ObjectEntry, RouteError>> {
+async function getObject(
+  deps: GetObjectDeps,
+  params: GetObjectRequest,
+): Promise<Result<ObjectEntry, RouteError>> {
   const entry = await deps.storage.readObject(params.topic, params.id);
 
   if (entry === null) {
@@ -30,7 +33,9 @@ async function getObject(deps: GetObjectDeps, params: GetObjectRequest): Promise
   return ok(entry);
 }
 
-export function getObjectRoute(deps: GetObjectDeps): Route<null, GetObjectRequest, ObjectEntry, RouteSuccess, RouteError> {
+export function getObjectRoute(
+  deps: GetObjectDeps,
+): Route<null, GetObjectRequest, ObjectEntry, RouteSuccess, RouteError> {
   return {
     parseRequest: pathParamParser(GetObjectPathSchema),
     handle: getObject.bind(null, deps),

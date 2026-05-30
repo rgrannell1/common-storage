@@ -18,6 +18,7 @@ import { getObjectsRoute } from "./routes/get-objects.ts";
 import { postDiffRoute } from "./routes/post-diff.ts";
 import { metricsMiddleware } from "./metrics/collector.ts";
 import { authMiddleware } from "./middleware/auth.ts";
+import { idempotencyMiddleware } from "./middleware/idempotency.ts";
 import { rateLimitMiddleware } from "./middleware/rate-limit.ts";
 import { securityHeaders } from "./middleware/security-headers.ts";
 import { loggingMiddleware } from "./middleware/logging.ts";
@@ -41,6 +42,9 @@ export function createApp(deps: AppDeps): Hono {
   app.use("*", rateLimitMiddleware(deps.storage, deps.rateLimits));
   app.use("*", authMiddleware(deps.config));
   app.use("*", metricsMiddleware(deps.collector));
+  // Last middleware before routes: a cache hit short-circuits the handler but is still
+  // logged/counted.
+  app.use("*", idempotencyMiddleware(deps.storage));
 
   registerRoutes(app, [
     { method: "GET",    path: "/feed",               route: getFeedRoute(deps) },

@@ -30,7 +30,9 @@ Deno.test("Proves sweepTombstones removes the primary and seq index entries", as
   }
 });
 
-Deno.test("Proves sweepTombstones invalidates Merkle hash cache so subsequent diff recomputes", async () => {
+Deno.test(
+  "Proves sweepTombstones invalidates Merkle hash cache so subsequent diff recomputes",
+  async () => {
   const { storage, tmpPath } = await makeStorage();
   try {
     await storage.upsertObject("things", "a", { value: 1 });
@@ -44,14 +46,19 @@ Deno.test("Proves sweepTombstones invalidates Merkle hash cache so subsequent di
 
     // Before sweep: diff should match — server also has the tombstone
     const before = await storage.diffObjects("things", diffReq);
-    if (before?.kind !== "match") throw new Error(`Expected match before sweep, got ${JSON.stringify(before)}`);
+    if (before?.kind !== "match") {
+      const beforeResult = JSON.stringify(before);
+      throw new Error(`Expected match before sweep, got ${beforeResult}`);
+    }
 
     // Sweep with a future cutoff — removes the tombstone and invalidates the Merkle cache
     await storage.sweepTombstones("things", Date.now() + 1);
 
-    // After sweep: same request now mismatches — server's leaf is empty, client's hash still includes tombstone
+    // After sweep: same request now mismatches — server's leaf is empty, client's hash
+    // still includes tombstone
     const after = await storage.diffObjects("things", diffReq);
-    if (after?.kind !== "diff") throw new Error(`Expected diff after sweep, got ${JSON.stringify(after)}`);
+    const afterResult = JSON.stringify(after);
+    if (after?.kind !== "diff") throw new Error(`Expected diff after sweep, got ${afterResult}`);
   } finally {
     await storage.close();
     await Deno.remove(tmpPath);
@@ -69,7 +76,10 @@ Deno.test("Proves sweepTombstones does not sweep entries within the retention wi
 
     const stillThere = await storage.readObject("things", "b");
     if (!stillThere) throw new Error("Expected tombstone to remain within retention window");
-    if (stillThere.payload !== null) throw new Error(`Expected tombstone payload, got ${JSON.stringify(stillThere.payload)}`);
+    if (stillThere.payload !== null) {
+      const stillTherePayload = JSON.stringify(stillThere.payload);
+      throw new Error(`Expected tombstone payload, got ${stillTherePayload}`);
+    }
   } finally {
     await storage.close();
     await Deno.remove(tmpPath);

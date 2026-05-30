@@ -28,15 +28,24 @@ const NO_OP_SCHEDULER: IScheduler = {
   cancelAll: () => {},
 };
 
-// Writes entries in parallel batches; writeEvent is atomic-checked so concurrent calls retry safely.
-async function writeBatch(fn: (idx: number) => Promise<unknown>, count: number, batchSize = 20): Promise<void> {
+// Writes entries in parallel batches; writeEvent is atomic-checked so concurrent calls retry
+// safely.
+async function writeBatch(
+  fn: (idx: number) => Promise<unknown>,
+  count: number,
+  batchSize = 20
+): Promise<void> {
   for (let idx = 0; idx < count; idx += batchSize) {
     const end = Math.min(idx + batchSize, count);
     await Promise.all(Array.from({ length: end - idx }, (_, jdx) => fn(idx + jdx)));
   }
 }
 
-Deno.test("Proves sync is bucket-efficient — incremental and deletion cycles read proportionally to changed buckets, not total entries", async () => {
+const efficiencyTestName = [
+  "Proves sync is bucket-efficient — incremental and deletion cycles",
+  "read proportionally to changed buckets, not total entries",
+].join(" ");
+Deno.test(efficiencyTestName, async () => {
   // --- Server setup ---
   const serverTmpPath = await Deno.makeTempFile({ suffix: ".db" });
   const serverOps = new KvOpsCounter();
@@ -62,18 +71,34 @@ Deno.test("Proves sync is bucket-efficient — incremental and deletion cycles r
   await clientStorage.init();
   await clientStorage.createTopics([{ name: EVENT_TOPIC }], [{ name: OBJECT_TOPIC }]);
 
+  const eventSub = {
+    topic: EVENT_TOPIC,
+    remoteUrl: baseUrl,
+    token: TEST_TOKEN,
+    intervalMs: 60_000,
+    tailDurationMs: TEST_TAIL_MS,
+  };
+  const objectSub = {
+    topic: OBJECT_TOPIC,
+    remoteUrl: baseUrl,
+    token: TEST_TOKEN,
+    intervalMs: 60_000,
+  };
   const node = new CommonStorageNode(
     { backend: clientStorage, scheduler: NO_OP_SCHEDULER, logger: new NoopLogger() },
     {
-      events: [{ topic: EVENT_TOPIC, remoteUrl: baseUrl, token: TEST_TOKEN, intervalMs: 60_000, tailDurationMs: TEST_TAIL_MS }],
-      objects: [{ topic: OBJECT_TOPIC, remoteUrl: baseUrl, token: TEST_TOKEN, intervalMs: 60_000 }],
+      events: [eventSub],
+      objects: [objectSub],
     },
   );
 
   try {
     // --- Phase 1: populate server with initial entries ---
-    await writeBatch(idx => serverStorage.writeEvent(EVENT_TOPIC, { idx }), INITIAL_COUNT);
-    await writeBatch(idx => serverStorage.upsertObject(OBJECT_TOPIC, `obj-${idx}`, { idx }), INITIAL_COUNT);
+    const writeEventFn = (idx: number) => serverStorage.writeEvent(EVENT_TOPIC, { idx });
+    await writeBatch(writeEventFn, INITIAL_COUNT);
+    const upsertObjectFn = (idx: number) =>
+      serverStorage.upsertObject(OBJECT_TOPIC, `obj-${idx}`, { idx });
+    await writeBatch(upsertObjectFn, INITIAL_COUNT);
 
     // --- Phase 2: initial full sync (no prior local state) ---
     serverOps.drain();
@@ -102,8 +127,10 @@ Deno.test("Proves sync is bucket-efficient — incremental and deletion cycles r
       idx => serverStorage.writeEvent(EVENT_TOPIC, { idx: INITIAL_COUNT + idx }),
       INCREMENTAL_COUNT,
     );
+    const objKey = (idx: number) => `obj-${INITIAL_COUNT + idx}`;
+    const objPayload = (idx: number) => ({ idx: INITIAL_COUNT + idx });
     await writeBatch(
-      idx => serverStorage.upsertObject(OBJECT_TOPIC, `obj-${INITIAL_COUNT + idx}`, { idx: INITIAL_COUNT + idx }),
+      idx => serverStorage.upsertObject(OBJECT_TOPIC, objKey(idx), objPayload(idx)),
       INCREMENTAL_COUNT,
     );
     const totalEvents = INITIAL_COUNT + INCREMENTAL_COUNT;
@@ -164,16 +191,12 @@ Deno.test("Proves sync is bucket-efficient — incremental and deletion cycles r
     // Efficiency: only the 1–2 affected Merkle leaves per topic were re-scanned.
     // Event: 1 changed leaf (IDs 1–100) → ~100 server listItems, well under 1500.
     // Object: 2 changed leaves (original seq leaf + new tombstone seq leaf) → ~200 listItems.
-    assertLess(
-      eventDeleteOps.listItems,
-      totalEvents / 2,
-      "event deletion sync: only affected leaf re-read",
-    );
-    assertLess(
-      objectDeleteOps.listItems,
-      totalObjects / 2,
-      "object deletion sync: only affected leaves re-read",
-    );
+    const eventThreshold = totalEvents / 2;
+    const eventMsg = "event deletion sync: only affected leaf re-read";
+    assertLess(eventDeleteOps.listItems, eventThreshold, eventMsg);
+    const objectThreshold = totalObjects / 2;
+    const objectMsg = "object deletion sync: only affected leaves re-read";
+    assertLess(objectDeleteOps.listItems, objectThreshold, objectMsg);
 
   } finally {
     await server.shutdown();

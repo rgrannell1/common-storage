@@ -6,7 +6,12 @@ export class KvOpsCounter {
   listItems = 0;
 
   drain(): { reads: number; writes: number; lists: number; listItems: number } {
-    const snapshot = { reads: this.reads, writes: this.writes, lists: this.lists, listItems: this.listItems };
+    const snapshot = {
+      reads: this.reads,
+      writes: this.writes,
+      lists: this.lists,
+      listItems: this.listItems,
+    };
     this.reads = 0;
     this.writes = 0;
     this.lists = 0;

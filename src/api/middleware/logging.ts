@@ -1,4 +1,4 @@
-// Request logging middleware — logs every inbound request and unhandled errors to the injected logger
+// Request logging middleware — logs inbound requests and unhandled errors to the injected logger
 
 import type { Context, Next } from "hono";
 import type { ILogger } from "../../commons/logger.ts";

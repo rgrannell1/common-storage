@@ -2,10 +2,12 @@
 // @work.md
 
 import type { IStorageBackend, IAtomicWriter } from "../backend.ts";
-import type { EventEntry, UpdateEventTimestamps } from "../../capabilities.ts";
+import type { EventEntry, UpdateEventTimestamps, WriteFailure } from "../../capabilities.ts";
 import type { StoredTopic, StoredTopicStats, StoredEvent } from "../types/stored-types.ts";
 import { KV_TOPIC, KV_TOPIC_STATS, KV_EVENT, KV_EVENT_COUNTER, KV_MERKLE_HASH } from "../keys.ts";
 import { MERKLE_LEAF_SIZE, MERKLE_TREE_END } from "../../../commons/constants.ts";
+import { ok, err, type Result } from "../../../commons/types/result.ts";
+import { payloadTooLarge } from "../payload-guard.ts";
 
 // Returns the sequence of Merkle node ranges on the path from the leaf containing id to the root.
 // Each ancestor's cached hash must be invalidated when id is written.
@@ -29,9 +31,15 @@ function invalidateMerklePath(atomic: IAtomicWriter, topic: string, id: number):
   return atomic;
 }
 
-export async function writeEvent(storage: IStorageBackend, topic: string, payload: unknown): Promise<EventEntry | null> {
+export async function writeEvent(
+  storage: IStorageBackend,
+  topic: string,
+  payload: unknown,
+): Promise<Result<EventEntry, WriteFailure>> {
+  if (payloadTooLarge(payload)) return err({ kind: "payload_too_large" });
+
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
-  if (!meta) return null;
+  if (!meta) return err({ kind: "topic_not_found" });
 
   // Atomically claim the next ID by checking the counter versionstamp and retrying on conflict.
   while (true) {
@@ -54,13 +62,18 @@ export async function writeEvent(storage: IStorageBackend, topic: string, payloa
     atomic = invalidateMerklePath(atomic, topic, id);
 
     const result = await atomic.commit();
-    if (result.ok) return entry;
+    if (result.ok) return ok(entry);
   }
 }
 
-// Removes an event by ID, decrements the topic stats count, and invalidates the Merkle path.
-// Used by the client-side relocate path when an optimistic write is moved to the server's ID.
-export async function deleteEvent(storage: IStorageBackend, topic: string, id: number): Promise<void> {
+// Removes an event by ID, decrements the topic stats count, and invalidates
+// the Merkle path. Used by the client-side relocate path when an optimistic
+// write is moved to the server's ID.
+export async function deleteEvent(
+  storage: IStorageBackend,
+  topic: string,
+  id: number,
+): Promise<void> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
   if (!meta) return;
 
@@ -88,9 +101,17 @@ export async function deleteEvent(storage: IStorageBackend, topic: string, id: n
   }
 }
 
-export async function updateEvent(storage: IStorageBackend, topic: string, id: number, payload: unknown, timestamps?: UpdateEventTimestamps): Promise<{ entry: EventEntry; created: boolean } | null> {
+export async function updateEvent(
+  storage: IStorageBackend,
+  topic: string,
+  id: number,
+  payload: unknown,
+  timestamps?: UpdateEventTimestamps,
+): Promise<Result<{ entry: EventEntry; created: boolean }, WriteFailure>> {
+  if (payloadTooLarge(payload)) return err({ kind: "payload_too_large" });
+
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
-  if (!meta) return null;
+  if (!meta) return err({ kind: "topic_not_found" });
 
   while (true) {
     const [existing, stats, counter] = await Promise.all([
@@ -121,13 +142,14 @@ export async function updateEvent(storage: IStorageBackend, topic: string, id: n
     atomic = invalidateMerklePath(atomic, topic, id);
 
     if (isNew) {
-      // Advance counter past this ID so future local writeEvent calls don't collide
+      // Advance counter past this ID so future local writeEvent calls don't collide.
+      const nextCounter = Math.max(counter.value ?? 0, id);
       atomic = atomic
         .check(counter)
-        .set([...KV_EVENT_COUNTER, topic], Math.max(counter.value ?? 0, id));
+        .set([...KV_EVENT_COUNTER, topic], nextCounter);
     }
 
     const result = await atomic.commit();
-    if (result.ok) return { entry, created: isNew };
+    if (result.ok) return ok({ entry, created: isNew });
   }
 }

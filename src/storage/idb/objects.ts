@@ -2,8 +2,9 @@
 // IDB object store — implements ILocalObjectStore over IndexedDB.
 
 import type { ILocalObjectStore } from "../backend.ts";
-import type { ObjectEntry } from "../capabilities.ts";
+import type { ObjectEntry, WriteFailure } from "../capabilities.ts";
 import type { IDBDatabase } from "./types.ts";
+import { ok, type Result } from "../../commons/types/result.ts";
 
 export const IDB_OBJECT_STORE = "objects";
 const IDB_OBJECT_SEQ_INDEX = "by-seq";
@@ -18,7 +19,13 @@ type StoredObject = {
 };
 
 function toEntry(stored: StoredObject): ObjectEntry {
-  return { id: stored.id, seq: stored.seq, createdAt: stored.createdAt, updatedAt: stored.updatedAt, payload: stored.payload };
+  return {
+    id: stored.id,
+    seq: stored.seq,
+    createdAt: stored.createdAt,
+    updatedAt: stored.updatedAt,
+    payload: stored.payload,
+  };
 }
 
 export class IDBObjectStore implements ILocalObjectStore {
@@ -29,7 +36,10 @@ export class IDBObjectStore implements ILocalObjectStore {
       .then(result => result ? toEntry(result as StoredObject) : null);
   }
 
-  async readObjectsBySeq(topic: string, opts: { start?: number; size?: number }): Promise<ObjectEntry[] | null> {
+  async readObjectsBySeq(
+    topic: string,
+    opts: { start?: number; size?: number },
+  ): Promise<ObjectEntry[] | null> {
     const tx = this.db.transaction(IDB_OBJECT_STORE, "readonly");
     const index = tx.objectStore(IDB_OBJECT_STORE).index(IDB_OBJECT_SEQ_INDEX);
     const lower = opts.start ?? 0;
@@ -47,7 +57,12 @@ export class IDBObjectStore implements ILocalObjectStore {
     return results;
   }
 
-  async upsertObject(topic: string, id: string, payload: unknown, timestamps?: { createdAt?: number; updatedAt?: number; seq?: number }): Promise<ObjectEntry | null> {
+  async upsertObject(
+    topic: string,
+    id: string,
+    payload: unknown,
+    timestamps?: { createdAt?: number; updatedAt?: number; seq?: number },
+  ): Promise<Result<ObjectEntry, WriteFailure>> {
     const existing = await this.readObject(topic, id);
     const now = Date.now();
     // Use remote seq when provided (sync replication path) so diff hashes match the server.
@@ -59,10 +74,14 @@ export class IDBObjectStore implements ILocalObjectStore {
       payload,
     };
     await this.#put(stored);
-    return toEntry(stored);
+    return ok(toEntry(stored));
   }
 
-  async deleteObject(topic: string, id: string, timestamps?: { createdAt?: number; updatedAt?: number; seq?: number }): Promise<ObjectEntry | null> {
+  async deleteObject(
+    topic: string,
+    id: string,
+    timestamps?: { createdAt?: number; updatedAt?: number; seq?: number },
+  ): Promise<ObjectEntry | null> {
     const existing = await this.readObject(topic, id);
     const now = Date.now();
     const seq = timestamps?.seq ?? await this.#nextSeq(topic);
@@ -77,7 +96,11 @@ export class IDBObjectStore implements ILocalObjectStore {
   }
 
   // Returns summaries (seq as id + updatedAt) for objects with seq in (start, end].
-  async readObjectSummaries(topic: string, start: number, end: number): Promise<{ id: number; updatedAt: number }[]> {
+  async readObjectSummaries(
+    topic: string,
+    start: number,
+    end: number,
+  ): Promise<{ id: number; updatedAt: number }[]> {
     const tx = this.db.transaction(IDB_OBJECT_STORE, "readonly");
     const index = tx.objectStore(IDB_OBJECT_STORE).index(IDB_OBJECT_SEQ_INDEX);
     const range = IDBKeyRange.bound([topic, start + 1], [topic, end]);
@@ -105,7 +128,8 @@ export class IDBObjectStore implements ILocalObjectStore {
   }
 
   #put(stored: StoredObject): Promise<void> {
-    return this.db.put(IDB_OBJECT_STORE, stored, this.#key(stored.topic, stored.id)).then(() => undefined);
+    const key = this.#key(stored.topic, stored.id);
+    return this.db.put(IDB_OBJECT_STORE, stored, key).then(() => undefined);
   }
 
   async #nextSeq(topic: string): Promise<number> {

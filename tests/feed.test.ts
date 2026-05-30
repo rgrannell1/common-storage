@@ -27,7 +27,11 @@ Deno.test("Proves GET /feed returns 200 for a server with configured topics", as
 Deno.test("Proves GET /feed count reflects writes to the topic", async () => {
   const { fetch, cleanup } = await makePersistentServer([{ name: "events" }]);
   try {
-    const postInit: RequestInit = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payload: {} }) };
+    const postInit: RequestInit = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload: {} }),
+    };
     await discard(await fetch("/events/events", postInit));
     await discard(await fetch("/events/events", postInit));
 
@@ -35,7 +39,8 @@ Deno.test("Proves GET /feed count reflects writes to the topic", async () => {
     const body = await res.json() as { topics: { topic: string; count: number }[] };
 
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
-    if (body.topics[0].count !== 2) throw new Error(`Expected count 2, got ${body.topics[0].count}`);
+    const topicCount = body.topics[0].count;
+    if (topicCount !== 2) throw new Error(`Expected count 2, got ${topicCount}`);
   } finally {
     await cleanup();
   }

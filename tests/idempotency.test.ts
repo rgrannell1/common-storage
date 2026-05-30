@@ -15,11 +15,12 @@ function putJson(body: unknown, key?: string): RequestInit {
   return { method: "PUT", headers, body: JSON.stringify(body) };
 }
 
-Deno.test("Proves POST /events/:topic with Idempotency-Key creates only one entry on retry", async () => {
+Deno.test("Proves POST /events/:topic with Idempotency-Key deduplicates retries", async () => {
   const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   try {
-    const first = await fetch("/events/logs", postJson({ payload: { msg: "hello" } }, "key-1"));
-    const second = await fetch("/events/logs", postJson({ payload: { msg: "hello" } }, "key-1"));
+    const payload = { payload: { msg: "hello" } };
+    const first = await fetch("/events/logs", postJson(payload, "key-1"));
+    const second = await fetch("/events/logs", postJson(payload, "key-1"));
 
     if (first.status !== 201) throw new Error(`Expected 201, got ${first.status}`);
     if (second.status !== 201) throw new Error(`Expected 201, got ${second.status}`);
@@ -35,11 +36,12 @@ Deno.test("Proves POST /events/:topic with Idempotency-Key creates only one entr
   }
 });
 
-Deno.test("Proves POST /events/:topic without Idempotency-Key writes a new entry each time", async () => {
+Deno.test("Proves POST /events/:topic without Idempotency-Key creates new entries", async () => {
   const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   try {
-    const first = await fetch("/events/logs", postJson({ payload: { msg: "hello" } }));
-    const second = await fetch("/events/logs", postJson({ payload: { msg: "hello" } }));
+    const payload = { payload: { msg: "hello" } };
+    const first = await fetch("/events/logs", postJson(payload));
+    const second = await fetch("/events/logs", postJson(payload));
 
     if (first.status !== 201) throw new Error(`Expected 201, got ${first.status}`);
     if (second.status !== 201) throw new Error(`Expected 201, got ${second.status}`);
@@ -55,14 +57,16 @@ Deno.test("Proves POST /events/:topic without Idempotency-Key writes a new entry
   }
 });
 
-Deno.test("Proves PUT /events/:topic/:id with Idempotency-Key does not overwrite on retry", async () => {
+Deno.test("Proves PUT /events/:topic/:id with Idempotency-Key deduplicates", async () => {
   const { fetch, cleanup } = await makePersistentServer([{ name: "logs" }]);
   try {
     const created = await fetch("/events/logs", postJson({ payload: { msg: "initial" } }));
     const { id } = await created.json();
 
-    const first = await fetch(`/events/logs/${id}`, putJson({ payload: { msg: "updated" } }, "put-key-1"));
-    const second = await fetch(`/events/logs/${id}`, putJson({ payload: { msg: "should-be-ignored" } }, "put-key-1"));
+    const putPayload = { payload: { msg: "updated" } };
+    const first = await fetch(`/events/logs/${id}`, putJson(putPayload, "put-key-1"));
+    const ignoredPayload = { payload: { msg: "should-be-ignored" } };
+    const second = await fetch(`/events/logs/${id}`, putJson(ignoredPayload, "put-key-1"));
 
     if (first.status !== 200) throw new Error(`Expected 200, got ${first.status}`);
     if (second.status !== 200) throw new Error(`Expected 200, got ${second.status}`);
@@ -71,18 +75,23 @@ Deno.test("Proves PUT /events/:topic/:id with Idempotency-Key does not overwrite
     const secondEntry = await second.json();
 
     if (firstEntry.updatedAt !== secondEntry.updatedAt) {
-      throw new Error(`Expected same updatedAt on retry: got ${firstEntry.updatedAt} and ${secondEntry.updatedAt}`);
+      const t1 = firstEntry.updatedAt;
+      const t2 = secondEntry.updatedAt;
+      const msg = `Expected same updatedAt on retry: got ${t1} and ${t2}`;
+      throw new Error(msg);
     }
   } finally {
     await cleanup();
   }
 });
 
-Deno.test("Proves PUT /objects/:topic/:id with Idempotency-Key does not overwrite on retry", async () => {
+Deno.test("Proves PUT /objects/:topic/:id with Idempotency-Key deduplicates", async () => {
   const { fetch, cleanup } = await makePersistentServer([], [{ name: "things" }]);
   try {
-    const first = await fetch("/objects/things/item-1", putJson({ payload: { value: 42 } }, "obj-key-1"));
-    const second = await fetch("/objects/things/item-1", putJson({ payload: { value: 99 } }, "obj-key-1"));
+    const objPayload = { payload: { value: 42 } };
+    const first = await fetch("/objects/things/item-1", putJson(objPayload, "obj-key-1"));
+    const ignoredObjPayload = { payload: { value: 99 } };
+    const second = await fetch("/objects/things/item-1", putJson(ignoredObjPayload, "obj-key-1"));
 
     if (first.status !== 200) throw new Error(`Expected 200, got ${first.status}`);
     if (second.status !== 200) throw new Error(`Expected 200, got ${second.status}`);
@@ -91,18 +100,24 @@ Deno.test("Proves PUT /objects/:topic/:id with Idempotency-Key does not overwrit
     const secondEntry = await second.json();
 
     if (firstEntry.updatedAt !== secondEntry.updatedAt) {
-      throw new Error(`Expected same updatedAt on retry: got ${firstEntry.updatedAt} and ${secondEntry.updatedAt}`);
+      const t1 = firstEntry.updatedAt;
+      const t2 = secondEntry.updatedAt;
+      const msg = `Expected same updatedAt on retry: got ${t1} and ${t2}`;
+      throw new Error(msg);
     }
   } finally {
     await cleanup();
   }
 });
 
-Deno.test("Proves Idempotency-Key is scoped per topic — same key on different topics writes independently", async () => {
-  const { fetch, cleanup } = await makePersistentServer([{ name: "alpha" }, { name: "beta" }]);
+Deno.test("Proves Idempotency-Key cache is scoped per topic, not global", async () => {
+  const topicCfg = [{ name: "alpha" }, { name: "beta" }];
+  const { fetch, cleanup } = await makePersistentServer(topicCfg);
   try {
-    const first = await fetch("/events/alpha", postJson({ payload: { src: "alpha" } }, "shared-key"));
-    const second = await fetch("/events/beta", postJson({ payload: { src: "beta" } }, "shared-key"));
+    const alphaPayload = { payload: { src: "alpha" } };
+    const first = await fetch("/events/alpha", postJson(alphaPayload, "shared-key"));
+    const betaPayload = { payload: { src: "beta" } };
+    const second = await fetch("/events/beta", postJson(betaPayload, "shared-key"));
 
     if (first.status !== 201) throw new Error(`Expected 201 for alpha, got ${first.status}`);
     if (second.status !== 201) throw new Error(`Expected 201 for beta, got ${second.status}`);
@@ -112,7 +127,8 @@ Deno.test("Proves Idempotency-Key is scoped per topic — same key on different 
 
     // Both should be id=1 (first entry in each topic), confirming they did not share a cache slot
     if (firstEntry.id !== 1 || secondEntry.id !== 1) {
-      throw new Error(`Expected id=1 in each topic; got alpha=${firstEntry.id} beta=${secondEntry.id}`);
+      const msg = `Expected id=1 in each topic; got alpha=${firstEntry.id} beta=${secondEntry.id}`;
+      throw new Error(msg);
     }
   } finally {
     await cleanup();

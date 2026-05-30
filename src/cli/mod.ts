@@ -16,7 +16,8 @@ Usage:
   cs mint [<name>]                                   [--cfg <path>]
   cs auth <alias> --qr [<name>]                      [--cfg <path>]
   cs http get feed                                   [--cfg <path>] [--server <alias>]
-  cs http get content  -p topic=<topic>              [--cfg <path>] [--server <alias>] [-p start=<id>] [-p size=<n>]
+  cs http get content  -p topic=<topic>              [--cfg <path>] [--server <alias>]
+                                                     [-p start=<id>] [-p size=<n>]
   cs http get entry    -p topic=<topic> -p id=<id>   [--cfg <path>] [--server <alias>]
   cs http post content -p topic=<topic>              [--cfg <path>] [--server <alias>] [<payload>]
   cs http put entry    -p topic=<topic> -p id=<id>   [--cfg <path>] [--server <alias>] [<payload>]
@@ -28,7 +29,8 @@ Usage:
 
 Options:
   --cfg <path>      Path to config file; defaults to XDG config dir
-  --server <alias>  Server alias from config to target; defaults to defaultServer in config, then "local"
+  --server <alias>  Server alias from config to target; defaults to defaultServer in
+                    config, then "local"
   -p <param>        Key=value parameter (topic, id, start, size)
   -h --help         Show this help
 

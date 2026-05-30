@@ -34,23 +34,35 @@ async function buildEmptyHashTable(): Promise<string[]> {
 }
 
 // Checks whether the event range (start, end] is empty.
-async function isEventRangeEmpty(storage: IStorageBackend, topic: string, start: number, end: number): Promise<boolean> {
-  for await (const _ of storage.list<StoredEvent>({
+async function isEventRangeEmpty(
+  storage: IStorageBackend,
+  topic: string,
+  start: number,
+  end: number,
+): Promise<boolean> {
+  const selector = {
     start: [...KV_EVENT, topic, start + 1],
     end: [...KV_EVENT, topic, end + 1],
-  }, { limit: 1 })) {
+  };
+  for await (const _ of storage.list<StoredEvent>(selector, { limit: 1 })) {
     return false;
   }
   return true;
 }
 
 // Scans events in (start, end] and hashes them.
-async function computeLeafHash(storage: IStorageBackend, topic: string, start: number, end: number): Promise<string> {
+async function computeLeafHash(
+  storage: IStorageBackend,
+  topic: string,
+  start: number,
+  end: number,
+): Promise<string> {
   const entries: BucketEntry[] = [];
-  for await (const item of storage.list<StoredEvent>({
+  const selector = {
     start: [...KV_EVENT, topic, start + 1],
     end: [...KV_EVENT, topic, end + 1],
-  })) {
+  };
+  for await (const item of storage.list<StoredEvent>(selector)) {
     entries.push({ id: item.value.id, updatedAt: item.value.updatedAt });
   }
   return hashBucket(entries.sort(byIdAscending));
@@ -82,9 +94,16 @@ async function serverNodeHash(
       return emptyTable[Math.min(MERKLE_TREE_DEPTH, Math.max(0, depth))];
     }
     const mid = Math.floor((start + end) / 2);
-    // Sequential — conservative; empty short-circuit makes Promise.all safe too, but sequential keeps KV round-trips bounded
+    // Sequential — conservative; empty short-circuit makes Promise.all safe
+    // too, but sequential keeps KV round-trips bounded.
     const leftHash = await serverNodeHash(storage, topic, start, mid, emptyTable);
-    const rightHash = await serverNodeHash(storage, topic, mid, end, emptyTable);
+    const rightHash = await serverNodeHash(
+      storage,
+      topic,
+      mid,
+      end,
+      emptyTable,
+    );
     hash = await hashMerkleInternalNode(leftHash, rightHash);
   }
 
@@ -92,16 +111,27 @@ async function serverNodeHash(
   return hash;
 }
 
-export async function diffEvents(storage: IStorageBackend, topic: string, req: MerkleDiffRequest): Promise<MerkleDiffResponse | null> {
+export async function diffEvents(
+  storage: IStorageBackend,
+  topic: string,
+  req: MerkleDiffRequest,
+): Promise<MerkleDiffResponse | null> {
   const meta = await storage.get([...KV_TOPIC, topic]);
   if (!meta) return null;
 
   const emptyTable = await getEmptyHashTable();
-  const serverHashes = await Promise.all(req.nodes.map(node => serverNodeHash(storage, topic, node.start, node.end, emptyTable)));
+  const computeHash = (node: typeof req.nodes[0]) =>
+    serverNodeHash(storage, topic, node.start, node.end, emptyTable);
+  const serverHashes = await Promise.all(req.nodes.map(computeHash));
 
+  const buildMismatch = (node: typeof req.nodes[0]) => ({
+    start: node.start,
+    end: node.end,
+    isLeaf: node.end - node.start <= MERKLE_LEAF_SIZE,
+  });
   const mismatches: MerkleMismatch[] = req.nodes
     .filter((node, idx) => serverHashes[idx] !== node.hash)
-    .map(node => ({ start: node.start, end: node.end, isLeaf: node.end - node.start <= MERKLE_LEAF_SIZE }));
+    .map(buildMismatch);
 
   if (mismatches.length === 0) return { kind: "match" };
   return { kind: "diff", mismatches };

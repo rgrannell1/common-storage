@@ -1,4 +1,5 @@
-// Shared test setup — creates an isolated storage backend shared across per-request ephemeral servers
+// Shared test setup — creates an isolated storage backend shared across per-request
+// ephemeral servers
 // @work.md
 
 import { makeFetch } from "@deno-libs/superfetch";
@@ -52,7 +53,9 @@ export async function makeTestContext(
   await storage.createTopics(events, objects);
 
   const schemas = await buildSchemaRegistry(events, objects);
-  const app = createApp({ storage, collector: new MetricsCollector(storage), config: TEST_CONFIG, schemas, rateLimits, logger: new NoopLogger() });
+  const collector = new MetricsCollector(storage);
+  const logger = new NoopLogger();
+  const app = createApp({ storage, collector, config: TEST_CONFIG, schemas, rateLimits, logger });
 
   const request = (url: string, init?: RequestInit) => makeFetch(app.fetch)(url, withAuth(init));
 
@@ -67,8 +70,11 @@ export async function makeTestContext(
 // makePersistentServer starts a real server that stays up for the test's lifetime.
 // Use this when you need to read response body values across multiple requests,
 // since superfetch pre-consumes bodies and prevents direct .json() access.
+export type PersistentFetch = (url: string, init?: RequestInit) => Promise<Response>;
+
 export type PersistentTestContext = {
-  fetch: (url: string, init?: RequestInit) => Promise<Response>;
+  url: string;
+  fetch: PersistentFetch;
   cleanup: () => Promise<void>;
 };
 
@@ -89,7 +95,9 @@ async function spawnServer(
   await storage.createTopics(events, objects);
 
   const schemas = await buildSchemaRegistry(events, objects);
-  const app = createApp({ storage, collector: new MetricsCollector(storage), config: TEST_CONFIG, schemas, rateLimits, logger: new NoopLogger() });
+  const collector = new MetricsCollector(storage);
+  const logger = new NoopLogger();
+  const app = createApp({ storage, collector, config: TEST_CONFIG, schemas, rateLimits, logger });
   const server = Deno.serve({ port: 0 }, app.fetch);
   const { port } = server.addr;
 
@@ -108,20 +116,23 @@ export async function makePersistentServer(
   rateLimits?: RateLimitConfig,
 ): Promise<PersistentTestContext> {
   const { port, cleanup } = await spawnServer(events, objects, rateLimits);
+  const baseUrl = `http://localhost:${port}`;
   const fetch = (url: string, init?: RequestInit) =>
-    globalThis.fetch(`http://localhost:${port}${url}`, withAuth(init));
-  return { fetch, cleanup };
+    globalThis.fetch(`${baseUrl}${url}`, withAuth(init));
+  return { url: baseUrl, fetch, cleanup };
 }
 
-// Creates a persistent server whose fetch wrapper omits the auth token — used to prove routes reject unauthenticated requests.
+// Creates a persistent server whose fetch wrapper omits the auth token — used to
+// prove routes reject unauthenticated requests.
 export async function makeUnauthContext(
   events: TopicConfig[] = [],
   objects: TopicConfig[] = [],
 ): Promise<PersistentTestContext> {
   const { port, cleanup } = await spawnServer(events, objects);
+  const baseUrl = `http://localhost:${port}`;
   const fetch = (url: string, init?: RequestInit) =>
-    globalThis.fetch(`http://localhost:${port}${url}`, init);
-  return { fetch, cleanup };
+    globalThis.fetch(`${baseUrl}${url}`, init);
+  return { url: baseUrl, fetch, cleanup };
 }
 
 // Cancel a response body without reading it; prevents Deno's "body not consumed" leak detection.

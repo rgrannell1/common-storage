@@ -1,8 +1,15 @@
-// Storage capability sub-interfaces and their associated types — composed per route via intersection types
-// @work.md
+// Storage capability sub-interfaces and their associated types — composed per route via
+// intersection types. @work.md
 
 import type { IStorageBackend } from "./kv/backend.ts";
 import type { TopicConfig } from "../commons/config.ts";
+import type { Result } from "../commons/types/result.ts";
+
+// Why a write failed at the storage boundary: the topic does not exist, or the JSON-encoded
+// payload exceeds the backend's value-size limit (Deno KV caps stored values at 64KiB).
+export type WriteFailure =
+  | { kind: "topic_not_found" }
+  | { kind: "payload_too_large" };
 
 export type TopicStats = {
   topic: string;
@@ -43,8 +50,9 @@ export type EventEntry = {
 };
 
 export interface IWriteEvent {
-  // Returns null if the topic does not exist
-  writeEvent(topic: string, payload: unknown): Promise<EventEntry | null>;
+  // Fails with topic_not_found if the topic does not exist, or payload_too_large if the
+  // payload exceeds the value-size limit
+  writeEvent(topic: string, payload: unknown): Promise<Result<EventEntry, WriteFailure>>;
 }
 
 export type ReadEventOptions = {
@@ -62,7 +70,8 @@ export interface IReadEvents {
 }
 
 export interface IStreamEvents {
-  // Yields entries from startId onward indefinitely, polling for new writes; terminates when signal is aborted or topic does not exist
+  // Yields entries from startId onward indefinitely, polling for new writes; terminates
+  // when signal is aborted or topic does not exist
   streamEvents(topic: string, startId: number, signal: AbortSignal): AsyncGenerator<EventEntry>;
 }
 
@@ -72,8 +81,14 @@ export interface IReadEvent {
 }
 
 export interface IUpdateEvent {
-  // Upserts an event at the given ID. Returns null if the topic does not exist; created is true when a new entry was written.
-  updateEvent(topic: string, id: number, payload: unknown, timestamps?: UpdateEventTimestamps): Promise<{ entry: EventEntry; created: boolean } | null>;
+  // Upserts an event at the given ID. Fails with topic_not_found or payload_too_large;
+  // created is true when a new entry was written.
+  updateEvent(
+    topic: string,
+    id: number,
+    payload: unknown,
+    timestamps?: UpdateEventTimestamps,
+  ): Promise<Result<{ entry: EventEntry; created: boolean }, WriteFailure>>;
 }
 
 export type ObjectEntry = {
@@ -94,8 +109,13 @@ export type UpsertObjectTimestamps = {
 };
 
 export interface IUpsertObject {
-  // Creates or updates an object entry; returns null if the topic does not exist
-  upsertObject(topic: string, id: string, payload: unknown, timestamps?: UpsertObjectTimestamps): Promise<ObjectEntry | null>;
+  // Creates or updates an object entry; fails with topic_not_found or payload_too_large
+  upsertObject(
+    topic: string,
+    id: string,
+    payload: unknown,
+    timestamps?: UpsertObjectTimestamps,
+  ): Promise<Result<ObjectEntry, WriteFailure>>;
 }
 
 export interface IReadObject {
@@ -105,7 +125,11 @@ export interface IReadObject {
 
 export interface IDeleteObject {
   // Writes a tombstone (payload: null); returns null only if the topic does not exist
-  deleteObject(topic: string, id: string, timestamps?: UpsertObjectTimestamps): Promise<ObjectEntry | null>;
+  deleteObject(
+    topic: string,
+    id: string,
+    timestamps?: UpsertObjectTimestamps,
+  ): Promise<ObjectEntry | null>;
 }
 
 export interface IReadObjects {
@@ -115,11 +139,15 @@ export interface IReadObjects {
 
 export interface IReadObjectsBySeq {
   // Returns null if topic does not exist; returns objects ordered by seq from opts.start onward
-  readObjectsBySeq(topic: string, opts: { start?: number; size?: number }): Promise<ObjectEntry[] | null>;
+  readObjectsBySeq(
+    topic: string,
+    opts: { start?: number; size?: number },
+  ): Promise<ObjectEntry[] | null>;
 }
 
 export interface IStreamObjects {
-  // Yields objects from startSeq onward indefinitely, polling for new writes; terminates when signal is aborted or topic does not exist
+  // Yields objects from startSeq onward indefinitely, polling for new writes; terminates
+  // when signal is aborted or topic does not exist
   streamObjects(topic: string, startSeq: number, signal: AbortSignal): AsyncGenerator<ObjectEntry>;
 }
 
@@ -129,7 +157,12 @@ export interface IReadIdempotencyEntry {
 }
 
 export interface IWriteIdempotencyEntry {
-  writeIdempotencyEntry(namespace: string, topic: string, key: string, entry: unknown): Promise<void>;
+  writeIdempotencyEntry(
+    namespace: string,
+    topic: string,
+    key: string,
+    entry: unknown,
+  ): Promise<void>;
 }
 
 export interface IGetTopicType {
@@ -137,10 +170,12 @@ export interface IGetTopicType {
   getTopicType(topic: string): Promise<"event" | "object" | null>;
 }
 
-// One node in an interactive Merkle diff request; start and end form a half-open range (start, end].
+// One node in an interactive Merkle diff request; start and end form a half-open range
+// (start, end].
 export type MerkleNode = { start: number; end: number; hash: string };
 
-// A node in the server's tree that diverges from the client's; isLeaf indicates the client should fetch this range.
+// A node in the server's tree that diverges from the client's; isLeaf indicates the
+// client should fetch this range.
 export type MerkleMismatch = { start: number; end: number; isLeaf: boolean };
 
 export type MerkleDiffRequest = { nodes: MerkleNode[] };

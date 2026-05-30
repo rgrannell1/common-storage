@@ -113,7 +113,9 @@ export const JsonPayloadSchema = z.unknown().refine(
 );
 
 // SHA-256 hex digest — 64 lowercase hex characters
-export const HexHashSchema = z.string().regex(/^[0-9a-f]{64}$/, "must be a 64-character lowercase hex string");
+const HexHashRegex = /^[0-9a-f]{64}$/;
+const HexHashMessage = "must be a 64-character lowercase hex string";
+export const HexHashSchema = z.string().regex(HexHashRegex, HexHashMessage);
 
 // One node in a Merkle diff request — covers IDs (start, end]; end must exceed start
 export const MerkleNodeSchema = z.object({
