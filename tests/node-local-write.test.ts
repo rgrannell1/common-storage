@@ -40,13 +40,15 @@ class TrackingMerkleStore implements ILocalMerkleStore {
     return Promise.resolve("");
   }
 
-  async invalidatePath(_topic: string, id: number): Promise<void> {
+  invalidatePath(_topic: string, id: number): Promise<void> {
     this.invalidatedIds.push(id);
+    return Promise.resolve();
   }
 
-  async invalidatePaths(_topic: string, newId: number, oldId?: number): Promise<void> {
+  invalidatePaths(_topic: string, newId: number, oldId?: number): Promise<void> {
     this.invalidatedIds.push(newId);
     if (oldId !== undefined && oldId !== newId) this.invalidatedIds.push(oldId);
+    return Promise.resolve();
   }
 }
 
@@ -180,6 +182,72 @@ Deno.test("Proves sync after postEvent does not download duplicate events", asyn
     await node.sync(TOPIC);
     const afterSecondSync = (await node.getEvents(TOPIC) ?? []).length;
     assertEquals(afterSecondSync, 5, "second sync must not download duplicate copies of locally-posted events");
+  } finally {
+    await server.shutdown();
+    await serverStorage.close();
+    await clientStorage.close();
+    await Deno.remove(serverTmpPath);
+    await Deno.remove(clientTmpPath);
+  }
+});
+
+Deno.test("Proves postEvent adopts the server-assigned id when client and server event counters diverge", async () => {
+  const serverTmpPath = await Deno.makeTempFile({ suffix: ".db" });
+  const serverStorage = new DenoKVBackend(serverTmpPath);
+  await serverStorage.init();
+  await serverStorage.createTopics([{ name: TOPIC }], []);
+
+  const schemas = await buildSchemaRegistry([{ name: TOPIC }], []);
+  const config: Config = { server: { port: 0 }, rootKey: TEST_ROOT_KEY_VAR };
+  const app = createApp({
+    storage: serverStorage,
+    collector: new MetricsCollector(serverStorage),
+    config,
+    schemas,
+    logger: new NoopLogger(),
+  });
+  const server = Deno.serve({ port: 0 }, app.fetch);
+  const baseUrl = `http://localhost:${server.addr.port}`;
+
+  const clientTmpPath = await Deno.makeTempFile({ suffix: ".db" });
+  const clientStorage = new DenoKVBackend(clientTmpPath);
+  await clientStorage.init();
+  await clientStorage.createTopics([{ name: TOPIC }], []);
+
+  const node = new CommonStorageNode(
+    { backend: clientStorage, scheduler: NO_OP_SCHEDULER, logger: new NoopLogger() },
+    {
+      events: [{
+        topic: TOPIC,
+        remoteUrl: baseUrl,
+        token: TEST_TOKEN,
+        intervalMs: 60_000,
+        tailDurationMs: TEST_TAIL_MS,
+      }],
+    },
+  );
+
+  try {
+    // Seed the server directly so its event counter is ahead of the fresh client's.
+    for (let idx = 0; idx < 3; idx++) {
+      const res = await fetch(`${baseUrl}/events/${TOPIC}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${TEST_TOKEN}` },
+        body: JSON.stringify({ payload: { seed: idx } }),
+      });
+      await res.body?.cancel();
+    }
+
+    // Client counter is 0, so the optimistic local write lands at id 1; the server assigns id 4.
+    const entry = await node.postEvent(TOPIC, { mine: true });
+    assertEquals(entry?.id, 4, "postEvent must return the server-assigned id, not the optimistic local id");
+    assertEquals(await node.getEvent(TOPIC, 4) !== null, true, "entry must be stored locally at the server id");
+    assertEquals(await node.getEvent(TOPIC, 1), null, "the optimistic local id must be relocated away, leaving no phantom");
+
+    // Sync pulls the 3 seeds; the client's own write is not duplicated.
+    await node.sync(TOPIC);
+    const all = await node.getEvents(TOPIC) ?? [];
+    assertEquals(all.length, 4, "after sync: 3 seeded events + 1 own write, with no duplicate of the relocated write");
   } finally {
     await server.shutdown();
     await serverStorage.close();

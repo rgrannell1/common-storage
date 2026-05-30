@@ -19,6 +19,9 @@ export interface ILocalEventStore {
   updateEvent(topic: string, id: number, payload: unknown, timestamps?: { createdAt?: number; updatedAt?: number }): Promise<{ entry: EventEntry; created: boolean } | null>;
   // Appends a new event; server assigns the ID.
   writeEvent(topic: string, payload: unknown): Promise<EventEntry | null>;
+  // Removes an event by ID. Client-only: used to relocate an optimistic write to the
+  // server-assigned ID once the push response returns. Server backends may omit it.
+  deleteEvent?(topic: string, id: number): Promise<void>;
 }
 
 // Timestamps (and remote seq) preserved during sync replication. seq is client-only — KV backends

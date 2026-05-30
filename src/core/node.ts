@@ -107,12 +107,35 @@ export class CommonStorageNode {
   // -- Event topic writes (optimistic: local first, then push to remote) --
 
   async postEvent(topic: string, payload: unknown): Promise<EventEntry | null> {
-    const entry = await this.backend.events.writeEvent(topic, payload);
-    if (entry) {
-      await this.backend.merkleEvents?.invalidatePath(topic, entry.id);
-      this.#emit({ type: "upsert", topic, entry });
-      await this.#pushEvent(topic, "POST", payload);
+    const local = await this.backend.events.writeEvent(topic, payload);
+    if (!local) return null;
+
+    await this.backend.merkleEvents?.invalidatePath(topic, local.id);
+    this.#emit({ type: "upsert", topic, entry: local });
+
+    // The server assigns its own ID; without adopting it the local entry sits at a phantom
+    // ID the server never has, so the diff re-flags its leaf on every sync. Relocate the
+    // optimistic write to the server's ID and timestamps once the push response returns.
+    const remote = await this.#pushEvent(topic, "POST", payload);
+    if (!remote) return local;
+    return this.#adoptServerEvent(topic, local, remote);
+  }
+
+  // Replaces an optimistic local event with the server's authoritative copy: deletes the
+  // local entry if its ID differs, then writes the server ID + timestamps so local diff
+  // hashes match the server exactly. Invalidates both Merkle paths and emits the result.
+  async #adoptServerEvent(topic: string, local: EventEntry, remote: EventEntry): Promise<EventEntry> {
+    if (remote.id !== local.id) {
+      await this.backend.events.deleteEvent?.(topic, local.id);
+      await this.backend.merkleEvents?.invalidatePath(topic, local.id);
     }
+    const result = await this.backend.events.updateEvent(topic, remote.id, remote.payload, {
+      createdAt: remote.createdAt,
+      updatedAt: remote.updatedAt,
+    });
+    const entry = result?.entry ?? remote;
+    await this.backend.merkleEvents?.invalidatePath(topic, remote.id);
+    this.#emit({ type: "upsert", topic, entry });
     return entry;
   }
 
@@ -193,9 +216,12 @@ export class CommonStorageNode {
     for (const handler of handlers) handler(event);
   }
 
-  async #pushEvent(topic: string, method: "POST" | "PUT", payload: unknown, id?: number): Promise<void> {
+  // Pushes a write to the remote and returns the server's authoritative EventEntry on success
+  // (carrying the server-assigned ID and timestamps), or null if the push failed or the topic
+  // is not a subscription. Callers use the returned entry to reconcile local optimistic state.
+  async #pushEvent(topic: string, method: "POST" | "PUT", payload: unknown, id?: number): Promise<EventEntry | null> {
     const sub = this.subscriptions.find(declared => declared.topic === topic);
-    if (!sub) return;
+    if (!sub) return null;
     const url = method === "POST"
       ? `${sub.remoteUrl}/events/${topic}`
       : `${sub.remoteUrl}/events/${topic}/${id}`;
@@ -207,7 +233,12 @@ export class CommonStorageNode {
       this.logger.error("event push failed", undefined, { topic, method, error: String(err) });
       return null;
     });
-    await res?.body?.cancel();
+    if (!res) return null;
+    if (!res.ok) {
+      await res.body?.cancel();
+      return null;
+    }
+    return await res.json().catch(() => null) as EventEntry | null;
   }
 
   async #pushObject(topic: string, id: string, method: "PUT" | "DELETE", payload?: unknown): Promise<void> {

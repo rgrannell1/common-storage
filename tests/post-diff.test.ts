@@ -24,7 +24,7 @@ function post(fetch: (url: string, init?: RequestInit) => Promise<Response>, url
 }
 
 // Sends the root node of a full Merkle tree and returns the diff response.
-async function sendRoot(
+function sendRoot(
   fetch: (url: string, init?: RequestInit) => Promise<Response>,
   topic: string,
   rootHash: string,
@@ -148,7 +148,7 @@ Deno.test("Proves POST /diff/:topic converges to a leaf mismatch through interac
     // Client has no local entries — compute correct empty-tree hashes for each subtree
     const clientTree = buildEventMerkleTree([]);
     let frontier = [{ start: 0, end: MERKLE_TREE_END, hash: await clientTree.hashForRange(0, MERKLE_TREE_END) }];
-    let leafRanges: { start: number; end: number }[] = [];
+    const leafRanges: { start: number; end: number }[] = [];
 
     for (let round = 0; round < 25; round++) {
       const res = await post(fetch, "/diff/logs", { nodes: frontier });

@@ -61,6 +61,11 @@ export class IDBEventStore implements ILocalEventStore {
     return toEntry(entry);
   }
 
+  // Removes an event by ID. Used to relocate an optimistic write to the server-assigned ID.
+  deleteEvent(topic: string, id: number): Promise<void> {
+    return this.db.delete(IDB_EVENT_STORE, this.#key(topic, id)).then(() => undefined);
+  }
+
   // Returns summaries (id + updatedAt) for events with id in (start, end].
   async readEventSummaries(topic: string, start: number, end: number): Promise<EventSummary[]> {
     const tx = this.db.transaction(IDB_EVENT_STORE, "readonly");

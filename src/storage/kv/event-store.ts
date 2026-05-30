@@ -13,6 +13,10 @@ export class KvEventStore implements IEventService, ILocalEventStore {
     return Events.writeEvent(this.storage, topic, payload);
   }
 
+  deleteEvent(topic: string, id: number): Promise<void> {
+    return Events.deleteEvent(this.storage, topic, id);
+  }
+
   readEvents(topic: string, opts: ReadEventOptions): Promise<EventEntry[] | null> {
     return Events.readEvents(this.storage, topic, opts);
   }

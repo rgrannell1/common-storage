@@ -58,6 +58,36 @@ export async function writeEvent(storage: IStorageBackend, topic: string, payloa
   }
 }
 
+// Removes an event by ID, decrements the topic stats count, and invalidates the Merkle path.
+// Used by the client-side relocate path when an optimistic write is moved to the server's ID.
+export async function deleteEvent(storage: IStorageBackend, topic: string, id: number): Promise<void> {
+  const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
+  if (!meta) return;
+
+  while (true) {
+    const [existing, stats] = await Promise.all([
+      storage.getEntry<StoredEvent>([...KV_EVENT, topic, id]),
+      storage.getEntry<StoredTopicStats>([...KV_TOPIC_STATS, topic]),
+    ]);
+    if (existing.value === null) return;
+
+    const newStats: StoredTopicStats = {
+      count: Math.max(0, (stats.value?.count ?? 0) - 1),
+      lastUpdated: Date.now(),
+    };
+
+    let atomic = storage.atomic()
+      .check(existing)
+      .check(stats)
+      .delete([...KV_EVENT, topic, id])
+      .set([...KV_TOPIC_STATS, topic], newStats);
+    atomic = invalidateMerklePath(atomic, topic, id);
+
+    const result = await atomic.commit();
+    if (result.ok) return;
+  }
+}
+
 export async function updateEvent(storage: IStorageBackend, topic: string, id: number, payload: unknown, timestamps?: UpdateEventTimestamps): Promise<{ entry: EventEntry; created: boolean } | null> {
   const meta = await storage.get<StoredTopic>([...KV_TOPIC, topic]);
   if (!meta) return null;
